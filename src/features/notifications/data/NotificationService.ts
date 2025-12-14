@@ -1,0 +1,68 @@
+import { NotificationsService } from '@/src/infrastructure/api/generated/services/NotificationsService';
+import { NotificationResponse } from '../domain/Notification';
+
+export class NotificationService {
+    /**
+     * Get notifications with pagination
+     */
+    static async getNotifications(
+        unreadOnly?: boolean,
+        limit?: number,
+        cursor?: string
+    ): Promise<NotificationResponse> {
+        const response = await NotificationsService.getNotifications(
+            unreadOnly?.toString(),
+            limit?.toString(),
+            cursor
+        );
+        return response;
+    }
+
+    /**
+     * Get unread notification count (for badge)
+     */
+    static async getUnreadCount(): Promise<number> {
+        const response = await NotificationsService.getNotificationsUnreadCount();
+        return response.count;
+    }
+
+    /**
+     * Mark notifications as read
+     * If no IDs provided, marks all as read
+     */
+    static async markAsRead(notificationIds?: string[]): Promise<void> {
+        await NotificationsService.postNotificationsMarkRead({
+            notificationIds,
+        });
+    }
+
+    /**
+     * Mark single notification as read
+     */
+    static async markOneAsRead(notificationId: string): Promise<void> {
+        await NotificationsService.patchNotificationsRead(notificationId);
+    }
+
+    /**
+     * Delete a notification
+     */
+    static async deleteNotification(notificationId: string): Promise<void> {
+        await NotificationsService.deleteNotifications(notificationId);
+    }
+
+    /**
+     * Delete all read notifications
+     */
+    static async deleteReadNotifications(): Promise<void> {
+        await NotificationsService.deleteNotificationsRead();
+    }
+
+    /**
+     * Register Expo push token for push notifications
+     */
+    static async registerPushToken(expoPushToken: string): Promise<void> {
+        await NotificationsService.postNotificationsRegisterPushToken({
+            expoPushToken,
+        });
+    }
+}

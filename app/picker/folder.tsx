@@ -1,0 +1,314 @@
+import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Folder } from '@/src/features/folders/domain/Folder';
+import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
+import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
+import I18nLocal from '@/src/infrastructure/localization/i18n';
+import { usePicker } from '@/src/infrastructure/picker/PickerContext';
+import { getIconDisplay } from '@/src/utils/iconUtils';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export default function FolderPickerScreen() {
+    const { colors } = useSettings();
+    const router = useRouter();
+    const { onFolderSelect } = usePicker();
+    const params = useLocalSearchParams<{ selectedId?: string; requiredPermission?: string }>();
+    const selectedId = params.selectedId;
+    const requiredPermission = params.requiredPermission;
+
+    const [folders, setFolders] = useState<Folder[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        loadFolders();
+    }, []);
+
+    const checkPermission = (folder: Folder) => {
+        if (!requiredPermission) return true;
+        if (!folder.permission) return true; // Assume true if unknown, though personal folders should have FULL
+
+        const levels = ['VIEW', 'EDIT', 'CREATE', 'FULL'];
+        const folderLevel = levels.indexOf(folder.permission);
+        const requiredLevel = levels.indexOf(requiredPermission);
+
+        return folderLevel >= requiredLevel;
+    };
+
+    const loadFolders = async () => {
+        try {
+            const data = await FolderRepository.getFolders();
+            setFolders(data);
+        } catch (err) {
+            console.error('Failed to load folders:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getFolderPath = (folder: Folder, allFolders: Folder[]) => {
+        const parts = [];
+        let current: Folder | undefined = folder;
+        while (current?.parentId) {
+            current = allFolders.find(f => f.id === current?.parentId);
+            if (current) parts.unshift(current.name);
+        }
+        return parts.join(' / ');
+    };
+
+    // Build hierarchical data
+    const sortedFolders = useMemo(() => {
+        if (searchQuery.trim()) {
+            return folders.filter(f =>
+                f.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+                checkPermission(f)
+            ).map(f => ({ ...f, level: 0, path: getFolderPath(f, folders) }));
+        }
+
+        const buildTree = (parentId: string | undefined = undefined, level: number = 0): (Folder & { level: number })[] => {
+            const children = folders
+                .filter(f => (f.parentId === parentId || (parentId === undefined && !f.parentId)) && checkPermission(f))
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            return children.flatMap(child => [
+                { ...child, level },
+                ...buildTree(child.id, level + 1)
+            ]);
+        };
+
+        return buildTree();
+    }, [folders, searchQuery]);
+
+    const handleSelect = (folder: Folder | null) => {
+        onFolderSelect(folder);
+        router.back();
+    };
+
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+            backgroundColor: colors.headerBackground,
+        },
+        closeButton: {
+            width: 40,
+            height: 40,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        title: {
+            fontSize: 17,
+            color: colors.text,
+        },
+        searchContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.inputBackground,
+            marginHorizontal: 16,
+            marginVertical: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 12,
+            borderRadius: 12,
+            gap: 10,
+        },
+        searchInput: {
+            flex: 1,
+            fontSize: 16,
+            color: colors.text,
+            padding: 0,
+        },
+        loadingContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        list: {
+            flex: 1,
+        },
+        item: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+            backgroundColor: colors.card,
+        },
+        itemActive: {
+            backgroundColor: colors.primary + '10',
+        },
+        itemContent: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 14,
+        },
+        iconContainer: {
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        iconEmoji: {
+            fontSize: 22,
+        },
+        itemText: {
+            fontSize: 16,
+            color: colors.text,
+        },
+        emptyContainer: {
+            paddingVertical: 60,
+            alignItems: 'center',
+            gap: 12,
+        },
+        emptyText: {
+            fontSize: 16,
+            color: colors.gray,
+        },
+        sharedText: {
+            fontSize: 12,
+            color: colors.primary,
+            marginTop: 2,
+        },
+        folderPath: {
+            fontSize: 12,
+            color: colors.gray,
+            marginTop: 2,
+        },
+        textContainer: {
+            flex: 1,
+        },
+        treeLine: {
+            width: 1,
+            height: 24,
+            backgroundColor: colors.border,
+            position: 'absolute',
+            left: -12,
+            top: -12,
+            opacity: 0.5,
+        },
+    }), [colors]);
+
+    const renderItem = ({ item }: { item: Folder & { level?: number; path?: string } }) => (
+        <TouchableOpacity
+            style={[styles.item, selectedId === item.id && styles.itemActive]}
+            onPress={() => handleSelect(item)}
+        >
+            <View style={[styles.itemContent, { paddingLeft: (item.level || 0) * 24 }]}>
+                {item.level && item.level > 0 ? (
+                    <View style={styles.treeLine} />
+                ) : null}
+                <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
+                    <ThemedText style={styles.iconEmoji}>{getIconDisplay(item.icon)}</ThemedText>
+                </View>
+                <View style={styles.textContainer}>
+                    <ThemedText style={styles.itemText}>{item.name}</ThemedText>
+                    {item.path ? (
+                        <ThemedText style={styles.folderPath}>{item.path}</ThemedText>
+                    ) : null}
+                    {item.isShared && (
+                        <ThemedText style={styles.sharedText}>{I18nLocal.t('folders.picker.shared_badge')}</ThemedText>
+                    )}
+                </View>
+            </View>
+            {selectedId === item.id && (
+                <IconSymbol name="checkmark" size={20} color={colors.primary} />
+            )}
+        </TouchableOpacity>
+    );
+
+    const renderHeader = () => {
+        if (searchQuery) return null;
+        return (
+            <TouchableOpacity
+                style={[styles.item, !selectedId && styles.itemActive]}
+                onPress={() => handleSelect(null)}
+            >
+                <View style={styles.itemContent}>
+                    <View style={[styles.iconContainer, { backgroundColor: colors.gray + '20' }]}>
+                        <IconSymbol name="folder" size={20} color={colors.gray} />
+                    </View>
+                    <ThemedText style={styles.itemText}>{I18nLocal.t('folders.picker.all')}</ThemedText>
+                </View>
+                {!selectedId && (
+                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                )}
+            </TouchableOpacity>
+        );
+    };
+
+    const renderEmpty = () => {
+        if (!searchQuery) return null;
+        return (
+            <View style={styles.emptyContainer}>
+                <IconSymbol name="folder" size={48} color={colors.border} />
+                <ThemedText style={styles.emptyText}>{I18nLocal.t('folders.picker.empty')}</ThemedText>
+            </View>
+        );
+    };
+
+    return (
+        <SafeAreaView style={styles.container} edges={['bottom']}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+                    <IconSymbol name="xmark" size={22} color={colors.text} />
+                </TouchableOpacity>
+                <ThemedText type="defaultSemiBold" style={styles.title}>{I18nLocal.t('folders.picker.modal_title')}</ThemedText>
+                <View style={styles.closeButton} />
+            </View>
+
+            <View style={styles.searchContainer}>
+                <IconSymbol name="magnifyingglass" size={18} color={colors.gray} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder={I18nLocal.t('folders.picker.search_placeholder')}
+                    placeholderTextColor={colors.gray}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCorrect={false}
+                />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <IconSymbol name="xmark.circle.fill" size={18} color={colors.gray} />
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            ) : (
+                <FlatList
+                    data={sortedFolders}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    ListHeaderComponent={renderHeader}
+                    ListEmptyComponent={renderEmpty}
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.list}
+                />
+            )}
+        </SafeAreaView>
+    );
+}

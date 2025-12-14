@@ -1,0 +1,155 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+import type { CancelablePromise } from '../core/CancelablePromise';
+import { OpenAPI } from '../core/OpenAPI';
+import { request as __request } from '../core/request';
+export class FolderService {
+    /**
+     * List folders
+     * Returns nested folder tree by default. Use ?flat=true for flat list.
+     * @param flat
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getFolders(
+        flat?: 'true' | 'false',
+    ): CancelablePromise<Array<{
+        id: string;
+        name: string;
+        icon: string;
+        color: string;
+        userId: string;
+        parentId: string | null;
+        createdAt: string;
+        updatedAt: string;
+        children?: Array<any>;
+    }>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/folders/',
+            query: {
+                'flat': flat,
+            },
+        });
+    }
+    /**
+     * Create folder
+     * Create a new folder. Optionally specify parentId to create a subfolder.
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postFolders(
+        requestBody: {
+            name: string;
+            icon: string;
+            color: string;
+            parentId?: string | null;
+        },
+    ): CancelablePromise<{
+        id: string;
+        name: string;
+        icon: string;
+        color: string;
+        userId: string;
+        parentId: string | null;
+        createdAt: string;
+        updatedAt: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/folders/',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
+                404: `Default Response`,
+            },
+        });
+    }
+    /**
+     * Get folder by id
+     * @param id
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getFolders1(
+        id: string,
+    ): CancelablePromise<{
+        id: string;
+        name: string;
+        icon: string;
+        color: string;
+        userId: string;
+        parentId: string | null;
+        createdAt: string;
+        updatedAt: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/folders/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * Update folder
+     * Update folder properties. Can move folder to different parent by updating parentId. Prevents circular references.
+     * @param id
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static putFolders(
+        id: string,
+        requestBody?: {
+            name?: string;
+            icon?: string;
+            color?: string;
+            parentId?: string | null;
+        },
+    ): CancelablePromise<{
+        id: string;
+        name: string;
+        icon: string;
+        color: string;
+        userId: string;
+        parentId: string | null;
+        createdAt: string;
+        updatedAt: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/folders/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
+                404: `Default Response`,
+            },
+        });
+    }
+    /**
+     * Delete folder
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static deleteFolders(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/folders/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+}

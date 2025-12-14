@@ -1,0 +1,61 @@
+{
+  "cli": {
+    "version": ">= 16.28.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://klipp-api.orjinfinity.net",
+        "EXPO_PUBLIC_ENV": "development"
+      }
+    },
+    "preview": {
+      "distribution": "store",
+      "ios": {
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://klipp-api.orjinfinity.net",
+        "EXPO_PUBLIC_ENV": "preview"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "ios": {
+        "credentialsSource": "remote"
+      },
+      "android": {
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://klipp-api.orjinfinity.net",
+        "EXPO_PUBLIC_ENV": "production"
+      },
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "preview": {
+      "ios": {
+        "appleId": "orjinfinity@gmail.com",
+        "ascAppId": "6756419415",
+        "appleTeamId": "TK4C9H322S"
+      }
+    },
+    "production": {
+      "ios": {
+        "appleId": "orjinfinity@gmail.com",
+        "ascAppId": "6756419415",
+        "appleTeamId": "TK4C9H322S"
+      }
+    }
+  }
+}
