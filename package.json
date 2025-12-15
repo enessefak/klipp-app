@@ -21,13 +21,6 @@
     "submit:prod": "eas submit --platform ios --profile production",
     "credentials": "eas credentials"
   },
-  "expo": {
-    "autolinking": {
-      "exclude": [
-        "expo-in-app-purchases"
-      ]
-    }
-  },
   "dependencies": {
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo/vector-icons": "^15.0.3",
@@ -53,9 +46,9 @@
     "expo-file-system": "^19.0.21",
     "expo-font": "~14.0.10",
     "expo-haptics": "~15.0.8",
+    "expo-iap": "^3.2.2",
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.9",
-    "expo-in-app-purchases": "^14.5.0",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.10",
     "expo-localization": "~17.0.8",

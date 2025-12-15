@@ -1,79 +1,40 @@
 import { Button } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { subscriptionService } from '@/src/features/subscription/data/SubscriptionService';
-import { PRODUCT_IDS, SubscriptionProduct } from '@/src/features/subscription/domain/SubscriptionProduct';
+import { PRODUCT_IDS } from '@/src/features/subscription/domain/SubscriptionProduct';
+import { useSubscription } from '@/src/features/subscription/presentation/SubscriptionContext';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function PaywallScreen() {
+    const { products, isLoading, isPurchasing, purchase, restore } = useSubscription();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [products, setProducts] = useState<SubscriptionProduct[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [purchasing, setPurchasing] = useState(false);
 
     useEffect(() => {
-        loadProducts();
-    }, []);
-
-    const loadProducts = async () => {
-        try {
-            await subscriptionService.initialize();
-            const items = await subscriptionService.getProducts();
-            setProducts(items);
-            // Auto Select Yearly if available, else first one
-            const yearly = items.find(p => p.productId === PRODUCT_IDS.PREMIUM_YEARLY);
+        // Auto select
+        if (products.length > 0 && !selectedProduct) {
+            const yearly = products.find(p => p.productId === PRODUCT_IDS.PREMIUM_YEARLY);
             if (yearly) {
                 setSelectedProduct(yearly.productId);
-            } else if (items.length > 0) {
-                setSelectedProduct(items[0].productId);
+            } else {
+                setSelectedProduct(products[0].productId);
             }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [products]);
 
     const handlePurchase = async () => {
         if (!selectedProduct) return;
-        setPurchasing(true);
-        try {
-            const success = await subscriptionService.purchase(selectedProduct);
-            if (success) {
-                Alert.alert(
-                    i18n.t('subscription.success.title'),
-                    i18n.t('subscription.success.message'),
-                    [{ text: 'OK', onPress: () => router.back() }]
-                );
-            }
-        } catch (error) {
-            Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.error.message'));
-        } finally {
-            setPurchasing(false);
-        }
+        await purchase(selectedProduct);
     };
 
     const handleRestore = async () => {
-        setPurchasing(true);
-        try {
-            await subscriptionService.restorePurchases();
-            Alert.alert(
-                i18n.t('common.actions.success'),
-                'Satın alımlar (varsa) geri yüklendi.', // TODO: Add localized string
-                [{ text: 'OK' }]
-            );
-        } catch (error) {
-            Alert.alert(i18n.t('common.error'), 'Geri yükleme başarısız oldu.');
-        } finally {
-            setPurchasing(false);
-        }
+        await restore();
     };
 
     const features = [
@@ -149,15 +110,15 @@ export function PaywallScreen() {
                 <Button
                     title={i18n.t('subscription.actions.subscribe')}
                     onPress={handlePurchase}
-                    loading={purchasing}
-                    disabled={loading || !selectedProduct}
+                    loading={isPurchasing}
+                    disabled={isLoading || !selectedProduct}
                     size="large"
                     style={styles.subscribeButton}
                 />
 
                 {/* Footer Links */}
                 <View style={styles.footer}>
-                    <TouchableOpacity onPress={handleRestore} disabled={purchasing}>
+                    <TouchableOpacity onPress={handleRestore} disabled={isPurchasing}>
                         <ThemedText style={styles.footerLink}>{i18n.t('subscription.actions.restore')}</ThemedText>
                     </TouchableOpacity>
                     <View style={styles.footerRow}>
