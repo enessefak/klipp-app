@@ -1,7 +1,33 @@
 import { OAuthService } from '@/src/infrastructure/api/generated/services/OAuthService';
 import { UserService } from '@/src/infrastructure/api/generated/services/UserService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Buffer } from 'buffer';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+
+const setToken = async (token: string) => {
+    if (Platform.OS === 'web') {
+        await AsyncStorage.setItem('token', token);
+    } else {
+        await SecureStore.setItemAsync('token', token);
+    }
+};
+
+const getToken = async (): Promise<string | null> => {
+    if (Platform.OS === 'web') {
+        return await AsyncStorage.getItem('token');
+    } else {
+        return await SecureStore.getItemAsync('token');
+    }
+};
+
+const removeToken = async () => {
+    if (Platform.OS === 'web') {
+        await AsyncStorage.removeItem('token');
+    } else {
+        await SecureStore.deleteItemAsync('token');
+    }
+};
 
 interface LoginResponse {
     token: string;
@@ -16,14 +42,12 @@ interface LoginResponse {
 export const AuthService = {
     async login(email: string, password: string): Promise<LoginResponse> {
         try {
-            // Clear any existing token to ensure a clean login request
-            // Clear any existing token to ensure a clean login request
-            await SecureStore.deleteItemAsync('token');
+            await removeToken();
 
             const response = await UserService.postUsersLogin({ email, password });
             const { token } = response;
 
-            await SecureStore.setItemAsync('token', token);
+            await setToken(token);
             return { token };
         } catch (error) {
             console.error('Login error:', error);
@@ -33,13 +57,12 @@ export const AuthService = {
 
     async register(name: string, email: string, password: string): Promise<LoginResponse> {
         try {
-            // Clear any existing token to ensure a clean registration request
-            await SecureStore.deleteItemAsync('token');
+            await removeToken();
 
             const response = await UserService.postUsersRegister({ name, email, password });
             const { token } = response;
 
-            await SecureStore.setItemAsync('token', token);
+            await setToken(token);
             return { token };
         } catch (error) {
             console.error('Registration error:', error);
@@ -52,7 +75,7 @@ export const AuthService = {
             const response = await OAuthService.postAuthGoogle({ idToken });
             const { token, user, isNewUser } = response;
 
-            await SecureStore.setItemAsync('token', token);
+            await setToken(token);
             return { token, user, isNewUser };
         } catch (error) {
             console.error('Google login error:', error);
@@ -66,7 +89,7 @@ export const AuthService = {
             console.log('Apple login response:', response);
             const { token, user: responseUser, isNewUser } = response;
 
-            await SecureStore.setItemAsync('token', token);
+            await setToken(token);
             return { token, user: responseUser, isNewUser };
         } catch (error: any) {
             console.error('Apple login error:', error);
@@ -77,11 +100,11 @@ export const AuthService = {
     },
 
     async logout(): Promise<void> {
-        await SecureStore.deleteItemAsync('token');
+        await removeToken();
     },
 
     async isAuthenticated(): Promise<boolean> {
-        const token = await SecureStore.getItemAsync('token');
+        const token = await getToken();
         return !!token;
     },
 
@@ -129,12 +152,17 @@ export const AuthService = {
                 name: response.name,
                 email: response.email,
             };
-        } catch (error) {
+        } catch (error: any) {
+            // FIX: If unauthorized, do not fallback. Invalid token means invalid session.
+            if (error?.status === 401 || error?.response?.status === 401) {
+                throw error;
+            }
+
             console.warn('getUsersMe failed, trying fallback to getUsers(id)...', error);
 
             // Fallback: Parse token and get user by ID
             try {
-                const token = await SecureStore.getItemAsync('token');
+                const token = await getToken();
                 if (token) {
                     const payload = this.parseJwt(token);
                     if (payload && payload.userId) {

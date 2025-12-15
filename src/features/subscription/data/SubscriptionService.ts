@@ -1,5 +1,17 @@
-import * as IAP from 'expo-in-app-purchases';
+import type * as IAPTypes from 'expo-in-app-purchases';
+import { Platform } from 'react-native';
 import { PRODUCT_IDS, SubscriptionProduct } from '../domain/SubscriptionProduct';
+
+// Conditionally require the native module
+let IAP: typeof IAPTypes | null = null;
+
+if (Platform.OS === 'ios') {
+    try {
+        IAP = require('expo-in-app-purchases');
+    } catch (error) {
+        console.warn('Failed to load expo-in-app-purchases:', error);
+    }
+}
 
 class SubscriptionService {
     private connected = false;
@@ -8,6 +20,7 @@ class SubscriptionService {
     private products: SubscriptionProduct[] = [];
 
     async initialize(): Promise<void> {
+        if (Platform.OS === 'web' || !IAP) return;
         if (this.connected) return;
 
         // If connection is already in progress, wait for it
@@ -17,6 +30,7 @@ class SubscriptionService {
 
         this.connectionPromise = (async () => {
             try {
+                if (!IAP) return;
                 console.log('[IAP] Connecting to store...');
                 await IAP.connectAsync();
                 this.connected = true;
@@ -24,6 +38,8 @@ class SubscriptionService {
 
                 IAP.setPurchaseListener(({ responseCode, results, errorCode }) => {
                     console.log(`[IAP] Purchase Listener Event. Code: ${responseCode}, Error: ${errorCode}`);
+                    if (!IAP) return;
+
                     if (responseCode === IAP.IAPResponseCode.OK) {
                         if (results) {
                             results.forEach(purchase => {
@@ -32,7 +48,7 @@ class SubscriptionService {
                                     this.handlePurchase(purchase);
                                 } else {
                                     console.log('[IAP] Finishing already acknowledged transaction');
-                                    IAP.finishTransactionAsync(purchase, true);
+                                    IAP?.finishTransactionAsync(purchase, true);
                                 }
                             });
                         }
@@ -53,8 +69,8 @@ class SubscriptionService {
     }
 
     async getProducts(): Promise<SubscriptionProduct[]> {
-        if (!this.connected) {
-            // Return mock products for development/simulator
+        if (Platform.OS === 'web' || !this.connected || !IAP) {
+            // Return mock products for development/simulator/web
             return this.getMockProducts();
         }
 
@@ -64,6 +80,7 @@ class SubscriptionService {
 
         this.productsPromise = (async () => {
             try {
+                if (!IAP) return this.getMockProducts();
                 const items = Object.values(PRODUCT_IDS);
                 console.log('[IAP] Fetching products for IDs:', items);
 
@@ -95,7 +112,7 @@ class SubscriptionService {
     }
 
     async purchase(productId: string): Promise<boolean> {
-        if (!this.connected) {
+        if (Platform.OS === 'web' || !this.connected || !IAP) {
             console.log('Mock purchase successful');
             return true;
         }
@@ -110,7 +127,7 @@ class SubscriptionService {
     }
 
     async restorePurchases(): Promise<void> {
-        if (!this.connected) {
+        if (Platform.OS === 'web' || !this.connected || !IAP) {
             console.log('[IAP] Mock restore successful');
             return;
         }
@@ -138,7 +155,8 @@ class SubscriptionService {
         }
     }
 
-    private async handlePurchase(purchase: IAP.InAppPurchase) {
+    private async handlePurchase(purchase: IAPTypes.InAppPurchase) {
+        if (!IAP) return;
         try {
             // Verify with backend
             // Note: The API call requires platform specific receipt data
@@ -182,7 +200,7 @@ class SubscriptionService {
     }
 
     async disconnect() {
-        if (this.connected) {
+        if (this.connected && IAP) {
             await IAP.disconnectAsync();
             this.connected = false;
         }

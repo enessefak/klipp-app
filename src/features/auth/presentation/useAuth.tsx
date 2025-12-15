@@ -33,8 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isLoading) return;
 
         const inAuthGroup = segments[0] === '(auth)';
+        const inWebGroup = segments[0] === 'web';
 
-        if (!isAuthenticated && !inAuthGroup) {
+        if (!isAuthenticated && !inAuthGroup && !inWebGroup) {
             // Redirect to the sign-in page.
             router.replace('/(auth)/login');
         } else if (isAuthenticated && inAuthGroup) {

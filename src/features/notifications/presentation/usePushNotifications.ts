@@ -40,7 +40,7 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data;
             console.log('Notification response data:', data);
-            
+
             // Handle notification tap based on type
             if (data?.type === 'FOLDER_SHARE_INVITE' && data?.shareId) {
                 // Navigate to share invitation screen
@@ -82,6 +82,10 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
 async function registerForPushNotificationsAsync(): Promise<string | null> {
     let token: string | null = null;
 
+    if (Platform.OS === 'web') {
+        return null;
+    }
+
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
             name: 'default',
@@ -94,17 +98,17 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     if (Device.isDevice) {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
-        
+
         if (existingStatus !== 'granted') {
             const { status } = await Notifications.requestPermissionsAsync();
             finalStatus = status;
         }
-        
+
         if (finalStatus !== 'granted') {
             console.log('Failed to get push token: permission not granted');
             return null;
         }
-        
+
         try {
             // Get projectId from app.json via expo-constants
             const projectId = Constants.expoConfig?.extra?.eas?.projectId;

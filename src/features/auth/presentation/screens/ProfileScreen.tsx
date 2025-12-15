@@ -464,20 +464,7 @@ export function ProfileScreen() {
                     />
                 </SettingSection>
 
-                <SettingSection title="Klipp Web">
-                    <SettingItem
-                        icon="qrcode.viewfinder"
-                        iconColor={colors.text}
-                        title={i18n.t('profile.settings.web_login')}
-                        onPress={() => router.push('/web-login/scan')}
-                    />
-                    <SettingItem
-                        icon="desktopcomputer"
-                        iconColor={colors.text}
-                        title={i18n.t('profile.settings.web_sessions')}
-                        onPress={() => router.push('/web-login/sessions')}
-                    />
-                </SettingSection>
+
 
                 {/* Settings Sections */}
                 <SettingSection title={i18n.t('profile.settings.sharing')}>
