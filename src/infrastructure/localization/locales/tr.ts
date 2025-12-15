@@ -48,12 +48,17 @@ export const tr = {
     common: {
         appName: 'Klipp',
         actions: {
-            ok: 'Tamam',
             cancel: 'İptal',
             save: 'Kaydet',
-            select_date: 'Tarih seçin',
+            delete: 'Sil',
+            edit: 'Düzenle',
+            back: 'Geri',
+            ok: 'Tamam',
             success: 'Başarılı',
-            saved: 'Kaydedildi',
+            saved: 'Başarıyla kaydedildi',
+            change_file: 'Dosyayı Değiştir',
+            add_new_file: 'Yeni Dosya Ekle',
+            upgrade: 'Yükselt',
         },
         units: {
             day: 'Gün',
@@ -87,6 +92,14 @@ export const tr = {
             filter: 'Filtrele',
             retry: 'Tekrar Dene',
             error_load: 'Belgeler yüklenemedi',
+            empty: 'Belge bulunamadı',
+            date: 'Tarih',
+            description: 'Açıklama',
+            read_more: 'Devamını oku',
+            sections: {
+                details: 'Detaylar',
+                general: 'Genel Bilgiler',
+            },
         },
         detail: {
             title: 'Belge Detayı',
@@ -96,6 +109,7 @@ export const tr = {
             read_more: 'Devamını oku',
             sections: {
                 details: 'Detaylar',
+                files: 'Dosyalar',
                 general: 'Genel Bilgiler',
             },
             fields: {
@@ -116,8 +130,8 @@ export const tr = {
                 no_file: 'Dosya yok',
                 error_load: 'Belge yüklenemedi',
                 error_delete: 'Belge silinemedi',
-                error_save: 'Değişiklikler kaydedilemedi', // Added
-                error_permission: 'Bu işlem için yetkiniz yok', // Added
+                error_save: 'Değişiklikler kaydedilemedi',
+                error_permission: 'Bu işlem için yetkiniz yok',
                 coming_soon: 'Düzenleme özelliği yakında eklenecek.',
             }
         },
@@ -138,6 +152,7 @@ export const tr = {
             errorTitle: 'Hata',
             errorMessage: 'Fiş oluşturulamadı.',
             permissionTitle: 'İzin Gerekli',
+            permissionCamera: 'Fotoğraf çekmek için kamera izni gerekiyor.',
             method_subtitle: 'Belge eklemek için bir yöntem seçin',
             scan_method: {
                 title: 'Belge Tara',
@@ -155,6 +170,11 @@ export const tr = {
                 title: 'Dosya Seç',
                 desc: 'PDF, Word, Excel dosyaları'
             },
+            methods: {
+                camera: 'Kamera',
+                gallery: 'Galeri',
+                document: 'Dosyalar',
+            },
             analyzing: {
                 title: 'Belge analiz ediliyor...',
                 desc: 'Metin ve bilgiler çıkarılıyor'
@@ -171,12 +191,13 @@ export const tr = {
                 type_required: 'Belge tipi seçin',
                 folder_required: 'Klasör seçin'
             },
-            folder_select_label: 'Klasör Seç', // Added
-            type_select_label: 'Belge Tipi',   // Added
-            custom_fields_title: 'Özel Alanlar', // Added
-            add_custom_field: 'Alan Ekle',    // Added
-            custom_key_placeholder: 'Alan Adı', // Added
-            custom_value_placeholder: 'Değer',  // Added
+            folder_select_label: 'Klasör Seç',
+            type_select_label: 'Belge Tipi',
+            custom_fields_title: 'Özel Alanlar',
+            add_custom_field: 'Alan Ekle',
+            custom_key_placeholder: 'Alan Adı',
+            custom_value_placeholder: 'Değer',
+            details_section_title: 'Belge Detayları',
             section: {
                 general: 'Genel Bilgiler',
                 extra: 'Ek Bilgiler',
@@ -244,11 +265,9 @@ export const tr = {
         },
         default_name: 'Klasör',
         shared_with_me: 'Benimle Paylaşılanlar',
-        unauthorized: 'Yetkisiz erişim',
-        folderNotFound: 'Klasör bulunamadı',
         my_folders: 'Klasörlerim',
         section: {
-            contents: 'İçerikler',
+            contents: 'İçerik',
         },
         stats: {
             subfolder: 'alt klasör',
@@ -257,28 +276,40 @@ export const tr = {
         sharing: {
             title: 'Paylaşım',
             person_count: 'kişi',
+            person_count_one: 'kişi',
             pending_count: 'bekliyor',
-            empty: 'Bu klasör henüz kimseyle paylaşılmamış',
-            add_person: 'Yeni Kişi Ekle',
-            shared_with_you: 'Bu klasör sizinle paylaşıldı',
+            empty: 'Henüz kimseyle paylaşılmadı',
+            add_person: 'Kişi Ekle',
+            shared_with_you: 'Sizinle Paylaşılanlar',
             tabs: {
                 all: 'Tümü',
-                pending: 'Bekleyenler',
-                accepted: 'Kabul Edilenler'
+                pending: 'Bekliyor',
+                accepted: 'Kabul Edildi'
             },
             roles: {
-                viewer: 'Görüntüleyici',
-                editor: 'Düzenleyici',
+                viewer: 'Görüntüleyen',
+                editor: 'Düzenleyen',
+                viewer_desc: 'Sadece görüntüleyebilir',
+                editor_desc: 'Düzenleyebilir ve ekleyebilir',
             },
+            actions: {
+                remove_access: 'Erişimi Kaldır',
+                remove_title: 'Erişimi Kaldır',
+                remove_message: '{name} kullanıcısının erişimini kaldırmak istiyor musunuz?',
+                remove_error: 'Erişim kaldırılamadı',
+                update_error: 'Yetki güncellenemedi',
+            },
+            edit_title: 'Paylaşımı Düzenle',
+            permission_label: 'Yetki Seviyesi',
             status: {
                 pending: 'Bekliyor',
             },
         },
         detail_empty: {
             title: 'Bu klasör boş',
-            desc: 'Alt klasör veya belge eklemek için + butonuna tıklayın',
+            desc: 'Alt klasör veya belge eklemek için + butonuna basın',
         },
-        shared: 'Paylaşılan'
+        shared: 'Paylaşılan',
     },
     sharing: {
         modal: {
@@ -426,5 +457,40 @@ export const tr = {
         diploma: 'Diploma',
         membership_card: 'Üyelik Kartı',
         other: 'Diğer'
+    },
+    subscription: {
+        title: 'Abonelik Planları',
+        subtitle: 'Devam etmek için bir plan seçin',
+        features: {
+            unlimited: 'Sınırsız Belge Tarama',
+            cloud: 'Güvenli Bulut Yedekleme',
+            export: 'Toplu Dışa Aktarma',
+            search: 'Gelişmiş Arama',
+            no_ads: 'Reklamsız Deneyim',
+        },
+        plans: {
+            monthly: 'Aylık',
+            yearly: 'Yıllık',
+            save_percent: '%20 İndirim',
+            cancel_anytime: 'İstediğin zaman iptal et',
+        },
+        actions: {
+            subscribe: 'Abone Ol',
+            restore: 'Satın Alımları Geri Yükle',
+            terms: 'Kullanım Koşulları',
+            privacy: 'Gizlilik Politikası',
+        },
+        success: {
+            title: 'Teşekkürler!',
+            message: 'Premium üyeliğiniz başarıyla başlatıldı.',
+        },
+        error: {
+            title: 'Hata',
+            message: 'Satın alma işlemi başarısız oldu.',
+        },
+        status: {
+            free_plan: 'Ücretsiz Plan (Abone Değil)',
+            premium_plan: 'Premium Plan',
+        }
     }
 };

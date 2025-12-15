@@ -2,13 +2,12 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import {
     ActionSheetIOS,
     ActivityIndicator,
     Alert,
-    LayoutAnimation,
     Linking,
     Modal,
     Platform,
@@ -18,7 +17,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     UIManager,
-    View,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -57,22 +56,67 @@ export function AttachmentDetailScreen() {
         return false;
     }, [attachment, user]);
 
-    useEffect(() => {
-        // Fetch current user for ownership check
-        import('@/src/features/auth/data/AuthService').then(({ AuthService }) => {
-            AuthService.getUser().then(u => setUser(u)).catch(console.error);
-        });
+    useFocusEffect(
+        React.useCallback(() => {
+            // Fetch current user for ownership check
+            import('@/src/features/auth/data/AuthService').then(({ AuthService }) => {
+                AuthService.getUser().then(u => setUser(u)).catch(console.error);
+            });
 
-        if (id) {
-            loadAttachment();
-        }
-    }, [id]);
+            if (id) {
+                loadAttachment();
+            }
+        }, [id])
+    );
 
     const loadAttachment = async () => {
         try {
             setLoading(true);
             const data = await AttachmentService.getAttachmentById(id!);
             setAttachment(data);
+
+            console.log('DEBUG: Attachment loaded:', {
+                id: data.id,
+                owner: data.isOwner,
+                perm: data.permission,
+                folderId: data.folderId
+            });
+
+            // Resolve current user to check ownership reliably
+            let currentUser = user;
+            if (!currentUser) {
+                const { AuthService } = await import('@/src/features/auth/data/AuthService');
+                currentUser = await AuthService.getUser().catch(() => null);
+                if (currentUser) setUser(currentUser);
+            }
+
+            const isOwner = currentUser?.id === data.userId;
+
+            // If not owner, try to resolve permission from folder
+            if (!isOwner && data.folderId) {
+                try {
+                    const { FolderRepository } = await import('@/src/features/folders/infrastructure/FolderRepository');
+                    const folders = await FolderRepository.getFolders();
+                    const folder = folders.find(f => f.id === data.folderId);
+
+                    if (folder && folder.permission) {
+                        // Upgrade permission logic
+                        const currentPerm = (data as any).permission || 'VIEW';
+                        const folderPerm = folder.permission;
+
+                        const permValue = { 'VIEW': 1, 'EDIT': 2, 'CREATE': 3, 'FULL': 4 };
+                        const currentVal = permValue[currentPerm as keyof typeof permValue] || 1;
+                        const folderVal = permValue[folderPerm as keyof typeof permValue] || 0;
+
+                        if (folderVal > currentVal) {
+                            (data as any).permission = folderPerm;
+                            setAttachment({ ...data });
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to resolve folder permission in detail', e);
+                }
+            }
 
             // Fetch attachment types to get the type name for field mapping
             try {
@@ -125,10 +169,16 @@ export function AttachmentDetailScreen() {
 
     const handleEdit = () => {
         setShowActionMenu(false);
-        router.push({
-            pathname: '/edit-attachment',
-            params: { id }
-        });
+
+        if (isShared && attachment?.permission === 'VIEW') {
+            Alert.alert(
+                i18n.t('common.error'),
+                i18n.t('receipts.detail.actions.error_permission')
+            );
+            return;
+        }
+
+        router.push(`/attachment/edit/${id}`);
     };
 
     const showMoreOptions = () => {
@@ -838,7 +888,7 @@ export function AttachmentDetailScreen() {
 
                                     {/* Permission Badge */}
                                     <View style={{
-                                        backgroundColor: attachment.permission === 'VIEW' ? colors.textLight + '15' : colors.success + '15',
+                                        backgroundColor: (attachment.permission && attachment.permission !== 'VIEW') ? colors.success + '15' : colors.textLight + '15',
                                         paddingHorizontal: 8,
                                         paddingVertical: 4,
                                         borderRadius: 6,
@@ -846,12 +896,12 @@ export function AttachmentDetailScreen() {
                                     }}>
                                         <ThemedText style={{
                                             fontSize: 12,
-                                            color: attachment.permission === 'VIEW' ? colors.textLight : colors.success,
+                                            color: (attachment.permission && attachment.permission !== 'VIEW') ? colors.success : colors.textLight,
                                             fontWeight: '600'
                                         }}>
-                                            {attachment.permission === 'VIEW'
-                                                ? i18n.t('folders.picker.permissions.view')
-                                                : i18n.t('folders.picker.permissions.edit')}
+                                            {(attachment.permission && attachment.permission !== 'VIEW')
+                                                ? i18n.t('folders.picker.permissions.edit')
+                                                : i18n.t('folders.picker.permissions.view')}
                                         </ThemedText>
                                     </View>
                                 </View>
@@ -909,42 +959,14 @@ export function AttachmentDetailScreen() {
                     {renderTypeSpecificFields()}
                 </View>
 
-                {/* Description Card */}
+                {/* Description Card - Hidden as requested */}
+                {/* 
                 {attachment.description && (
                     <View style={styles.card}>
-                        <TouchableOpacity
-                            style={styles.descriptionHeader}
-                            onPress={() => {
-                                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                                setIsDescriptionExpanded(!isDescriptionExpanded);
-                            }}
-                            activeOpacity={0.7}
-                        >
-                            <ThemedText type="subtitle" style={styles.descriptionTitle}>{i18n.t('receipts.detail.description')}</ThemedText>
-                            <IconSymbol
-                                name={isDescriptionExpanded ? "chevron.up" : "chevron.down"}
-                                size={20}
-                                color={colors.textLight}
-                            />
-                        </TouchableOpacity>
-                        <ThemedText
-                            style={styles.description}
-                            numberOfLines={isDescriptionExpanded ? undefined : 2}
-                        >
-                            {attachment.description}
-                        </ThemedText>
-                        {!isDescriptionExpanded && attachment.description.length > 100 && (
-                            <TouchableOpacity
-                                onPress={() => {
-                                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                                    setIsDescriptionExpanded(true);
-                                }}
-                            >
-                                <ThemedText style={styles.expandText}>{i18n.t('receipts.detail.read_more')}</ThemedText>
-                            </TouchableOpacity>
-                        )}
+                        ...
                     </View>
-                )}
+                )} 
+                */}
 
                 {/* Actions */}
                 <View style={styles.actionsContainer}>

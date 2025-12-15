@@ -336,14 +336,18 @@ export function ProfileScreen() {
                     },
                     {
                         text: 'Kaydet',
-                        onPress: async (name: string) => {
+                        onPress: (text?: string) => {
+                            const name = text;
                             if (name && name.length >= 2) {
-                                try {
-                                    await updateProfile(name);
-                                    Alert.alert('Başarılı', 'Profil güncellendi');
-                                } catch (error) {
-                                    Alert.alert('Hata', 'Profil güncellenemedi');
-                                }
+                                // Execute async logic without returning promise to Alert
+                                (async () => {
+                                    try {
+                                        await updateProfile(name);
+                                        Alert.alert('Başarılı', 'Profil güncellendi');
+                                    } catch (error) {
+                                        Alert.alert('Hata', 'Profil güncellenemedi');
+                                    }
+                                })();
                             }
                         },
                     },
@@ -440,6 +444,25 @@ export function ProfileScreen() {
                         <IconSymbol name="pencil" size={16} color={colors.primary} />
                     </TouchableOpacity>
                 </View>
+
+                {/* Subscription Section */}
+                <SettingSection title={i18n.t('subscription.title')}>
+                    <SettingItem
+                        icon="checkmark.seal.fill"
+                        iconColor="#4A90E2"
+                        title={i18n.t('subscription.title')}
+                        subtitle={i18n.t('subscription.status.free_plan')}
+                        onPress={() => router.push('/subscription/paywall')}
+                        rightElement={
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <ThemedText style={{ color: colors.primary, fontSize: 13, marginRight: 4 }}>
+                                    {i18n.t('common.actions.upgrade')}
+                                </ThemedText>
+                                <IconSymbol name="chevron.right" size={14} color={colors.primary} />
+                            </View>
+                        }
+                    />
+                </SettingSection>
 
                 {/* Settings Sections */}
                 <SettingSection title={i18n.t('profile.settings.sharing')}>

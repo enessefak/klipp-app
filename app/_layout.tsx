@@ -62,16 +62,6 @@ function RootLayoutContent() {
           animation: 'slide_from_right'
         }}
       />
-      <Stack.Screen
-        name="folder/[id]"
-        options={{
-          headerStyle: { backgroundColor: colors.headerBackground },
-          headerTintColor: colors.primary,
-          headerTitleStyle: { color: colors.text, fontFamily: 'Outfit_700Bold' },
-          headerShadowVisible: false,
-          title: 'Folders',
-        }}
-      />
     </Stack>
   );
 }

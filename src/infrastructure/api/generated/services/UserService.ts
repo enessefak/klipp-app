@@ -65,6 +65,52 @@ export class UserService {
         });
     }
     /**
+     * Request password reset link
+     * Sends a password reset link to the email. Always returns success to prevent email enumeration. Link expires in 1 hour.
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postUsersForgotPassword(
+        requestBody: {
+            email: string;
+        },
+    ): CancelablePromise<{
+        message: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/users/forgot-password',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Reset password with token
+     * Reset password using the token from the reset link sent to email. Token is 64 characters and can only be used once.
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postUsersResetPassword(
+        requestBody: {
+            token: string;
+            newPassword: string;
+        },
+    ): CancelablePromise<{
+        message: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/users/reset-password',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
+            },
+        });
+    }
+    /**
      * Get current user
      * @returns any Default Response
      * @throws ApiError

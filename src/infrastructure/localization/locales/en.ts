@@ -48,12 +48,17 @@ export const en = {
     common: {
         appName: 'Klipp',
         actions: {
-            ok: 'OK',
             cancel: 'Cancel',
             save: 'Save',
-            select_date: 'Select date',
+            delete: 'Delete',
+            edit: 'Edit',
+            back: 'Back',
+            ok: 'OK',
             success: 'Success',
-            saved: 'Saved',
+            saved: 'Saved successfully',
+            change_file: 'Change File',
+            add_new_file: 'Add New File',
+            upgrade: 'Upgrade',
         },
         units: {
             day: 'Day',
@@ -164,6 +169,11 @@ export const en = {
                 title: 'Select File',
                 desc: 'PDF, Word, Excel files'
             },
+            methods: {
+                camera: 'Camera',
+                gallery: 'Gallery',
+                document: 'Files',
+            },
             analyzing: {
                 title: 'Analyzing document...',
                 desc: 'Extracting text and details'
@@ -183,9 +193,10 @@ export const en = {
             folder_select_label: 'Select Folder', // Added
             type_select_label: 'Document Type',   // Added
             custom_fields_title: 'Custom Fields', // Added
-            add_custom_field: '+ Add Field',      // Added
+            add_custom_field: 'Add Field',
             custom_key_placeholder: 'Field Name', // Added
             custom_value_placeholder: 'Value',    // Added
+            details_section_title: 'Document Details',
             section: {
                 general: 'General Info',
                 extra: 'Extra Info',
@@ -277,7 +288,18 @@ export const en = {
             roles: {
                 viewer: 'Viewer',
                 editor: 'Editor',
+                viewer_desc: 'Can only view',
+                editor_desc: 'Can edit and add',
             },
+            actions: {
+                remove_access: 'Remove Access',
+                remove_title: 'Remove Access',
+                remove_message: 'Are you sure you want to remove access for {name}?',
+                remove_error: 'Failed to remove access',
+                update_error: 'Failed to update permission',
+            },
+            edit_title: 'Edit Share',
+            permission_label: 'Permission Level',
             status: {
                 pending: 'Pending',
             },
@@ -434,5 +456,40 @@ export const en = {
         diploma: 'Diploma',
         membership_card: 'Membership Card',
         other: 'Other'
+    },
+    subscription: {
+        title: 'Subscription Plans',
+        subtitle: 'Choose a plan to continue',
+        features: {
+            unlimited: 'Unlimited Documents',
+            cloud: 'Secure Cloud Backup',
+            export: 'Bulk Export',
+            search: 'Advanced Search',
+            no_ads: 'Ad-Free Experience',
+        },
+        plans: {
+            monthly: 'Monthly',
+            yearly: 'Yearly',
+            save_percent: 'Save 20%',
+            cancel_anytime: 'Cancel anytime',
+        },
+        actions: {
+            subscribe: 'Subscribe Now',
+            restore: 'Restore Purchases',
+            terms: 'Terms of Use',
+            privacy: 'Privacy Policy',
+        },
+        success: {
+            title: 'Thank you!',
+            message: 'Your Premium subscription is now active.',
+        },
+        error: {
+            title: 'Error',
+            message: 'Purchase failed.',
+        },
+        status: {
+            free_plan: 'Free Plan (Not Subscribed)',
+            premium_plan: 'Premium Plan',
+        }
     }
 };

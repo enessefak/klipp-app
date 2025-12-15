@@ -17,3 +17,4 @@ export { NotificationsService } from './services/NotificationsService';
 export { OAuthService } from './services/OAuthService';
 export { SubscriptionService } from './services/SubscriptionService';
 export { UserService } from './services/UserService';
+export { WebSessionService } from './services/WebSessionService';

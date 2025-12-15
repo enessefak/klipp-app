@@ -15,9 +15,11 @@ import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
 import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
+import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharingService } from '@/src/features/sharing/data/SharingService';
 import { FolderShare } from '@/src/features/sharing/domain/FolderShare';
+import { EditShareModal } from '@/src/features/sharing/presentation/components/EditShareModal';
 import { ShareFolderModal } from '@/src/features/sharing/presentation/components/ShareFolderModal';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
@@ -25,9 +27,12 @@ import { FolderRepository } from '../../infrastructure/FolderRepository';
 import { CreateFolderModal } from '../components/CreateFolderModal';
 import { useFolders } from '../useFolders';
 
+
 export function FolderDetailScreen() {
     const { colors } = useSettings();
     const router = useRouter();
+    const { user } = useAuth();
+
     const params = useLocalSearchParams<{ id: string; shared?: string }>();
     const folderId = params.id;
     const isSharedFolder = params.shared === 'true';
@@ -39,6 +44,17 @@ export function FolderDetailScreen() {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [showShareDetails, setShowShareDetails] = useState(false);
+    const [selectedShare, setSelectedShare] = useState<FolderShare | null>(null);
+
+    const handleUpdateShare = async (shareId: string, permission: 'VIEW' | 'EDIT') => {
+        await SharingService.updateSharePermission(shareId, permission);
+        loadFolderShares();
+    };
+
+    const handleRemoveShare = async (shareId: string) => {
+        await SharingService.removeShare(shareId);
+        loadFolderShares();
+    };
 
     // Load current folder info
     useEffect(() => {
@@ -457,7 +473,8 @@ export function FolderDetailScreen() {
                         </View>
                     </View>
                 </View>
-                {!isSharedFolder && (
+                {/* Only show share button if user is the owner */}
+                {currentFolder?.owner?.id === user?.id && (
                     <TouchableOpacity
                         style={styles.shareIconButton}
                         onPress={() => setShareModalVisible(true)}
@@ -468,121 +485,131 @@ export function FolderDetailScreen() {
             </View>
 
             {/* Sharing Section - Only for owned folders */}
-            {!isSharedFolder && (
-                <TouchableOpacity
-                    style={styles.sharingSection}
-                    onPress={() => setShowShareDetails(!showShareDetails)}
-                    activeOpacity={0.7}
-                >
-                    <View style={styles.sharingHeader}>
-                        <View style={styles.sharingTitleRow}>
-                            <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
-                            <ThemedText type="defaultSemiBold" style={styles.sharingTitle}>
-                                {i18n.t('folders.sharing.title')}
-                            </ThemedText>
-                        </View>
-                        <View style={styles.sharingBadges}>
-                            {acceptedShares.length > 0 && (
-                                <View style={styles.shareBadge}>
-                                    <ThemedText style={styles.shareBadgeText}>
-                                        {acceptedShares.length} {i18n.t('folders.sharing.person_count')}
-                                    </ThemedText>
-                                </View>
-                            )}
-                            {pendingShares.length > 0 && (
-                                <View style={[styles.shareBadge, styles.pendingBadge]}>
-                                    <ThemedText style={[styles.shareBadgeText, styles.pendingText]}>
-                                        {pendingShares.length} {i18n.t('folders.sharing.pending_count')}
-                                    </ThemedText>
-                                </View>
-                            )}
-                            <IconSymbol
-                                name={showShareDetails ? 'chevron.up' : 'chevron.down'}
-                                size={16}
-                                color={colors.gray}
-                            />
-                        </View>
-                    </View>
-
-                    {/* Share Details */}
-                    {showShareDetails && (
-                        <View style={styles.shareDetailsList}>
-                            {sharesLoading ? (
-                                <ActivityIndicator size="small" color={colors.primary} />
-                            ) : folderShares.length === 0 ? (
-                                <ThemedText style={styles.noSharesText}>
-                                    {i18n.t('folders.sharing.empty')}
+            {
+                currentFolder?.owner?.id === user?.id && (
+                    <TouchableOpacity
+                        style={styles.sharingSection}
+                        onPress={() => setShowShareDetails(!showShareDetails)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.sharingHeader}>
+                            <View style={styles.sharingTitleRow}>
+                                <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
+                                <ThemedText type="defaultSemiBold" style={styles.sharingTitle}>
+                                    {i18n.t('folders.sharing.title')}
                                 </ThemedText>
-                            ) : (
-                                folderShares.map((share) => (
-                                    <View key={share.id} style={styles.shareItem}>
-                                        <View style={styles.shareAvatar}>
-                                            <ThemedText style={styles.shareAvatarText}>
-                                                {share.sharedWith.name.charAt(0).toUpperCase()}
-                                            </ThemedText>
-                                        </View>
-                                        <View style={styles.shareInfo}>
-                                            <ThemedText type="defaultSemiBold" style={styles.shareName}>
-                                                {share.sharedWith.name}
-                                            </ThemedText>
-                                            <ThemedText style={styles.shareEmail}>
-                                                {share.sharedWith.email}
-                                            </ThemedText>
-                                        </View>
-                                        <View style={styles.shareStatus}>
-                                            <View style={[
-                                                styles.permissionBadge,
-                                                { backgroundColor: share.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
-                                            ]}>
-                                                <ThemedText style={[
-                                                    styles.permissionText,
-                                                    { color: share.permission === 'EDIT' ? colors.success : colors.primary }
-                                                ]}>
-                                                    {share.permission === 'VIEW' ? i18n.t('folders.sharing.roles.viewer') :
-                                                        share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') : share.permission}
+                            </View>
+                            <View style={styles.sharingBadges}>
+                                {acceptedShares.length > 0 && (
+                                    <View style={styles.shareBadge}>
+                                        <ThemedText style={styles.shareBadgeText}>
+                                            {acceptedShares.length} {i18n.t('folders.sharing.person_count')}
+                                        </ThemedText>
+                                    </View>
+                                )}
+                                {pendingShares.length > 0 && (
+                                    <View style={[styles.shareBadge, styles.pendingBadge]}>
+                                        <ThemedText style={[styles.shareBadgeText, styles.pendingText]}>
+                                            {pendingShares.length} {i18n.t('folders.sharing.pending_count')}
+                                        </ThemedText>
+                                    </View>
+                                )}
+                                <IconSymbol
+                                    name={showShareDetails ? 'chevron.up' : 'chevron.down'}
+                                    size={16}
+                                    color={colors.gray}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Share Details */}
+                        {showShareDetails && (
+                            <View style={styles.shareDetailsList}>
+                                {sharesLoading ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : folderShares.length === 0 ? (
+                                    <ThemedText style={styles.noSharesText}>
+                                        {i18n.t('folders.sharing.empty')}
+                                    </ThemedText>
+                                ) : (
+                                    folderShares.map((share) => (
+                                        <TouchableOpacity
+                                            key={share.id}
+                                            style={styles.shareItem}
+                                            onPress={() => setSelectedShare(share)}
+                                        >
+                                            <View style={styles.shareAvatar}>
+                                                <ThemedText style={styles.shareAvatarText}>
+                                                    {share.sharedWith.name.charAt(0).toUpperCase()}
                                                 </ThemedText>
                                             </View>
-                                            {share.status === 'pending' && (
-                                                <View style={styles.statusPending}>
-                                                    <ThemedText style={styles.statusPendingText}>{i18n.t('folders.sharing.status.pending')}</ThemedText>
+                                            <View style={styles.shareInfo}>
+                                                <ThemedText type="defaultSemiBold" style={styles.shareName}>
+                                                    {share.sharedWith.name}
+                                                </ThemedText>
+                                                <ThemedText style={styles.shareEmail}>
+                                                    {share.sharedWith.email}
+                                                </ThemedText>
+                                            </View>
+                                            <View style={styles.shareStatus}>
+                                                <View style={[
+                                                    styles.permissionBadge,
+                                                    { backgroundColor: share.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
+                                                ]}>
+                                                    <ThemedText style={[
+                                                        styles.permissionText,
+                                                        { color: share.permission === 'EDIT' ? colors.success : colors.primary }
+                                                    ]}>
+                                                        {share.permission === 'VIEW' ? i18n.t('folders.sharing.roles.viewer') :
+                                                            share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') : share.permission}
+                                                    </ThemedText>
                                                 </View>
-                                            )}
-                                        </View>
-                                    </View>
-                                ))
-                            )}
+                                                {share.status === 'pending' && (
+                                                    <View style={styles.statusPending}>
+                                                        <ThemedText style={styles.statusPendingText}>{i18n.t('folders.sharing.status.pending')}</ThemedText>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))
+                                )}
 
-                            <TouchableOpacity
-                                style={styles.addShareButton}
-                                onPress={() => setShareModalVisible(true)}
-                            >
-                                <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
-                                <ThemedText style={styles.addShareText}>{i18n.t('folders.sharing.add_person')}</ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </TouchableOpacity>
-            )}
+                                <TouchableOpacity
+                                    style={styles.addShareButton}
+                                    onPress={() => setShareModalVisible(true)}
+                                >
+                                    <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
+                                    <ThemedText style={styles.addShareText}>{i18n.t('folders.sharing.add_person')}</ThemedText>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                )
+            }
 
             {/* Shared folder indicator */}
-            {isSharedFolder && (
-                <View style={styles.sharedIndicator}>
-                    <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
-                    <ThemedText style={styles.sharedIndicatorText}>
-                        {i18n.t('folders.sharing.shared_with_you')}
-                    </ThemedText>
-                </View>
-            )}
+            {
+                isSharedFolder && (
+                    <View style={styles.sharedIndicator}>
+                        <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
+                        <ThemedText style={styles.sharedIndicatorText}>
+                            {i18n.t('folders.sharing.shared_with_you')}
+                        </ThemedText>
+                    </View>
+                )
+            }
 
             {/* Content Section Title */}
-            {combinedData.length > 0 && (
-                <View style={styles.contentTitleRow}>
-                    <ThemedText type="defaultSemiBold" style={styles.contentTitle}>
-                        {i18n.t('folders.section.contents')}
-                    </ThemedText>
-                </View>
-            )}
-        </View>
+            {
+                combinedData.length > 0 && (
+                    <View style={styles.contentTitleRow}>
+                        <ThemedText type="defaultSemiBold" style={styles.contentTitle}>
+                            {i18n.t('folders.section.contents')}
+                        </ThemedText>
+                    </View>
+                )
+            }
+        </View >
     );
 
     const EmptyState = () => (
@@ -639,6 +666,15 @@ export function FolderDetailScreen() {
                     folderName={currentFolder.name}
                 />
             )}
+
+            <EditShareModal
+                visible={!!selectedShare}
+                onClose={() => setSelectedShare(null)}
+                share={selectedShare}
+                onUpdate={handleUpdateShare}
+                onRemove={handleRemoveShare}
+            />
         </SafeAreaView>
     );
+
 }
