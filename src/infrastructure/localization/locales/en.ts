@@ -59,6 +59,7 @@ export const en = {
             change_file: 'Change File',
             add_new_file: 'Add New File',
             upgrade: 'Upgrade',
+            grant_permission: 'Grant Permission',
         },
         units: {
             day: 'Day',
@@ -428,8 +429,26 @@ export const en = {
             languages: {
                 tr: 'Türkçe',
                 en: 'English'
-            }
+            },
+            web_login: 'Log in to Web',
+            web_sessions: 'Web Sessions',
         }
+    },
+    scan_qr: {
+        title: 'Web Login',
+        permission_message: 'We need camera permission to scan QR code.',
+        success_message: 'Web session authorized successfully.',
+        error_message: 'Invalid or expired code.',
+        connection_error: 'Connection error occurred.',
+        processing: 'Logging in...',
+        instruction: 'Scan the QR code on your computer',
+    },
+    web_sessions: {
+        title: 'Web Sessions',
+        revoke_title: 'Revoke Session',
+        revoke_confirm: 'Are you sure you want to log out this device?',
+        revoke_all_title: 'Revoke All',
+        revoke_all_confirm: 'Are you sure you want to log out all devices?',
     },
     attachmentTypes: {
         invoice: 'Invoice',

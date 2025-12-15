@@ -15,7 +15,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Belge ve fiş taramak için kamera izni gereklidir.",
-        "NSPhotoLibraryUsageDescription": "Galeriden belge seçmek için fotoğraf izni gereklidir."
+        "NSPhotoLibraryUsageDescription": "Galeriden belge seçmek için fotoğraf izni gereklidir.",
+        "NSMicrophoneUsageDescription": "Video kaydı için mikrofon izni gereklidir."
       }
     },
     "android": {
@@ -67,7 +68,13 @@
         }
       ],
       "expo-font",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-camera",
+        {
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

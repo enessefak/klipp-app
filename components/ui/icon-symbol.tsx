@@ -52,6 +52,13 @@ const MAPPING = {
   'rectangle.portrait.and.arrow.right': 'logout',
   'trash.fill': 'delete',
   'pencil': 'edit',
+  'qrcode.viewfinder': 'qr-code-scanner',
+  'desktopcomputer': 'computer',
+  'laptopcomputer': 'laptop',
+  'iphone': 'smartphone',
+  'camera.fill': 'camera-alt',
+  'trash': 'delete',
+  'chevron.left': 'chevron-left',
 } as IconMapping;
 
 export type IconSymbolName = keyof typeof MAPPING;

@@ -59,6 +59,7 @@ export const tr = {
             change_file: 'Dosyayı Değiştir',
             add_new_file: 'Yeni Dosya Ekle',
             upgrade: 'Yükselt',
+            grant_permission: 'İzin Ver',
         },
         units: {
             day: 'Gün',
@@ -429,8 +430,26 @@ export const tr = {
             languages: {
                 tr: 'Türkçe',
                 en: 'English'
-            }
+            },
+            web_login: 'Web\'e Giriş Yap',
+            web_sessions: 'Web Oturumları',
         }
+    },
+    scan_qr: {
+        title: 'Web Giriş',
+        permission_message: 'Web giriş için kamerayı kullanmamız gerekiyor.',
+        success_message: 'Web oturumu başarıyla açıldı.',
+        error_message: 'Geçersiz veya süresi dolmuş kod.',
+        connection_error: 'Bağlantı hatası oluştu.',
+        processing: 'Giriş yapılıyor...',
+        instruction: 'Bilgisayarınızdaki QR kodu okutun',
+    },
+    web_sessions: {
+        title: 'Web Oturumları',
+        revoke_title: 'Oturumu Kapat',
+        revoke_confirm: 'Bu cihazdan çıkış yapmak istediğinize emin misiniz?',
+        revoke_all_title: 'Tüm Oturumları Kapat',
+        revoke_all_confirm: 'Tüm web oturumlarını kapatmak istediğinize emin misiniz?',
     },
     attachmentTypes: {
         invoice: 'Fatura',
