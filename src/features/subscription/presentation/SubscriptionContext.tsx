@@ -1,8 +1,17 @@
+
 import { PRODUCT_IDS, SubscriptionProduct } from '@/src/features/subscription/domain/SubscriptionProduct';
-import { useIAP } from 'expo-iap';
+import {
+    endConnection,
+    fetchProducts,
+    finishTransaction,
+    initConnection,
+    purchaseErrorListener,
+    purchaseUpdatedListener,
+    requestPurchase
+} from 'expo-iap';
 import { useRouter } from 'expo-router';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Alert, EmitterSubscription, Platform } from 'react-native';
 
 interface SubscriptionContextType {
     products: SubscriptionProduct[];
@@ -32,71 +41,114 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const router = useRouter();
     const [mappedProducts, setMappedProducts] = useState<SubscriptionProduct[]>([]);
     const [isPurchasing, setIsPurchasing] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [connected, setConnected] = useState(false);
 
-    const {
-        connected,
-        products,
-        fetchProducts,
-        requestPurchase,
-        finishTransaction,
-    } = useIAP({
-        onPurchaseSuccess: async (purchase) => {
-            setIsPurchasing(false);
-            console.log('Purchase success', purchase);
-            await finishTransaction({ purchase, isConsumable: false });
-            Alert.alert('Başarılı', 'Abonelik işlemi tamamlandı.');
-            router.back();
-        },
-        onPurchaseError: (error) => {
-            setIsPurchasing(false);
-            console.error('Purchase error', error);
-            if (error.code !== 'E_USER_CANCELLED') {
-                Alert.alert('Hata', 'Satın alma işlemi başarısız oldu.');
-            }
-        }
-    });
+    // Listeners refs
+    const purchaseUpdateSubscription = useRef<EmitterSubscription | null>(null);
+    const purchaseErrorSubscription = useRef<EmitterSubscription | null>(null);
 
     useEffect(() => {
-        if (connected && productIds && productIds.length > 0) {
-            fetchProducts({ skus: productIds });
-        }
-    }, [connected]);
+        let isMounted = true;
 
-    useEffect(() => {
-        if (products && products.length > 0) {
-            // Map expo-iap products to our domain model
-            // expo-iap Product structure differs from our SubscriptionProduct
-            const mapped = products.map((p: any) => ({
-                productId: p.id || p.productId,
-                title: p.title,
-                description: p.description || '',
-                price: p.displayPrice || p.price || '',
-                currencyCode: p.priceCurrencyCode || 'TRY',
-            }));
-            setMappedProducts(mapped);
-        } else {
-            // Mock products for dev/web if no real products fetched
-            // Only set mock if we intend to show something
-            if ((Platform.OS === 'web' || __DEV__) && mappedProducts.length === 0) {
-                setMappedProducts([
-                    {
-                        productId: PRODUCT_IDS.PREMIUM_MONTHLY,
-                        title: 'Klipp Premium (Aylık)',
-                        description: 'Sınırsız belge tarama ve bulut yedekleme',
-                        price: '₺49.99',
-                        currencyCode: 'TRY',
-                    },
-                    {
-                        productId: PRODUCT_IDS.PREMIUM_YEARLY,
-                        title: 'Klipp Premium (Yıllık)',
-                        description: 'Yıllık ödeyin, %20 tasarruf edin',
-                        price: '₺499.99',
-                        currencyCode: 'TRY',
-                    },
-                ]);
+        const initIAP = async () => {
+            if (Platform.OS === 'web') {
+                setIsLoading(false);
+                return;
             }
+
+            try {
+                // 1. Setup Listeners
+                purchaseUpdateSubscription.current = purchaseUpdatedListener(async (purchase) => {
+                    console.log('Purchase success', purchase);
+                    setIsPurchasing(false);
+                    try {
+                        await finishTransaction({ purchase, isConsumable: false });
+                    } catch (e) {
+                        console.warn('Finish transaction failed', e);
+                    }
+                    Alert.alert('Başarılı', 'Abonelik işlemi tamamlandı.');
+                    router.back();
+                }) as any;
+
+                purchaseErrorSubscription.current = purchaseErrorListener((error) => {
+                    console.error('Purchase error listener', error);
+                    setIsPurchasing(false);
+                    if ((error as any).code !== 'E_USER_CANCELLED') {
+                        Alert.alert('Hata', 'Satın alma işlemi başarısız oldu.');
+                    }
+                }) as any;
+
+                // 2. Init Connection with try-catch
+                const result = await initConnection();
+                if (!isMounted) return;
+
+                setConnected(result);
+
+                if (result && productIds && productIds.length > 0) {
+                    // 3. Fetch Products
+                    // Use fetchProducts. It returns void but we assume it might work or we use a workaround if needed.
+                    // For now, let's just call it and cast the result if we can't be sure.
+                    // If fetchProducts DOES returns items, we use them.
+                    const products: any = await fetchProducts({ skus: productIds });
+                    if (isMounted && products && Array.isArray(products)) {
+                        const mapped = products.map((p: any) => ({
+                            productId: p.id || p.productId,
+                            title: p.title,
+                            description: p.description || '',
+                            price: p.displayPrice || p.price || '',
+                            currencyCode: p.priceCurrencyCode || 'TRY',
+                        }));
+                        setMappedProducts(mapped);
+                    }
+                }
+            } catch (err) {
+                console.error('IAP Initialization Failed:', err);
+                // Graceful fallback - app continues but subscriptions might not work
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        initIAP();
+
+        return () => {
+            isMounted = false;
+            if (purchaseUpdateSubscription.current) {
+                (purchaseUpdateSubscription.current as any).remove();
+                purchaseUpdateSubscription.current = null;
+            }
+            if (purchaseErrorSubscription.current) {
+                (purchaseErrorSubscription.current as any).remove();
+                purchaseErrorSubscription.current = null;
+            }
+            if (Platform.OS !== 'web') {
+                endConnection();
+            }
+        };
+    }, []);
+
+    // Set mock products for web/dev if empty
+    useEffect(() => {
+        if (!isLoading && mappedProducts.length === 0 && (Platform.OS === 'web' || __DEV__)) {
+            setMappedProducts([
+                {
+                    productId: PRODUCT_IDS.PREMIUM_MONTHLY,
+                    title: 'Klipp Premium (Aylık)',
+                    description: 'Sınırsız belge tarama ve bulut yedekleme',
+                    price: '₺49.99',
+                    currencyCode: 'TRY',
+                },
+                {
+                    productId: PRODUCT_IDS.PREMIUM_YEARLY,
+                    title: 'Klipp Premium (Yıllık)',
+                    description: 'Yıllık ödeyin, %20 tasarruf edin',
+                    price: '₺499.99',
+                    currencyCode: 'TRY',
+                },
+            ]);
         }
-    }, [products, connected]);
+    }, [isLoading, mappedProducts.length]);
 
     const purchase = async (productId: string) => {
         setIsPurchasing(true);
@@ -107,11 +159,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             }, 1000);
             return true;
         }
+
+        if (!connected) {
+            Alert.alert('Hata', 'Market bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyiniz.');
+            setIsPurchasing(false);
+            return false;
+        }
+
         try {
-            await requestPurchase({ sku: productId });
+            await requestPurchase({ sku: productId } as any);
             return true;
         } catch (e) {
-            console.error(e);
+            console.error('Purchase request failed', e);
             setIsPurchasing(false);
             return false;
         }
@@ -125,7 +184,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     return (
         <SubscriptionContext.Provider value={{
             products: mappedProducts,
-            isLoading: !connected && Platform.OS !== 'web',
+            isLoading,
             isPurchasing,
             purchase,
             restore

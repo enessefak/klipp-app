@@ -8,7 +8,7 @@ import I18nLocal from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 import { getAttachmentTypeLabel } from '@/src/utils/attachmentUtils';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -16,13 +16,13 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
-    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AttachmentFilters } from '../../domain/Attachment';
-import { FilterChips } from './filters/FilterChips';
+import { FieldConfig } from '../../domain/AttachmentTypeFields';
+import { DynamicFilterSection } from './filters/DynamicFilterSection';
 import { FilterDateRange } from './filters/FilterDateRange';
 import { FilterSection } from './filters/FilterSection';
 import { FilterSelectInput } from './filters/FilterSelectInput';
@@ -62,6 +62,21 @@ export function FilterBottomSheet({
 
     // Local filter state
     const [localFilters, setLocalFilters] = useState<AttachmentFilters>(filters);
+    const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
+
+    // Parse initial detailsFilter
+    useEffect(() => {
+        if (filters.detailsFilter) {
+            try {
+                setDynamicValues(JSON.parse(filters.detailsFilter));
+            } catch (e) {
+                console.warn('Failed to parse detailsFilter', e);
+                setDynamicValues({});
+            }
+        } else {
+            setDynamicValues({});
+        }
+    }, [filters.detailsFilter]);
 
     // Options
     const [folders, setFolders] = useState<Folder[]>([]);
@@ -78,10 +93,14 @@ export function FilterBottomSheet({
     const loadFilterOptions = async () => {
         setLoadingOptions(true);
         try {
-            const [foldersData, typesData] = await Promise.all([
+            const [foldersData, typesResponse] = await Promise.all([
                 FolderRepository.getFolders(),
                 AttachmentTypeService.getAttachmentTypes(),
             ]);
+
+            // Handle paginated response
+            const typesData = Array.isArray(typesResponse) ? typesResponse : ((typesResponse as any).items || []);
+
             setFolders(foldersData);
             setAttachmentTypes(typesData);
         } catch (err) {
@@ -91,41 +110,30 @@ export function FilterBottomSheet({
         }
     };
 
-    // Reset local filters when external filters change
-    useEffect(() => {
-        setLocalFilters(filters);
-    }, [filters]);
-
-    // Navigation helper
-    const navigateWithDelay = (path: string, params: any) => {
-        onPickerOpen?.();
-        onClose();
-
-        // Simple timeout to allow Modal to dismiss natively before pushing new screen
-        setTimeout(() => {
-            // @ts-ignore
-            router.push({ pathname: path, params });
-        }, 400); // Slightly increased delay for safety
-    };
-
-    const triggerNavigation = (action: 'folder' | 'type') => {
-        if (action === 'folder') {
-            setFolderCallback((folder) => {
-                updateFilter('folderId', folder ? folder.id : undefined);
-            });
-            navigateWithDelay('/picker/folder', { selectedId: localFilters.folderId || '' });
-        } else {
-            setTypeCallback((type) => {
-                updateFilter('attachmentTypeId', type ? type.id : undefined);
-            });
-            navigateWithDelay('/picker/attachment-type', { selectedId: localFilters.attachmentTypeId || '' });
-        }
-    };
-
-    const updateFilter = useCallback(<K extends keyof AttachmentFilters>(key: K, value: AttachmentFilters[K]) => {
+    const updateFilter = useCallback((key: keyof AttachmentFilters, value: any) => {
         setLocalFilters(prev => ({ ...prev, [key]: value }));
     }, []);
 
+    const triggerNavigation = useCallback((target: 'folder' | 'type') => {
+        if (onPickerOpen) {
+            onPickerOpen();
+        }
+        if (target === 'folder') {
+            setFolderCallback((folder) => {
+                updateFilter('folderId', folder.id);
+                // Optionally re-open or handle UI state if needed
+            });
+            onClose(); // Close sheet to show picker
+            router.push('/picker/folder');
+        } else {
+            setTypeCallback((type) => {
+                updateFilter('attachmentTypeId', type.id);
+                setDynamicValues({}); // Reset dynamic values when type changes
+            });
+            onClose(); // Close sheet to show picker
+            router.push('/picker/attachment-type');
+        }
+    }, [onClose, router, setFolderCallback, setTypeCallback, updateFilter, onPickerOpen]);
     const handleApply = useCallback(() => {
         const cleanFilters: AttachmentFilters = {};
         Object.entries(localFilters).forEach(([key, value]) => {
@@ -133,28 +141,54 @@ export function FilterBottomSheet({
                 cleanFilters[key as keyof AttachmentFilters] = value;
             }
         });
+
+        // Add dynamic filters if any exist
+        if (Object.keys(dynamicValues).length > 0) {
+            cleanFilters.detailsFilter = JSON.stringify(dynamicValues);
+        }
+
         onApply(cleanFilters);
         onClose();
-    }, [localFilters, onApply, onClose]);
+    }, [localFilters, dynamicValues, onApply, onClose]);
 
     const handleReset = useCallback(() => {
         setLocalFilters({});
+        setDynamicValues({});
         onReset();
         onClose();
     }, [onReset, onClose]);
 
     // Helpers
-    const selectedFolderName = useMemo(() => folders.find(f => f.id === localFilters.folderId)?.name, [folders, localFilters.folderId]);
-    const selectedFolderIcon = useMemo(() => folders.find(f => f.id === localFilters.folderId)?.icon, [folders, localFilters.folderId]);
-    const selectedTypeName = useMemo(() => {
-        const type = attachmentTypes.find(t => t.id === localFilters.attachmentTypeId);
-        return type ? getAttachmentTypeLabel(type.name) : undefined;
-    }, [attachmentTypes, localFilters.attachmentTypeId]);
-    const selectedTypeIcon = useMemo(() => attachmentTypes.find(t => t.id === localFilters.attachmentTypeId)?.icon, [attachmentTypes, localFilters.attachmentTypeId]);
+    const selectedFolder = folders.find(f => f.id === localFilters.folderId);
+    const selectedFolderName = selectedFolder?.name;
+    const selectedFolderIcon = selectedFolder?.icon;
+
+    const selectedType = attachmentTypes?.find((t) => t.id === localFilters.attachmentTypeId);
+    const selectedTypeName = selectedType ? getAttachmentTypeLabel(selectedType.name) : undefined;
+    const selectedTypeIcon = selectedType?.icon;
+
+    // Get field config for selected type from the FULL type object (assuming it has fieldConfig)
+    // Note: attachmentTypes state comes from API which should include fieldConfig
+    const selectedTypeFieldConfig = (selectedType as any)?.fieldConfig as FieldConfig[] | undefined;
 
     const activeFilterCount = useMemo(() => {
-        return Object.values(localFilters).filter(v => v !== undefined && v !== null && v !== '').length;
-    }, [localFilters]);
+        let count = Object.values(localFilters).filter(v => v !== undefined && v !== null && v !== '').length;
+        if (Object.keys(dynamicValues).length > 0) {
+            count += Object.keys(dynamicValues).length;
+        }
+        return count;
+    }, [localFilters, dynamicValues]);
+
+    const handleDynamicChange = useCallback((key: string, value: any) => {
+        setDynamicValues(prev => {
+            if (value === undefined || value === '') {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            }
+            return { ...prev, [key]: value };
+        });
+    }, []);
 
     const styles = useMemo(() => StyleSheet.create({
         modalContainer: {
@@ -214,28 +248,6 @@ export function FilterBottomSheet({
             paddingTop: 8,
             paddingBottom: 100,
         },
-        rangeContainer: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-        },
-        rangeInput: {
-            flex: 1,
-        },
-        input: {
-            backgroundColor: colors.inputBackground,
-            borderRadius: 12,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            fontSize: 16,
-            color: colors.text,
-            borderWidth: 1,
-            borderColor: colors.border,
-        },
-        rangeSeparator: {
-            color: colors.textLight,
-            fontSize: 16,
-        },
         footer: {
             padding: 16,
             borderTopWidth: 1,
@@ -261,16 +273,16 @@ export function FilterBottomSheet({
 
     return (
         <Modal
-            transparent
             visible={visible}
-            animationType="slide"
+            transparent
+            animationType="fade"
             onRequestClose={onClose}
-            statusBarTranslucent
         >
             <View style={styles.modalContainer}>
                 <Pressable style={styles.backdrop} onPress={onClose} />
 
                 <View style={[styles.sheet, { paddingBottom: insets.bottom }]}>
+                    {/* ... (handle and header) */}
                     <View style={styles.handleContainer}>
                         <View style={styles.handle} />
                     </View>
@@ -299,6 +311,7 @@ export function FilterBottomSheet({
                             </View>
                         ) : (
                             <>
+                                {/* ... (Folder and Type sections) */}
                                 <FilterSection
                                     title={I18nLocal.t('filters.sections.folder')}
                                     onClear={localFilters.folderId ? () => updateFilter('folderId', undefined) : undefined}
@@ -313,7 +326,10 @@ export function FilterBottomSheet({
 
                                 <FilterSection
                                     title={I18nLocal.t('filters.sections.document_type')}
-                                    onClear={localFilters.attachmentTypeId ? () => updateFilter('attachmentTypeId', undefined) : undefined}
+                                    onClear={localFilters.attachmentTypeId ? () => {
+                                        updateFilter('attachmentTypeId', undefined);
+                                        setDynamicValues({}); // Clear dynamic values when type is cleared
+                                    } : undefined}
                                 >
                                     <FilterSelectInput
                                         placeholder={I18nLocal.t('filters.sections.type_placeholder')}
@@ -322,52 +338,19 @@ export function FilterBottomSheet({
                                         onPress={() => triggerNavigation('type')}
                                     />
                                 </FilterSection>
+
+                                {/* Dynamic Fields Section */}
+                                {selectedTypeFieldConfig && (
+                                    <DynamicFilterSection
+                                        fieldConfig={selectedTypeFieldConfig}
+                                        values={dynamicValues}
+                                        onChange={handleDynamicChange}
+                                    />
+                                )}
                             </>
                         )}
 
-                        <FilterSection
-                            title={I18nLocal.t('filters.sections.currency')}
-                            onClear={localFilters.currency ? () => updateFilter('currency', undefined) : undefined}
-                        >
-                            <FilterChips
-                                options={CURRENCIES}
-                                selected={localFilters.currency || undefined}
-                                onSelect={(val) => updateFilter('currency', localFilters.currency === val ? undefined : val)}
-                            />
-                        </FilterSection>
-
-                        <FilterSection
-                            title={I18nLocal.t('filters.sections.amount_range')}
-                            onClear={(localFilters.amountMin || localFilters.amountMax) ? () => {
-                                updateFilter('amountMin', undefined);
-                                updateFilter('amountMax', undefined);
-                            } : undefined}
-                        >
-                            <View style={styles.rangeContainer}>
-                                <View style={styles.rangeInput}>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder={I18nLocal.t('filters.placeholders.min')}
-                                        placeholderTextColor={colors.gray}
-                                        keyboardType="numeric"
-                                        value={localFilters.amountMin?.toString() || ''}
-                                        onChangeText={(text) => updateFilter('amountMin', text ? parseFloat(text) : undefined)}
-                                    />
-                                </View>
-                                <ThemedText style={styles.rangeSeparator}>-</ThemedText>
-                                <View style={styles.rangeInput}>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder={I18nLocal.t('filters.placeholders.max')}
-                                        placeholderTextColor={colors.gray}
-                                        keyboardType="numeric"
-                                        value={localFilters.amountMax?.toString() || ''}
-                                        onChangeText={(text) => updateFilter('amountMax', text ? parseFloat(text) : undefined)}
-                                    />
-                                </View>
-                            </View>
-                        </FilterSection>
-
+                        {/* Standard Date Range Filter */}
                         <FilterSection
                             title={I18nLocal.t('filters.sections.date_range')}
                             onClear={(localFilters.documentDateFrom || localFilters.documentDateTo) ? () => {

@@ -13,13 +13,13 @@ import { OpenAPI } from './generated/core/OpenAPI';
 // So modifying the global default should work if we do it early.
 
 const globalAxios = axios;
+
 globalAxios.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 401) {
             console.log('[API] 401 Global Interceptor');
             await SecureStore.deleteItemAsync('token');
-            // Logic to redirect to login is handled by AuthProvider state
         }
         return Promise.reject(error);
     }
@@ -46,4 +46,9 @@ OpenAPI.TOKEN = async () => {
     } catch (e) {
         return '';
     }
+};
+
+// Fix for server compression issue
+OpenAPI.HEADERS = {
+    'Accept-Encoding': 'identity',
 };

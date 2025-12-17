@@ -43,6 +43,22 @@ export class AttachmentRepository {
         filters?: AttachmentFilters,
         pagination?: PaginationParams
     ): Promise<PaginatedAttachments> {
+        // Flatten filters into API parameters
+        // The service expects individual parameters, not a filters object
+        // We need to map our filters DTO to the arguments expected by the service
+
+        // Wait, looking at AttachmentService.ts, getAttachments takes many arguments:
+        // folderId, attachmentTypeId, title, search, ...
+        // passing { folderId } as the first argument might be wrong if the first argument is folderId string!
+        // AttachmentService.getAttachments(folderId, attachmentTypeId, ...)
+        // The code currently does: return await AttachmentService.getAttachments(filters, pagination);
+        // BUT filters is an object { folderId: '...' }, and getAttachments expects folderId as string as 1st arg.
+        // This is why it's failing! Javascript is passing the whole object as the first argument (folderId).
+        // The API client probably stringifies it or ignores it, leading to weird results.
+
+        // console.log('Repo: Fetching with filters:', JSON.stringify(filters));
+
+        // Correct mapping:
         return await AttachmentService.getAttachments(filters, pagination);
     }
 

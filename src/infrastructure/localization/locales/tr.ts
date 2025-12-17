@@ -431,8 +431,10 @@ export const tr = {
                 tr: 'Türkçe',
                 en: 'English'
             },
-            web_login: 'Web\'e Giriş Yap',
-            web_sessions: 'Web Oturumları',
+            web: 'WEB',
+            webLogin: 'Web\'e Giriş Yap',
+            webLoginSubtitle: 'Tarayıcıda QR kodu okutun',
+            activeSessions: 'Oturumlar',
         }
     },
     scan_qr: {

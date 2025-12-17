@@ -82,4 +82,13 @@ export const FolderRepository = {
             throw error;
         }
     },
+
+    deleteFolder: async (id: string): Promise<void> => {
+        try {
+            await FolderService.deleteFolders(id);
+        } catch (error) {
+            console.error('Failed to delete folder:', error);
+            throw error;
+        }
+    },
 };

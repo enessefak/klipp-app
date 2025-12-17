@@ -7,7 +7,7 @@ export function useCreateAttachment() {
     const [error, setError] = useState<string | null>(null);
 
     const createAttachment = async (
-        data: CreateAttachmentDTO, 
+        data: CreateAttachmentDTO,
         fileUri: string,
         mimeType: string = 'image/jpeg'
     ): Promise<Attachment | null> => {
@@ -21,7 +21,7 @@ export function useCreateAttachment() {
         } catch (err) {
             console.error(err);
             setError('Failed to create attachment');
-            return null;
+            throw err; // Re-throw to let the caller handle specific cases like SUBSCRIPTION_REQUIRED
         } finally {
             setLoading(false);
         }

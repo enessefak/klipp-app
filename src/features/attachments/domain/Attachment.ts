@@ -1,3 +1,5 @@
+import { FieldConfig } from './AttachmentTypeFields';
+
 export interface Attachment {
     id: string;
     userId: string;
@@ -5,8 +7,7 @@ export interface Attachment {
     attachmentTypeId: string;
     title: string;
     description: string | null;
-    amount: number | null;
-    currency: string | null;
+    // amount and currency removed, now in details
     documentDate: string; // ISO 8601 date-time
     details?: Record<string, any> | null;
     isOwner?: boolean;
@@ -21,6 +22,8 @@ export interface AttachmentType {
     icon: string;
     color: string;
     requiresWarranty: boolean;
+    fieldConfig?: FieldConfig[];
+    defaultDetails?: Record<string, any>;
 }
 
 // Default attachment type IDs (will be fetched from server)
@@ -56,8 +59,7 @@ export interface CreateAttachmentDTO {
     attachmentTypeId: string;
     title: string;
     description?: string;
-    amount?: number;
-    currency?: string;
+    // amount and currency moved to details
     documentDate: string;
     details?: Record<string, any>;
 }
@@ -68,14 +70,13 @@ export interface AttachmentFilters {
     attachmentTypeId?: string;
     title?: string;
     search?: string;
-    amountMin?: number;
-    amountMax?: number;
-    currency?: string;
+    // amount filters removed
     documentDateFrom?: string;
     documentDateTo?: string;
     createdAtFrom?: string;
     createdAtTo?: string;
     includeShared?: boolean; // Include attachments from shared folders
+    detailsFilter?: string; // JSON string for filtering by details fields
 }
 
 // Pagination parameters

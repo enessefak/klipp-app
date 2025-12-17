@@ -26,7 +26,7 @@ import { useSettings } from '@/src/features/settings/presentation/SettingsContex
 import { AttachmentTypeService } from '@/src/infrastructure/api/generated/services/AttachmentTypeService';
 import { AttachmentService } from '../../data/AttachmentService';
 import { Attachment } from '../../domain/Attachment';
-import { AttachmentTypeFieldFactory, FieldConfig } from '../../domain/AttachmentTypeFields';
+import { FieldConfig } from '../../domain/AttachmentTypeFields';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -118,12 +118,16 @@ export function AttachmentDetailScreen() {
                 }
             }
 
-            // Fetch attachment types to get the type name for field mapping
+            // Fetch attachment types to get configuration
             try {
                 const types = await AttachmentTypeService.getAttachmentTypes();
                 const attachmentType = types.find(t => t.id === data.attachmentTypeId);
+                console.log('DEBUG: Found attachment type:', attachmentType);
                 if (attachmentType) {
-                    setAttachmentTypeName(attachmentType.name.toLowerCase().replace(/\s+/g, '_'));
+                    setAttachmentTypeName(attachmentType.name);
+                    if (attachmentType.fieldConfig) {
+                        setDynamicFields(attachmentType.fieldConfig);
+                    }
                 }
             } catch (typeErr) {
                 console.error('Failed to load attachment types:', typeErr);
@@ -156,7 +160,7 @@ export function AttachmentDetailScreen() {
     const handleShare = async () => {
         setShowActionMenu(false);
         try {
-            const message = `${attachment?.title}\n${attachment?.description || ''}\n${i18n.t('receipts.detail.amount')}: ${attachment?.amount ? `${attachment.amount} ${attachment.currency}` : '-'}\n${i18n.t('receipts.detail.date')}: ${attachment?.documentDate ? new Date(attachment.documentDate).toLocaleDateString(i18n.locale === 'tr' ? 'tr-TR' : 'en-US') : '-'}`;
+            const message = `${attachment?.title}\n${attachment?.description || ''}\n${i18n.t('receipts.detail.amount')}: ${attachment?.details?.amount ? `${attachment.details.amount} ${attachment.details.currency || 'TRY'}` : '-'}\n${i18n.t('receipts.detail.date')}: ${attachment?.documentDate ? new Date(attachment.documentDate).toLocaleDateString(i18n.locale === 'tr' ? 'tr-TR' : 'en-US') : '-'}`;
 
             await Share.share({
                 message,
@@ -671,7 +675,7 @@ export function AttachmentDetailScreen() {
             case 'date':
                 return formatDate(value);
             case 'currency':
-                return formatCurrency(value, attachment?.currency || 'TRY');
+                return formatCurrency(value, attachment?.details?.currency || 'TRY');
             case 'duration':
                 const unit = attachment?.details?.[`${field.key}Unit`] || field.unit || 'month';
                 // Using i18n for units
@@ -681,15 +685,12 @@ export function AttachmentDetailScreen() {
         }
     };
 
-    const renderTypeSpecificFields = () => {
-        // Use attachmentTypeName (slug) instead of UUID
-        const typeKey = attachmentTypeName;
-        if (!typeKey) {
-            console.log('No attachmentTypeName, returning null');
-            return null;
-        }
+    const [dynamicFields, setDynamicFields] = useState<FieldConfig[]>([]);
 
-        const fields = AttachmentTypeFieldFactory.getFields(typeKey);
+
+
+    const renderTypeSpecificFields = () => {
+        const fields = dynamicFields;
         console.log('Fields for type:', fields);
 
         if (fields.length === 0) {
@@ -909,51 +910,7 @@ export function AttachmentDetailScreen() {
                         </View>
                     </View>
 
-                    {attachment.amount !== null && (
-                        <View style={styles.amountContainer}>
-                            <ThemedText style={styles.amountLabel}>{i18n.t('receipts.detail.amount')}</ThemedText>
-                            <ThemedText type="title" style={styles.amount}>
-                                {formatCurrency(attachment.amount, attachment.currency)}
-                            </ThemedText>
-                        </View>
-                    )}
-                </View>
 
-                {/* Details Card */}
-                <View style={styles.card}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>{i18n.t('receipts.detail.sections.details')}</ThemedText>
-
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailItem}>
-                            <IconSymbol name="calendar" size={18} color={colors.textLight} />
-                            <View style={styles.detailText}>
-                                <ThemedText style={styles.detailLabel}>{i18n.t('receipts.detail.fields.document_date')}</ThemedText>
-                                <ThemedText style={styles.detailValue}>{formatDate(attachment.documentDate)}</ThemedText>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.detailRow}>
-                        <View style={styles.detailItem}>
-                            <IconSymbol name="clock" size={18} color={colors.textLight} />
-                            <View style={styles.detailText}>
-                                <ThemedText style={styles.detailLabel}>{i18n.t('receipts.detail.fields.created_at')}</ThemedText>
-                                <ThemedText style={styles.detailValue}>{formatDate(attachment.createdAt)}</ThemedText>
-                            </View>
-                        </View>
-                    </View>
-
-                    {attachment.currency && (
-                        <View style={styles.detailRow}>
-                            <View style={styles.detailItem}>
-                                <IconSymbol name="banknote" size={18} color={colors.textLight} />
-                                <View style={styles.detailText}>
-                                    <ThemedText style={styles.detailLabel}>{i18n.t('receipts.detail.fields.currency')}</ThemedText>
-                                    <ThemedText style={styles.detailValue}>{attachment.currency}</ThemedText>
-                                </View>
-                            </View>
-                        </View>
-                    )}
 
                     {/* Type-specific fields */}
                     {renderTypeSpecificFields()}

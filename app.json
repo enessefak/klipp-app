@@ -75,7 +75,8 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      "./plugins/withPodfileDeploymentTarget"
     ],
     "experiments": {
       "typedRoutes": true,

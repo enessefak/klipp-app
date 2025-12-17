@@ -2999,30 +2999,6 @@
                     },
                     {
                         "schema": {
-                            "type": "number"
-                        },
-                        "in": "query",
-                        "name": "amountMin",
-                        "required": false
-                    },
-                    {
-                        "schema": {
-                            "type": "number"
-                        },
-                        "in": "query",
-                        "name": "amountMax",
-                        "required": false
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "currency",
-                        "required": false
-                    },
-                    {
-                        "schema": {
                             "type": "string",
                             "format": "date-time"
                         },
@@ -3067,6 +3043,14 @@
                         },
                         "in": "query",
                         "name": "includeShared",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "detailsFilter",
                         "required": false
                     },
                     {
@@ -3122,14 +3106,6 @@
                                                         "type": "string"
                                                     },
                                                     "description": {
-                                                        "type": "string",
-                                                        "nullable": true
-                                                    },
-                                                    "amount": {
-                                                        "type": "number",
-                                                        "nullable": true
-                                                    },
-                                                    "currency": {
                                                         "type": "string",
                                                         "nullable": true
                                                     },
@@ -3252,8 +3228,6 @@
                                                     "attachmentTypeId",
                                                     "title",
                                                     "description",
-                                                    "amount",
-                                                    "currency",
                                                     "documentDate",
                                                     "createdAt",
                                                     "updatedAt"
@@ -3307,14 +3281,6 @@
                                     "description": {
                                         "type": "string"
                                     },
-                                    "amount": {
-                                        "type": "number",
-                                        "nullable": true
-                                    },
-                                    "currency": {
-                                        "type": "string",
-                                        "nullable": true
-                                    },
                                     "documentDate": {
                                         "type": "string",
                                         "format": "date-time"
@@ -3365,14 +3331,6 @@
                                             "type": "string"
                                         },
                                         "description": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "amount": {
-                                            "type": "number",
-                                            "nullable": true
-                                        },
-                                        "currency": {
                                             "type": "string",
                                             "nullable": true
                                         },
@@ -3495,8 +3453,6 @@
                                         "attachmentTypeId",
                                         "title",
                                         "description",
-                                        "amount",
-                                        "currency",
                                         "documentDate",
                                         "createdAt",
                                         "updatedAt"
@@ -3572,14 +3528,6 @@
                                             "type": "string",
                                             "nullable": true
                                         },
-                                        "amount": {
-                                            "type": "number",
-                                            "nullable": true
-                                        },
-                                        "currency": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
                                         "documentDate": {
                                             "type": "string",
                                             "format": "date-time"
@@ -3699,8 +3647,6 @@
                                         "attachmentTypeId",
                                         "title",
                                         "description",
-                                        "amount",
-                                        "currency",
                                         "documentDate",
                                         "createdAt",
                                         "updatedAt"
@@ -3736,14 +3682,6 @@
                                     },
                                     "description": {
                                         "type": "string"
-                                    },
-                                    "amount": {
-                                        "type": "number",
-                                        "nullable": true
-                                    },
-                                    "currency": {
-                                        "type": "string",
-                                        "nullable": true
                                     },
                                     "documentDate": {
                                         "type": "string",
@@ -3802,14 +3740,6 @@
                                             "type": "string",
                                             "nullable": true
                                         },
-                                        "amount": {
-                                            "type": "number",
-                                            "nullable": true
-                                        },
-                                        "currency": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
                                         "documentDate": {
                                             "type": "string",
                                             "format": "date-time"
@@ -3929,8 +3859,6 @@
                                         "attachmentTypeId",
                                         "title",
                                         "description",
-                                        "amount",
-                                        "currency",
                                         "documentDate",
                                         "createdAt",
                                         "updatedAt"
@@ -4011,6 +3939,73 @@
                                             },
                                             "requiresWarranty": {
                                                 "type": "boolean"
+                                            },
+                                            "fieldConfig": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "key": {
+                                                            "type": "string"
+                                                        },
+                                                        "label": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "text",
+                                                                "number",
+                                                                "date",
+                                                                "select",
+                                                                "textarea",
+                                                                "duration"
+                                                            ]
+                                                        },
+                                                        "required": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "placeholder": {
+                                                            "type": "string"
+                                                        },
+                                                        "unit": {
+                                                            "type": "string"
+                                                        },
+                                                        "options": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "defaultValue": {},
+                                                        "filterable": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "filterType": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "text",
+                                                                "number",
+                                                                "date",
+                                                                "dateRange",
+                                                                "select",
+                                                                "amount"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "key",
+                                                        "label",
+                                                        "type"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "nullable": true
+                                            },
+                                            "defaultDetails": {
+                                                "type": "object",
+                                                "additionalProperties": {},
+                                                "nullable": true
                                             }
                                         },
                                         "required": [

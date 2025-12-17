@@ -17,6 +17,19 @@ export class AttachmentTypeService {
         icon: string;
         color: string;
         requiresWarranty: boolean;
+        fieldConfig?: Array<{
+            key: string;
+            label: string;
+            type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration';
+            required?: boolean;
+            placeholder?: string;
+            unit?: string;
+            options?: Array<string>;
+            defaultValue?: any;
+            filterable?: boolean;
+            filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+        }> | null;
+        defaultDetails?: Record<string, any> | null;
     }>> {
         return __request(OpenAPI, {
             method: 'GET',

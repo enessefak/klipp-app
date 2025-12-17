@@ -27,14 +27,12 @@ export class AttachmentService {
                 filters?.attachmentTypeId,
                 filters?.title,
                 filters?.search,
-                filters?.amountMin,
-                filters?.amountMax,
-                filters?.currency,
                 filters?.documentDateFrom,
                 filters?.documentDateTo,
                 filters?.createdAtFrom,
                 filters?.createdAtTo,
                 filters?.includeShared ? 'true' : undefined,
+                filters?.detailsFilter,
                 pagination?.cursor,
                 pagination?.limit
             );

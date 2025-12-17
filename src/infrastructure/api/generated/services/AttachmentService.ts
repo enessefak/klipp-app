@@ -13,14 +13,12 @@ export class AttachmentService {
      * @param attachmentTypeId
      * @param title
      * @param search
-     * @param amountMin
-     * @param amountMax
-     * @param currency
      * @param documentDateFrom
      * @param documentDateTo
      * @param createdAtFrom
      * @param createdAtTo
      * @param includeShared
+     * @param detailsFilter
      * @param cursor
      * @param limit
      * @returns any Default Response
@@ -31,14 +29,12 @@ export class AttachmentService {
         attachmentTypeId?: string,
         title?: string,
         search?: string,
-        amountMin?: number,
-        amountMax?: number,
-        currency?: string,
         documentDateFrom?: string,
         documentDateTo?: string,
         createdAtFrom?: string,
         createdAtTo?: string,
         includeShared?: 'true' | 'false',
+        detailsFilter?: string,
         cursor?: string,
         limit?: number,
     ): CancelablePromise<{
@@ -49,8 +45,6 @@ export class AttachmentService {
             attachmentTypeId: string;
             title: string;
             description: string | null;
-            amount: number | null;
-            currency: string | null;
             documentDate: string;
             details?: any;
             images?: Array<{
@@ -88,14 +82,12 @@ export class AttachmentService {
                 'attachmentTypeId': attachmentTypeId,
                 'title': title,
                 'search': search,
-                'amountMin': amountMin,
-                'amountMax': amountMax,
-                'currency': currency,
                 'documentDateFrom': documentDateFrom,
                 'documentDateTo': documentDateTo,
                 'createdAtFrom': createdAtFrom,
                 'createdAtTo': createdAtTo,
                 'includeShared': includeShared,
+                'detailsFilter': detailsFilter,
                 'cursor': cursor,
                 'limit': limit,
             },
@@ -113,8 +105,6 @@ export class AttachmentService {
             attachmentTypeId: string;
             title: string;
             description?: string;
-            amount?: number | null;
-            currency?: string | null;
             documentDate: string;
             details?: Record<string, any> | null;
         },
@@ -125,8 +115,6 @@ export class AttachmentService {
         attachmentTypeId: string;
         title: string;
         description: string | null;
-        amount: number | null;
-        currency: string | null;
         documentDate: string;
         details?: any;
         images?: Array<{
@@ -178,8 +166,6 @@ export class AttachmentService {
         attachmentTypeId: string;
         title: string;
         description: string | null;
-        amount: number | null;
-        currency: string | null;
         documentDate: string;
         details?: any;
         images?: Array<{
@@ -228,8 +214,6 @@ export class AttachmentService {
             attachmentTypeId?: string;
             title?: string;
             description?: string;
-            amount?: number | null;
-            currency?: string | null;
             documentDate?: string;
             details?: Record<string, any> | null;
         },
@@ -240,8 +224,6 @@ export class AttachmentService {
         attachmentTypeId: string;
         title: string;
         description: string | null;
-        amount: number | null;
-        currency: string | null;
         documentDate: string;
         details?: any;
         images?: Array<{

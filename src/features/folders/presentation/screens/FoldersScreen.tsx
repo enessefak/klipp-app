@@ -1,6 +1,6 @@
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -204,8 +204,15 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         }
     };
 
+    const filteredFolders = useMemo(() => {
+        if (!parentId) {
+            return folders?.filter(f => !f.isShared) || [];
+        }
+        return folders || [];
+    }, [folders, parentId]);
+
     const combinedData = [
-        ...(folders?.map?.(f => ({ type: 'folder' as const, data: f })) || []),
+        ...(filteredFolders.map(f => ({ type: 'folder' as const, data: f }))),
         ...(attachments?.map?.(a => ({ type: 'attachment' as const, data: a })) || [])
     ];
 

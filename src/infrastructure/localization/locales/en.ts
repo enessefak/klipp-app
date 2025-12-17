@@ -430,8 +430,10 @@ export const en = {
                 tr: 'Türkçe',
                 en: 'English'
             },
-            web_login: 'Log in to Web',
-            web_sessions: 'Web Sessions',
+            web: 'WEB',
+            webLogin: 'Log in to Web',
+            webLoginSubtitle: 'Scan QR code in browser',
+            activeSessions: 'Active Sessions',
         }
     },
     scan_qr: {

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { AttachmentTypeService } from '@/src/infrastructure/api/generated/services/AttachmentTypeService';
+import { useEffect, useState } from 'react';
 import { AttachmentType } from '../domain/Attachment';
 
 export function useAttachmentTypes() {
@@ -15,7 +15,9 @@ export function useAttachmentTypes() {
         try {
             setLoading(true);
             setError(null);
-            const types = await AttachmentTypeService.getAttachmentTypes();
+            const response: any = await AttachmentTypeService.getAttachmentTypes();
+            // Handle both array and paginated response
+            const types = Array.isArray(response) ? response : (response.items || []);
             setAttachmentTypes(types);
         } catch (err) {
             console.error('Failed to load attachment types:', err);

@@ -135,7 +135,10 @@ interface AttachmentCardProps {
 export function AttachmentCard({ attachment, onPress }: AttachmentCardProps) {
     const { colors } = useSettings();
     const { icon, color } = getAttachmentIcon(attachment, colors);
-    const hasAmount = attachment.amount !== null && attachment.amount > 0 && attachment.currency;
+    const details = attachment.details || {};
+    const amount = details.amount ? parseFloat(String(details.amount)) : 0;
+    const currency = details.currency || '';
+    const hasAmount = amount > 0 && !!currency;
     const importantInfo = getImportantFieldInfo(attachment, colors);
 
     const styles = useMemo(() => StyleSheet.create({
@@ -228,7 +231,7 @@ export function AttachmentCard({ attachment, onPress }: AttachmentCardProps) {
                     </ThemedText>
                     {hasAmount && (
                         <ThemedText type="defaultSemiBold" style={styles.amount}>
-                            {formatCurrency(attachment.amount!, attachment.currency!)}
+                            {formatCurrency(amount, currency)}
                         </ThemedText>
                     )}
                 </View>

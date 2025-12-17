@@ -466,6 +466,23 @@ export function ProfileScreen() {
 
 
 
+                {/* Web & Sessions Section */}
+                <SettingSection title={i18n.t('profile.settings.web') || 'WEB'}>
+                    <SettingItem
+                        icon="qrcode"
+                        iconColor="#000000"
+                        title={i18n.t('profile.settings.webLogin') || "Web'e Giriş Yap"}
+                        subtitle={i18n.t('profile.settings.webLoginSubtitle') || 'Tarayıcıda QR kodu okutun'}
+                        onPress={() => router.push('/scan-qr')}
+                    />
+                    <SettingItem
+                        icon="desktopcomputer"
+                        iconColor="#5856D6"
+                        title={i18n.t('profile.settings.activeSessions') || 'Oturumlar'}
+                        onPress={() => router.push('/web-sessions')}
+                    />
+                </SettingSection>
+
                 {/* Settings Sections */}
                 <SettingSection title={i18n.t('profile.settings.sharing')}>
                     <SettingItem

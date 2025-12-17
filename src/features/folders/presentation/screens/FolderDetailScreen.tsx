@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -25,6 +25,7 @@ import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
 import { CreateFolderModal } from '../components/CreateFolderModal';
+import { FolderEvents } from '../FolderEvents';
 import { useFolders } from '../useFolders';
 
 
@@ -37,7 +38,7 @@ export function FolderDetailScreen() {
     const folderId = params.id;
     const isSharedFolder = params.shared === 'true';
 
-    const { folders, attachments, loading, refresh, createFolder } = useFolders(folderId, { isSharedFolder });
+    const { folders, attachments, loading, refresh, createFolder, deleteFolder } = useFolders(folderId, { isSharedFolder });
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
     const [folderShares, setFolderShares] = useState<FolderShare[]>([]);
     const [sharesLoading, setSharingLoading] = useState(false);
@@ -102,6 +103,36 @@ export function FolderDetailScreen() {
 
     const handleCreate = async (dto: any) => {
         await createFolder(dto);
+    };
+
+    const handleDelete = () => {
+        Alert.alert(
+            'Klasörü Sil',
+            `"${currentFolder?.name}" klasörünü ve içeriğini silmek istediğinize emin misiniz?`,
+            [
+                { text: 'Vazgeç', style: 'cancel' },
+                {
+                    text: 'Sil',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            if (folderId) {
+                                await deleteFolder(folderId);
+                                FolderEvents.emitDelete(folderId);
+                                router.back();
+                            }
+                        } catch (err: any) {
+                            // If folder is already gone (404), just go back
+                            if (err.status === 404 || err.toString().includes('Not Found')) {
+                                router.back();
+                                return;
+                            }
+                            Alert.alert('Hata', 'Klasör silinemedi');
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const handlePressFolder = (folder: Folder) => {
@@ -474,13 +505,22 @@ export function FolderDetailScreen() {
                     </View>
                 </View>
                 {/* Only show share button if user is the owner */}
-                {currentFolder?.owner?.id === user?.id && (
-                    <TouchableOpacity
-                        style={styles.shareIconButton}
-                        onPress={() => setShareModalVisible(true)}
-                    >
-                        <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
-                    </TouchableOpacity>
+                {/* Only show share and delete buttons if user is the owner */}
+                {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity
+                            style={styles.shareIconButton}
+                            onPress={() => setShareModalVisible(true)}
+                        >
+                            <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
+                            onPress={handleDelete}
+                        >
+                            <IconSymbol name="trash.fill" size={24} color={colors.error} />
+                        </TouchableOpacity>
+                    </View>
                 )}
             </View>
 

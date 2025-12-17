@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,14 +16,13 @@ import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Attachment, AttachmentTypeIds } from '@/src/features/attachments/domain/Attachment';
-import { AttachmentTypeFieldFactory, FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
+import { FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
 import { useAttachmentTypes } from '@/src/features/attachments/presentation/useAttachmentTypes';
 import { useFolders } from '@/src/features/folders/presentation/useFolders';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { OCRService } from '../../data/OCRService';
-import { CurrencySelect } from '../components/CurrencySelect';
 
 // Conditionally import DocumentScanner (only works in dev builds, not Expo Go)
 let DocumentScanner: any = null;
@@ -40,8 +39,8 @@ const customFieldSchema = z.object({
 
 const editSchema = z.object({
     title: z.string().min(1, i18n.t('receipts.scan.validation.title_required')),
-    amount: z.string().optional(),
-    currency: z.string(),
+    // amount: z.string().optional(),
+    // currency: z.string(),
     attachmentTypeId: z.string().min(1, i18n.t('receipts.scan.validation.type_required')),
     folderId: z.string().min(1, i18n.t('receipts.scan.validation.folder_required')),
     documentDate: z.date(),
@@ -82,8 +81,8 @@ export default function EditAttachmentScreen() {
         resolver: zodResolver(editSchema),
         defaultValues: {
             title: '',
-            amount: '',
-            currency: 'TRY',
+            // amount: '',
+            // currency: 'TRY',
             attachmentTypeId: AttachmentTypeIds.RECEIPT,
             folderId: '',
             documentDate: new Date(),
@@ -135,8 +134,8 @@ export default function EditAttachmentScreen() {
 
             reset({
                 title: data.title,
-                amount: data.amount ? String(data.amount) : '',
-                currency: data.currency || 'TRY',
+                // amount: data.details?.amount ? String(data.details.amount) : '',
+                // currency: data.details?.currency || 'TRY',
                 attachmentTypeId: data.attachmentTypeId,
                 folderId: data.folderId,
                 documentDate: new Date(data.documentDate),
@@ -181,13 +180,12 @@ export default function EditAttachmentScreen() {
 
     // Dynamic Fields Logic (from ScanScreen)
     useEffect(() => {
-        const typeName = attachmentTypes.find(t => t.id === watchedTypeId)?.name || '';
-        const fields = AttachmentTypeFieldFactory.getFields(typeName);
-        setDynamicFields(fields);
-
-        // Preserve existing details if keys match, otherwise defaults?
-        // In Edit mode, we don't want to overwrite loaded details with defaults unless type changed significantly
-        // For now, let's just update fields config
+        const type = attachmentTypes.find(t => t.id === watchedTypeId);
+        if (type?.fieldConfig && type.fieldConfig.length > 0) {
+            setDynamicFields(type.fieldConfig);
+        } else {
+            setDynamicFields([]);
+        }
     }, [watchedTypeId, attachmentTypes]);
 
     // File Processing (from ScanScreen)
@@ -202,10 +200,16 @@ export default function EditAttachmentScreen() {
             // Auto-fill form fields (only empty ones or overwrite all? usually specific update)
             // For logic consistency: let's overwrite for now or ask user?
             // "Updated from new file"
+            // Update details instead of top-level
+            const currentDetails = watch('details') || {};
+            const newDetails = { ...currentDetails };
+
             if (ocrResult.extractedData.title) setValue('title', ocrResult.extractedData.title);
-            if (ocrResult.extractedData.amount) setValue('amount', ocrResult.extractedData.amount.toString());
-            if (ocrResult.extractedData.currency) setValue('currency', ocrResult.extractedData.currency);
+            if (ocrResult.extractedData.amount) newDetails.amount = ocrResult.extractedData.amount.toString();
+            if (ocrResult.extractedData.currency) newDetails.currency = ocrResult.extractedData.currency;
             if (ocrResult.extractedData.date) setValue('documentDate', new Date(ocrResult.extractedData.date));
+
+            setValue('details', newDetails);
             // Type detection logic... (omitted for brevity, can copy if needed)
 
             setStep('form');
@@ -263,8 +267,8 @@ export default function EditAttachmentScreen() {
                 // CREATE new one
                 await AttachmentService.createAttachmentWithFile({
                     title: data.title,
-                    amount: data.amount ? parseFloat(data.amount) : undefined,
-                    currency: data.amount ? data.currency : undefined,
+                    // amount: data.amount ? parseFloat(data.amount) : undefined,
+                    // currency: data.amount ? data.currency : undefined,
                     documentDate: data.documentDate.toISOString(),
                     attachmentTypeId: data.attachmentTypeId,
                     folderId: data.folderId,
@@ -276,8 +280,8 @@ export default function EditAttachmentScreen() {
                 // UPDATE Metadata only
                 await AttachmentService.updateAttachment(id!, {
                     title: data.title,
-                    amount: data.amount ? parseFloat(data.amount) : undefined,
-                    currency: data.amount ? data.currency : undefined,
+                    // amount: data.amount ? parseFloat(data.amount) : undefined,
+                    // currency: data.amount ? data.currency : undefined,
                     documentDate: data.documentDate.toISOString(),
                     attachmentTypeId: data.attachmentTypeId,
                     folderId: data.folderId,
@@ -420,36 +424,7 @@ export default function EditAttachmentScreen() {
                         )}
                     />
 
-                    <View style={styles.row}>
-                        <View style={styles.half}>
-                            <Controller
-                                control={control}
-                                name="amount"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <FormField label={i18n.t('receipts.scan.amountPlaceholder')} error={errors.amount?.message}>
-                                        <TextInput
-                                            placeholder="0.00"
-                                            keyboardType="numeric"
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            value={value}
-                                        />
-                                    </FormField>
-                                )}
-                            />
-                        </View>
-                        <View style={styles.half}>
-                            <Controller
-                                control={control}
-                                name="currency"
-                                render={({ field: { onChange, value } }) => (
-                                    <FormField label={i18n.t('receipts.scan.currency_select_label')}>
-                                        <CurrencySelect value={value || 'TRY'} onSelect={onChange} />
-                                    </FormField>
-                                )}
-                            />
-                        </View>
-                    </View>
+
 
                     <Controller
                         control={control}

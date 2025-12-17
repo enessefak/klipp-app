@@ -15,7 +15,7 @@ import { Select } from '@/components/Select';
 import { ThemedText } from '@/components/themed-text';
 import { OCRService } from '@/src/features/attachments/data/OCRService';
 import { AttachmentTypeIds, CreateAttachmentDTO } from '@/src/features/attachments/domain/Attachment';
-import { AttachmentTypeFieldFactory, FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
+import { FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
 import { useAttachmentTypes } from '@/src/features/attachments/presentation/useAttachmentTypes';
 import { useCreateAttachment } from '@/src/features/attachments/presentation/useCreateAttachment';
 import { useFolders } from '@/src/features/folders/presentation/useFolders';
@@ -31,8 +31,9 @@ const customFieldSchema = z.object({
 // Base Zod schema for type inference
 const baseScanFormSchema = z.object({
     title: z.string(),
-    amount: z.string().optional(),
-    currency: z.string(),
+    // amount and currency moved to details
+    // amount: z.string().optional(),
+    // currency: z.string(),
     attachmentTypeId: z.string(),
     folderId: z.string(),
     documentDate: z.date(),
@@ -75,7 +76,7 @@ export function ScanScreen() {
     const [pendingOcrType, setPendingOcrType] = useState<string | null>(null);
 
     // UI state
-    const [showDetails, setShowDetails] = useState(false); // Collapsible details section
+    const [showDetails, setShowDetails] = useState(true); // Collapsible details section
     const [showDocDatePicker, setShowDocDatePicker] = useState(false);
     const [showDetailDatePickers, setShowDetailDatePickers] = useState<Record<string, boolean>>({});
 
@@ -477,8 +478,9 @@ export function ScanScreen() {
     // React Hook Form setup
     const schema = useMemo(() => z.object({
         title: z.string().min(1, i18n.t('receipts.scan.validation.title_required')),
-        amount: z.string().optional(),
-        currency: z.string(),
+        // amount and currency removed from top level validation
+        // amount: z.string().optional(),
+        // currency: z.string(),
         attachmentTypeId: z.string().min(1, i18n.t('receipts.scan.validation.type_required')),
         folderId: z.string().min(1, i18n.t('receipts.scan.validation.folder_required')),
         documentDate: z.date(),
@@ -491,9 +493,9 @@ export function ScanScreen() {
         resolver: zodResolver(schema),
         defaultValues: {
             title: '',
-            amount: '',
-            currency: 'TRY',
-            attachmentTypeId: AttachmentTypeIds.RECEIPT,
+            // amount: '',
+            // currency: 'TRY',
+            attachmentTypeId: '', // Don't default to slug, wait for load
             folderId: '',
             documentDate: new Date(),
             details: {},
@@ -501,6 +503,25 @@ export function ScanScreen() {
             customFields: [],
         },
     });
+
+    // Set default type when types are loaded
+    useEffect(() => {
+        if (attachmentTypes.length > 0 && !watch('attachmentTypeId')) {
+            // Find "Receipt" or "Fiş" type
+            const defaultType = attachmentTypes.find(t =>
+                t.name.toLowerCase() === 'receipt' ||
+                t.name.toLowerCase() === 'fiş' ||
+                t.id === AttachmentTypeIds.RECEIPT
+            );
+
+            if (defaultType) {
+                setValue('attachmentTypeId', defaultType.id);
+            } else if (attachmentTypes.length > 0) {
+                // Fallback to first available type
+                setValue('attachmentTypeId', attachmentTypes[0].id);
+            }
+        }
+    }, [attachmentTypes]);
 
     // Watch form values
     const watchedTypeId = watch('attachmentTypeId');
@@ -513,7 +534,7 @@ export function ScanScreen() {
 
     // Find the selected type's name for field mapping
     const getTypeNameById = (typeId: string): string => {
-        const type = attachmentTypes.find(t => t.id === typeId);
+        const type = attachmentTypes?.find?.(t => t.id === typeId);
         return type?.name || '';
     };
 
@@ -543,7 +564,7 @@ export function ScanScreen() {
 
         // Search for matching type in attachmentTypes
         for (const name of possibleNames) {
-            const found = attachmentTypes.find(t =>
+            const found = attachmentTypes?.find?.(t =>
                 t.name.toLowerCase() === name.toLowerCase() ||
                 t.id.toLowerCase() === name.toLowerCase()
             );
@@ -553,7 +574,7 @@ export function ScanScreen() {
         }
 
         // Fallback: try to find by partial match
-        const foundPartial = attachmentTypes.find(t =>
+        const foundPartial = attachmentTypes?.find?.(t =>
             t.name.toLowerCase().includes(ocrTypeKey.replace('_', ' ')) ||
             ocrTypeKey.toLowerCase().includes(t.name.toLowerCase())
         );
@@ -562,13 +583,20 @@ export function ScanScreen() {
     };
 
     useEffect(() => {
-        const typeName = getTypeNameById(watchedTypeId);
-        const fields = AttachmentTypeFieldFactory.getFields(typeName);
-        setDynamicFields(fields);
+        const typeId = watchedTypeId;
+        const type = attachmentTypes.find(t => t.id === typeId);
 
-        // Initialize details with default values
-        const defaultDetails = AttachmentTypeFieldFactory.getDefaultDetails(typeName);
-        setValue('details', defaultDetails);
+        // Use fieldConfig from API if available, else fallback to empty array
+        if (type?.fieldConfig && type.fieldConfig.length > 0) {
+            setDynamicFields(type.fieldConfig);
+
+            // Use defaultDetails from API if available
+            if (type.defaultDetails) {
+                setValue('details', type.defaultDetails);
+            }
+        } else {
+            setDynamicFields([]);
+        }
     }, [watchedTypeId, attachmentTypes]);
 
     // Process pending OCR type when attachmentTypes are loaded
@@ -599,12 +627,20 @@ export function ScanScreen() {
             if (ocrResult.extractedData.title) {
                 setValue('title', ocrResult.extractedData.title);
             }
+            // Map amount/currency to details if they exist in OCR but not in dynamic schema yet
+            // logic: if dynamic fields include 'amount', set it in details.
+
+            const currentDetails = watch('details') || {};
+            const newDetails = { ...currentDetails };
+
             if (ocrResult.extractedData.amount) {
-                setValue('amount', ocrResult.extractedData.amount.toString());
+                newDetails.amount = ocrResult.extractedData.amount.toString();
             }
             if (ocrResult.extractedData.currency) {
-                setValue('currency', ocrResult.extractedData.currency);
+                newDetails.currency = ocrResult.extractedData.currency;
             }
+
+            setValue('details', newDetails);
             if (ocrResult.extractedData.date) {
                 setValue('documentDate', new Date(ocrResult.extractedData.date));
             }
@@ -764,9 +800,8 @@ export function ScanScreen() {
         setShowDetails(false);
         reset({
             title: '',
-            amount: '',
-            currency: 'TRY',
-            attachmentTypeId: AttachmentTypeIds.RECEIPT,
+
+            attachmentTypeId: '', // Let useEffect re-populate valid ID
             folderId: '',
             documentDate: new Date(),
             details: {},
@@ -794,22 +829,36 @@ export function ScanScreen() {
         const dto: CreateAttachmentDTO = {
             title: data.title,
             description: data.description || undefined, // Searchable OCR text
-            amount: data.amount ? parseFloat(data.amount) : undefined,
-            currency: data.amount ? data.currency : undefined,
+            // amount: data.amount ? parseFloat(data.amount) : undefined,
+            // currency: data.amount ? data.currency : undefined,
             documentDate: data.documentDate.toISOString(),
             folderId: data.folderId,
             attachmentTypeId: data.attachmentTypeId,
             details: Object.keys(mergedDetails).length > 0 ? mergedDetails : undefined,
         };
 
-        const result = await createAttachment(dto, fileUri, mimeType);
-        if (result) {
-            Alert.alert(i18n.t('receipts.scan.save_success.title'), i18n.t('receipts.scan.save_success.message'));
-            resetCapture();
-            // Replace instead of push to avoid modal stack issues
-            router.replace('/(tabs)');
-        } else {
-            Alert.alert(i18n.t('receipts.scan.save_error.title'), i18n.t('receipts.scan.save_error.message'));
+        try {
+            const result = await createAttachment(dto, fileUri, mimeType);
+            if (result) {
+                Alert.alert(i18n.t('receipts.scan.save_success.title'), i18n.t('receipts.scan.save_success.message'));
+                resetCapture();
+                // Replace instead of push to avoid modal stack issues
+                router.replace('/(tabs)');
+            }
+        } catch (error: any) {
+            console.error('ScanScreen submit error:', error);
+            if (error?.body?.code === 'SUBSCRIPTION_REQUIRED') {
+                Alert.alert(
+                    'Abonelik Gerekli',
+                    'Ücretsiz kullanım limitiniz dolmuştur. Devam etmek için lütfen aboneliğinizi yükseltin.',
+                    [
+                        { text: 'Vazgeç', style: 'cancel' },
+                        { text: 'Premium Al', onPress: () => router.push('/(tabs)/profile') }
+                    ]
+                );
+            } else {
+                Alert.alert(i18n.t('receipts.scan.save_error.title'), i18n.t('receipts.scan.save_error.message'));
+            }
         }
     };
 
@@ -1011,7 +1060,7 @@ export function ScanScreen() {
                 control={control}
                 name="attachmentTypeId"
                 render={({ field: { onChange, value } }) => {
-                    const selectedType = attachmentTypes.find(t => t.id === value);
+                    const selectedType = attachmentTypes?.find?.(t => t.id === value);
                     return (
                         <FormField
                             label={i18n.t('receipts.scan.detailsTitle')}
@@ -1049,43 +1098,7 @@ export function ScanScreen() {
                 )}
             />
 
-            <View style={styles.amountContainer}>
-                <Controller
-                    control={control}
-                    name="amount"
-                    render={({ field: { onChange, value } }) => (
-                        <FormField label={i18n.t('receipts.scan.amountPlaceholder')} style={styles.amountFieldContainer}>
-                            <TextInput
-                                placeholder="0.00"
-                                value={value}
-                                onChangeText={onChange}
-                                keyboardType="decimal-pad"
-                            />
-                        </FormField>
-                    )}
-                />
-                <Controller
-                    control={control}
-                    name="currency"
-                    render={({ field: { onChange, value } }) => (
-                        <FormField label={i18n.t('receipts.scan.currency_label')} style={styles.currencyFieldContainer}>
-                            <Select
-                                label={i18n.t('receipts.scan.currency_select_label')}
-                                value={value}
-                                options={[
-                                    { label: 'TRY', value: 'TRY', icon: '🇹🇷' },
-                                    { label: 'USD', value: 'USD', icon: '🇺🇸' },
-                                    { label: 'EUR', value: 'EUR', icon: '🇪🇺' },
-                                    { label: 'GBP', value: 'GBP', icon: '🇬🇧' },
-                                ]}
-                                onChange={onChange}
-                                hideLabel
-                                compact
-                            />
-                        </FormField>
-                    )}
-                />
-            </View>
+            {/* Amount and Currency removed - dynamic fields used instead */}
 
             <Controller
                 control={control}
@@ -1191,6 +1204,14 @@ export function ScanScreen() {
                                     onChangeText={(value) => updateDetailField(field.key, value)}
                                     multiline
                                     numberOfLines={4}
+                                />
+                            ) : field.type === 'select' ? (
+                                <Select
+                                    label={field.label}
+                                    value={watchedDetails[field.key]}
+                                    options={(field.options || []).map((opt) => ({ label: opt, value: opt }))}
+                                    onChange={(val) => updateDetailField(field.key, val)}
+                                    placeholder={field.placeholder}
                                 />
                             ) : field.type === 'number' ? (
                                 <TextInput
