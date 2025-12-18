@@ -5955,6 +5955,287 @@
                     }
                 }
             }
+        },
+        "/ai/scan-document": {
+            "post": {
+                "summary": "Scan document with AI",
+                "tags": [
+                    "AI"
+                ],
+                "description": "\nAnalyzes a document (image or PDF) using Gemini AI and extracts structured data.\n\n**Desteklenen Formatlar:**\n- **Görsel:** JPEG, PNG, GIF, WebP\n- **PDF:** application/pdf (çok sayfalı belgeler desteklenir)\n- **NOT:** DOC/DOCX dosyaları desteklenmez, önce PDF'e dönüştürün\n\n**Boyut Limitleri:**\n- Görseller: maksimum 5MB\n- PDF: maksimum 10MB\n\n**Rate Limits:**\n- 10 requests per minute\n- 100 requests per day\n\n**Request:**\n- `file`: Base64 encoded dosya (görsel veya PDF) - zorunlu\n- `mimeType`: Dosya MIME tipi (opsiyonel, varsayılan: image/jpeg)\n  - Desteklenen: image/jpeg, image/png, image/gif, image/webp, application/pdf\n- `attachmentTypeId`: Verilirse, AI o tipe özel alanları çıkarır\n\n**Response:**\n- `suggestedType`: Algılanan belge tipi ve güven skoru\n- `suggestedTitle`: Önerilen başlık\n- `suggestedDate`: Belge tarihi (ISO format)\n- `extractedDetails`: AttachmentType fieldConfig'e uygun key-value çiftleri\n\n**Kullanım:**\n1. attachmentTypeId olmadan: AI belge tipini otomatik algılar\n2. attachmentTypeId ile: Bilinen tip için daha doğru alan çıkarımı\n      ",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "type": "string"
+                                    },
+                                    "image": {
+                                        "type": "string"
+                                    },
+                                    "mimeType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "image/jpeg",
+                                            "image/png",
+                                            "image/gif",
+                                            "image/webp",
+                                            "application/pdf"
+                                        ],
+                                        "description": "Dosya MIME tipi. Desteklenen formatlar: image/jpeg, image/png, image/gif, image/webp, application/pdf. Varsayılan: image/jpeg"
+                                    },
+                                    "attachmentTypeId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "suggestedType": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "confidence": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "confidence"
+                                            ],
+                                            "additionalProperties": false,
+                                            "nullable": true
+                                        },
+                                        "suggestedTitle": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "suggestedDescription": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "suggestedDate": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "extractedDetails": {
+                                            "type": "object",
+                                            "additionalProperties": {}
+                                        },
+                                        "rawText": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "suggestedType",
+                                        "suggestedTitle",
+                                        "suggestedDescription",
+                                        "suggestedDate",
+                                        "extractedDetails",
+                                        "rawText"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "suggestedType": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "confidence": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "confidence"
+                                            ],
+                                            "additionalProperties": false,
+                                            "nullable": true
+                                        },
+                                        "suggestedTitle": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "suggestedDescription": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "suggestedDate": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "extractedDetails": {
+                                            "type": "object",
+                                            "additionalProperties": {}
+                                        },
+                                        "rawText": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "suggestedType",
+                                        "suggestedTitle",
+                                        "suggestedDescription",
+                                        "suggestedDate",
+                                        "extractedDetails",
+                                        "rawText"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAfter": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "suggestedType": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "confidence": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "confidence"
+                                            ],
+                                            "additionalProperties": false,
+                                            "nullable": true
+                                        },
+                                        "suggestedTitle": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "suggestedDescription": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "suggestedDate": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "extractedDetails": {
+                                            "type": "object",
+                                            "additionalProperties": {}
+                                        },
+                                        "rawText": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "suggestedType",
+                                        "suggestedTitle",
+                                        "suggestedDescription",
+                                        "suggestedDate",
+                                        "extractedDetails",
+                                        "rawText"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "security": [

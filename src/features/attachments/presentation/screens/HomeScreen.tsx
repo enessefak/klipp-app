@@ -140,7 +140,6 @@ export function HomeScreen() {
                 activeFilters,
                 { cursor, limit: PAGE_SIZE }
             );
-            console.log('Fetch Attachments Response:', JSON.stringify(response, null, 2));
 
             if (isRefresh || !cursor) {
                 setAttachments(response.items);

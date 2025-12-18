@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,11 +11,14 @@ import { z } from 'zod';
 import { AttachmentTypeSelector } from '@/components/AttachmentTypeSelector';
 import { FolderSelector } from '@/components/FolderSelector';
 import { Button, DatePickerField, FormContainer, FormField, TextInput } from '@/components/form';
-import { Select } from '@/components/Select';
 import { ThemedText } from '@/components/themed-text';
 import { OCRService } from '@/src/features/attachments/data/OCRService';
 import { AttachmentTypeIds, CreateAttachmentDTO } from '@/src/features/attachments/domain/Attachment';
 import { FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
+import { CustomFieldsList } from '@/src/features/attachments/presentation/components/scan/CustomFieldsList';
+import { DynamicFieldsSection } from '@/src/features/attachments/presentation/components/scan/DynamicFieldsSection';
+import { ScanMethodSelector } from '@/src/features/attachments/presentation/components/scan/ScanMethodSelector';
+import { ScanPreview } from '@/src/features/attachments/presentation/components/scan/ScanPreview';
 import { useAttachmentTypes } from '@/src/features/attachments/presentation/useAttachmentTypes';
 import { useCreateAttachment } from '@/src/features/attachments/presentation/useCreateAttachment';
 import { useFolders } from '@/src/features/folders/presentation/useFolders';
@@ -491,6 +494,7 @@ export function ScanScreen() {
 
     const { control, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<ScanFormData>({
         resolver: zodResolver(schema),
+        shouldUnregister: false, // Keep values for fields even if they are not currently rendered (collapsed/dynamic)
         defaultValues: {
             title: '',
             // amount: '',
@@ -582,6 +586,10 @@ export function ScanScreen() {
         return foundPartial?.id;
     };
 
+    // Ref to track if the type change was initiated by the user (manual selection)
+    // We only want to apply defaultDetails when the USER picks a type, not when OCR auto-sets it.
+    const isUserTypeSelection = useRef(false);
+
     useEffect(() => {
         const typeId = watchedTypeId;
         const type = attachmentTypes.find(t => t.id === typeId);
@@ -590,14 +598,26 @@ export function ScanScreen() {
         if (type?.fieldConfig && type.fieldConfig.length > 0) {
             setDynamicFields(type.fieldConfig);
 
-            // Use defaultDetails from API if available
-            if (type.defaultDetails) {
+            // Apply default details ONLY if this was a manual user selection
+            if (type.defaultDetails && isUserTypeSelection.current) {
                 setValue('details', type.defaultDetails);
             }
         } else {
             setDynamicFields([]);
+            setDynamicFields([]);
         }
+
+        // Reset the flag after processing
+        // We set it to false so next time (unless user clicks again) it's considered automated
+        // However, if we reset it here, we need to ensure OCR sets it to false explicitely anyway.
+        // Actually, just leaving it is fine if we manage it correctly on change events.
     }, [watchedTypeId, attachmentTypes]);
+
+    useEffect(() => {
+        if (dynamicFields.length > 0) {
+            console.log('[DEBUG] Dynamic Fields Config:', JSON.stringify(dynamicFields, null, 2));
+        }
+    }, [dynamicFields]);
 
     // Process pending OCR type when attachmentTypes are loaded
     useEffect(() => {
@@ -617,6 +637,9 @@ export function ScanScreen() {
         setMimeType(mime);
         setFileName(null);
         setStep('analyzing');
+
+        // Ensure that any type change during this process is treated as automated
+        isUserTypeSelection.current = false;
 
         try {
             // Use general scanDocument method that handles images, PDFs and DOCX
@@ -659,18 +682,32 @@ export function ScanScreen() {
 
             // Auto-fill type-specific details
             if (ocrResult.extractedData.details && Object.keys(ocrResult.extractedData.details).length > 0) {
-                const currentDetails = watch('details') || {};
+                // Granularly set each field to ensure nested Controllers pick it up
+                const currentD = watch('details') || {};
+                const newData = ocrResult.extractedData.details;
+
+                console.log('[DEBUG] Setting individual details fields:', Object.keys(newData).join(', '));
+
+                Object.entries(newData).forEach(([key, value]) => {
+                    setValue(`details.${key}`, value, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                        shouldTouch: true
+                    });
+                });
+
+                // Also update the full object just in case
                 setValue('details', {
-                    ...currentDetails,
-                    ...ocrResult.extractedData.details
+                    ...currentD,
+                    ...newData
                 });
             }
 
             // Build description for search indexing (hidden field)
             const searchableFields: string[] = [];
             if (ocrResult.rawText) {
-                // Add important lines from OCR (first 500 chars)
-                searchableFields.push(ocrResult.rawText.substring(0, 500));
+                // Add important lines from OCR (first 2000 chars to cover full page content)
+                searchableFields.push(ocrResult.rawText.substring(0, 2000));
             }
             if (ocrResult.extractedData.title) {
                 searchableFields.push(`Başlık: ${ocrResult.extractedData.title}`);
@@ -749,6 +786,7 @@ export function ScanScreen() {
             });
 
             if (result.scannedImages && result.scannedImages.length > 0) {
+                // Send cropped image to AI backend
                 await processFileWithOCR(result.scannedImages[0], 'image', 'image/jpeg');
             }
         } catch (error) {
@@ -763,10 +801,6 @@ export function ScanScreen() {
             const result = await DocumentPicker.getDocumentAsync({
                 type: [
                     'application/pdf',
-                    'application/msword',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'application/vnd.ms-excel',
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 ],
                 copyToCacheDirectory: true,
             });
@@ -815,8 +849,6 @@ export function ScanScreen() {
             Alert.alert(i18n.t('receipts.scan.file_required.title'), i18n.t('receipts.scan.file_required.message'));
             return;
         }
-
-        console.log(JSON.stringify(data, null, 2));
 
         // Merge custom fields into details
         const mergedDetails = { ...(data.details || {}) };
@@ -929,49 +961,14 @@ export function ScanScreen() {
                     </View>
 
                     <View style={styles.captureContainer}>
-                        <ThemedText style={styles.captureSubtitle}>
-                            {i18n.t('receipts.scan.method_subtitle')}
-                        </ThemedText>
-
-                        <TouchableOpacity style={styles.captureButton} onPress={scanDocument}>
-                            <View style={styles.captureIconContainer}>
-                                <ThemedText style={styles.captureIcon}>📑</ThemedText>
-                            </View>
-                            <View style={styles.captureTextContainer}>
-                                <ThemedText style={styles.captureButtonTitle}>{i18n.t('receipts.scan.scan_method.title')}</ThemedText>
-                                <ThemedText style={styles.captureButtonDesc}>{i18n.t('receipts.scan.scan_method.desc')}</ThemedText>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
-                            <View style={styles.captureIconContainer}>
-                                <ThemedText style={styles.captureIcon}>📷</ThemedText>
-                            </View>
-                            <View style={styles.captureTextContainer}>
-                                <ThemedText style={styles.captureButtonTitle}>{i18n.t('receipts.scan.camera_method.title')}</ThemedText>
-                                <ThemedText style={styles.captureButtonDesc}>{i18n.t('receipts.scan.camera_method.desc')}</ThemedText>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.captureButton} onPress={pickImage}>
-                            <View style={styles.captureIconContainer}>
-                                <ThemedText style={styles.captureIcon}>🖼️</ThemedText>
-                            </View>
-                            <View style={styles.captureTextContainer}>
-                                <ThemedText style={styles.captureButtonTitle}>{i18n.t('receipts.scan.gallery_method.title')}</ThemedText>
-                                <ThemedText style={styles.captureButtonDesc}>{i18n.t('receipts.scan.gallery_method.desc')}</ThemedText>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.captureButton} onPress={pickDocument}>
-                            <View style={styles.captureIconContainer}>
-                                <ThemedText style={styles.captureIcon}>📄</ThemedText>
-                            </View>
-                            <View style={styles.captureTextContainer}>
-                                <ThemedText style={styles.captureButtonTitle}>{i18n.t('receipts.scan.file_method.title')}</ThemedText>
-                                <ThemedText style={styles.captureButtonDesc}>{i18n.t('receipts.scan.file_method.desc')}</ThemedText>
-                            </View>
-                        </TouchableOpacity>
+                        <ScanMethodSelector
+                            onSelectMethod={(method) => {
+                                if (method === 'scan') scanDocument();
+                                else if (method === 'camera') takePhoto();
+                                else if (method === 'gallery') pickImage();
+                                else if (method === 'file') pickDocument();
+                            }}
+                        />
                     </View>
                 </ScrollView>
             </View>
@@ -1014,28 +1011,14 @@ export function ScanScreen() {
             </View>
 
             {/* File Preview - Image or Document */}
-            <TouchableOpacity style={styles.imagePreviewContainer} onPress={resetCapture}>
-                {fileType === 'image' && fileUri && (
-                    <Image source={{ uri: fileUri }} style={styles.imagePreview} />
-                )}
-                {fileType === 'document' && (
-                    <View style={styles.documentPreview}>
-                        <ThemedText style={styles.documentIcon}>📄</ThemedText>
-                        <ThemedText type="defaultSemiBold" style={styles.documentName} numberOfLines={2}>
-                            {fileName || i18n.t('receipts.scan.default_document_name')}
-                        </ThemedText>
-                        <ThemedText style={styles.documentType}>
-                            {mimeType.includes('pdf') ? 'PDF' :
-                                mimeType.includes('word') ? 'Word' :
-                                    mimeType.includes('excel') || mimeType.includes('spreadsheet') ? 'Excel' :
-                                        'Dosya'}
-                        </ThemedText>
-                    </View>
-                )}
-                <View style={styles.imagePreviewOverlay}>
-                    <ThemedText style={styles.imagePreviewText}>{i18n.t('receipts.scan.tap_to_change')}</ThemedText>
-                </View>
-            </TouchableOpacity>
+            {/* File Preview - Image or Document */}
+            <ScanPreview
+                fileUri={fileType === 'image' ? fileUri : null}
+                fileType={fileType}
+                fileName={fileName}
+                mimeType={mimeType}
+                onRetake={resetCapture}
+            />
 
             {/* Folder Selection */}
             <Controller
@@ -1069,7 +1052,10 @@ export function ScanScreen() {
                         >
                             <AttachmentTypeSelector
                                 value={value}
-                                onSelect={onChange}
+                                onSelect={(typeId) => {
+                                    isUserTypeSelection.current = true;
+                                    onChange(typeId);
+                                }}
                                 currentType={selectedType}
                                 placeholder={i18n.t('filters.sections.type_placeholder')}
                                 disabled={loadingTypes}
@@ -1128,142 +1114,26 @@ export function ScanScreen() {
                         </View>
                         <ThemedText style={styles.collapsibleArrow}>{showDetails ? '▲' : '▼'}</ThemedText>
                     </TouchableOpacity>
-                    {showDetails && dynamicFields.map((field) => (
-                        <FormField key={field.key} label={field.label} required={field.required}>
-                            {field.type === 'duration' ? (
-                                <View style={styles.durationRow}>
-                                    <TextInput
-                                        style={styles.durationInput}
-                                        placeholder="0"
-                                        value={watchedDetails[field.key]?.toString() || ''}
-                                        onChangeText={(value) => {
-                                            const numValue = parseInt(value) || 0;
-                                            updateDetailField(field.key, numValue);
-                                            // Auto-calculate end date based on duration
-                                            if (field.key === 'warrantyDuration') {
-                                                const endDate = new Date(watchedDocumentDate);
-                                                const unit = watchedDetails.warrantyDurationUnit || 'month';
-                                                if (unit === 'day') {
-                                                    endDate.setDate(endDate.getDate() + numValue);
-                                                } else if (unit === 'month') {
-                                                    endDate.setMonth(endDate.getMonth() + numValue);
-                                                } else if (unit === 'year') {
-                                                    endDate.setFullYear(endDate.getFullYear() + numValue);
-                                                }
-                                                updateDetailField('warrantyEndDate', endDate.toISOString());
-                                            }
-                                        }}
-                                        keyboardType="numeric"
-                                    />
-                                    <View style={styles.durationUnitSelector}>
-                                        {['day', 'month', 'year'].map((unit) => (
-                                            <TouchableOpacity
-                                                key={unit}
-                                                style={[
-                                                    styles.durationUnitButton,
-                                                    (watchedDetails[`${field.key}Unit`] || 'month') === unit && styles.durationUnitButtonActive
-                                                ]}
-                                                onPress={() => {
-                                                    updateDetailField(`${field.key}Unit`, unit);
-                                                    // Recalculate end date
-                                                    const numValue = watchedDetails[field.key] || 0;
-                                                    const endDate = new Date(watchedDocumentDate);
-                                                    if (unit === 'day') {
-                                                        endDate.setDate(endDate.getDate() + numValue);
-                                                    } else if (unit === 'month') {
-                                                        endDate.setMonth(endDate.getMonth() + numValue);
-                                                    } else if (unit === 'year') {
-                                                        endDate.setFullYear(endDate.getFullYear() + numValue);
-                                                    }
-                                                    updateDetailField('warrantyEndDate', endDate.toISOString());
-                                                }}
-                                            >
-                                                <ThemedText style={[
-                                                    styles.durationUnitText,
-                                                    (watchedDetails[`${field.key}Unit`] || 'month') === unit && styles.durationUnitTextActive
-                                                ]}>
-                                                    {i18n.t(`common.units.${unit}` as any)}
-                                                </ThemedText>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View>
-                            ) : field.type === 'date' ? (
-                                <DatePickerField
-                                    label={field.label}
-                                    value={watchedDetails[field.key] ? new Date(watchedDetails[field.key]) : undefined}
-                                    onChange={(date) => updateDetailField(field.key, date.toISOString())}
-                                    placeholder={field.placeholder || i18n.t('common.actions.select_date')}
-                                    error={field.required && !watchedDetails[field.key] ? 'Required' : undefined}
-                                />
-                            ) : field.type === 'textarea' ? (
-                                <TextInput
-                                    style={styles.textArea}
-                                    placeholder={field.placeholder}
-                                    value={watchedDetails[field.key] || ''}
-                                    onChangeText={(value) => updateDetailField(field.key, value)}
-                                    multiline
-                                    numberOfLines={4}
-                                />
-                            ) : field.type === 'select' ? (
-                                <Select
-                                    label={field.label}
-                                    value={watchedDetails[field.key]}
-                                    options={(field.options || []).map((opt) => ({ label: opt, value: opt }))}
-                                    onChange={(val) => updateDetailField(field.key, val)}
-                                    placeholder={field.placeholder}
-                                />
-                            ) : field.type === 'number' ? (
-                                <TextInput
-                                    placeholder={field.placeholder}
-                                    value={watchedDetails[field.key]?.toString() || ''}
-                                    onChangeText={(value) => updateDetailField(field.key, parseFloat(value) || '')}
-                                    keyboardType="numeric"
-                                />
-                            ) : (
-                                <TextInput
-                                    placeholder={field.placeholder}
-                                    value={watchedDetails[field.key] || ''}
-                                    onChangeText={(value) => updateDetailField(field.key, value)}
-                                />
-                            )}
-                        </FormField>
-                    ))}
+                    {showDetails && (
+                        <>
+                            <DynamicFieldsSection
+                                control={control}
+                                dynamicFields={dynamicFields}
+                                watchedDetails={watchedDetails}
+                                watchedDocumentDate={watchedDocumentDate}
+                                setValue={setValue}
+                            />
 
-                    {/* Custom Key-Value Fields */}
-                    <View style={styles.customFieldsSection}>
-                        <ThemedText style={styles.customFieldsTitle}>{i18n.t('receipts.scan.section.custom_fields')}</ThemedText>
-
-                        {watchedCustomFields.map((field, index) => (
-                            <View key={index} style={styles.customFieldRow}>
-                                <TextInput
-                                    style={styles.customFieldKey}
-                                    placeholder={i18n.t('receipts.scan.custom_fields.key_placeholder')}
-                                    value={field.key}
-                                    onChangeText={(text) => updateCustomField(index, 'key', text)}
-                                />
-                                <TextInput
-                                    style={styles.customFieldValue}
-                                    placeholder={i18n.t('receipts.scan.custom_fields.value_placeholder')}
-                                    value={field.value}
-                                    onChangeText={(text) => updateCustomField(index, 'value', text)}
-                                />
-                                <TouchableOpacity
-                                    style={styles.removeFieldButton}
-                                    onPress={() => removeCustomField(index)}
-                                >
-                                    <ThemedText style={styles.removeFieldButtonText}>✕</ThemedText>
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-
-                        <Button
-                            title={i18n.t('receipts.scan.custom_fields.add_button')}
-                            variant="outline"
-                            onPress={addCustomField}
-                            style={styles.addFieldButton}
-                        />
-                    </View>
+                            {/* Custom Key-Value Fields */}
+                            <CustomFieldsList
+                                title={i18n.t('receipts.scan.section.custom_fields')}
+                                fields={watchedCustomFields}
+                                onAdd={addCustomField}
+                                onRemove={removeCustomField}
+                                onUpdate={updateCustomField}
+                            />
+                        </>
+                    )}
                 </>
             )}
 
@@ -1284,37 +1154,13 @@ export function ScanScreen() {
                     </TouchableOpacity>
 
                     {showDetails && (
-                        <View style={styles.customFieldsContent}>
-                            {watchedCustomFields.map((field, index) => (
-                                <View key={index} style={styles.customFieldRow}>
-                                    <TextInput
-                                        style={styles.customFieldKey}
-                                        placeholder={i18n.t('receipts.scan.custom_fields.key_placeholder')}
-                                        value={field.key}
-                                        onChangeText={(text) => updateCustomField(index, 'key', text)}
-                                    />
-                                    <TextInput
-                                        style={styles.customFieldValue}
-                                        placeholder={i18n.t('receipts.scan.custom_fields.value_placeholder')}
-                                        value={field.value}
-                                        onChangeText={(text) => updateCustomField(index, 'value', text)}
-                                    />
-                                    <TouchableOpacity
-                                        style={styles.removeFieldButton}
-                                        onPress={() => removeCustomField(index)}
-                                    >
-                                        <ThemedText style={styles.removeFieldButtonText}>✕</ThemedText>
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-
-                            <Button
-                                title={i18n.t('receipts.scan.custom_fields.add_button')}
-                                variant="outline"
-                                onPress={addCustomField}
-                                style={styles.addFieldButton}
-                            />
-                        </View>
+                        <CustomFieldsList
+                            style={styles.customFieldsContent}
+                            fields={watchedCustomFields}
+                            onAdd={addCustomField}
+                            onRemove={removeCustomField}
+                            onUpdate={updateCustomField}
+                        />
                     )}
                 </View>
             )}

@@ -75,13 +75,6 @@ export function AttachmentDetailScreen() {
             const data = await AttachmentService.getAttachmentById(id!);
             setAttachment(data);
 
-            console.log('DEBUG: Attachment loaded:', {
-                id: data.id,
-                owner: data.isOwner,
-                perm: data.permission,
-                folderId: data.folderId
-            });
-
             // Resolve current user to check ownership reliably
             let currentUser = user;
             if (!currentUser) {
@@ -122,7 +115,6 @@ export function AttachmentDetailScreen() {
             try {
                 const types = await AttachmentTypeService.getAttachmentTypes();
                 const attachmentType = types.find(t => t.id === data.attachmentTypeId);
-                console.log('DEBUG: Found attachment type:', attachmentType);
                 if (attachmentType) {
                     setAttachmentTypeName(attachmentType.name);
                     if (attachmentType.fieldConfig) {
@@ -135,7 +127,6 @@ export function AttachmentDetailScreen() {
 
             // Load files - backend now returns viewUrl for authenticated file access
             const fileData = await AttachmentService.getAttachmentFiles(id!);
-            console.log('Loaded files for attachment:', id, fileData);
 
             // Build full URLs with API base and get auth token
             const token = typeof OpenAPI.TOKEN === 'function' ? await OpenAPI.TOKEN({} as any) : OpenAPI.TOKEN;
@@ -147,7 +138,6 @@ export function AttachmentDetailScreen() {
                 filename: file.filename,
             }));
 
-            console.log('File URLs with base:', filesWithFullUrl);
             setFiles(filesWithFullUrl);
         } catch (err) {
             console.error('Failed to load attachment:', err);

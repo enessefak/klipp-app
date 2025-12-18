@@ -28,8 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.enes.sefa.k.klipp",
-      "googleServicesFile": "./credentials/google-services.json"
+      "package": "com.enes.sefa.k.klipp"
     },
     "web": {
       "output": "static",

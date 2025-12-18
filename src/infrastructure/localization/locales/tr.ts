@@ -60,6 +60,7 @@ export const tr = {
             add_new_file: 'Yeni Dosya Ekle',
             upgrade: 'Yükselt',
             grant_permission: 'İzin Ver',
+            select_date: 'Tarih Seç',
         },
         units: {
             day: 'Gün',
