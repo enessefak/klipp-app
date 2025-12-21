@@ -4,6 +4,7 @@ import { useSettings } from '@/src/features/settings/presentation/SettingsContex
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useMemo } from 'react';
 import { Dimensions, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -11,24 +12,21 @@ const TAB_HEIGHT = 80;
 const TAB_WIDTH = width;
 
 // Smoother curve path
-const getPath = () => {
+const getPath = (totalHeight: number) => {
     const center = TAB_WIDTH / 2;
     // Wider curve for smoother transition
     const curveWidth = 85;
     const curveDepth = 45;
 
     // Cubic bezier for organic shape
-    // L: Line to start of curve
-    // C1: Control points for first half of dip
-    // C2: Control points for second half of dip
     return `
     M0,0 
     L${center - curveWidth},0 
     C${center - curveWidth * 0.4},0 ${center - curveWidth * 0.3},${curveDepth} ${center},${curveDepth} 
     C${center + curveWidth * 0.3},${curveDepth} ${center + curveWidth * 0.4},0 ${center + curveWidth},0 
     L${TAB_WIDTH},0 
-    L${TAB_WIDTH},${TAB_HEIGHT} 
-    L0,${TAB_HEIGHT} 
+    L${TAB_WIDTH},${totalHeight} 
+    L0,${totalHeight} 
     Z
   `;
 };
@@ -39,6 +37,12 @@ interface CurvedTabBarProps extends BottomTabBarProps {
 
 export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: CurvedTabBarProps) {
     const { colors } = useSettings();
+    const insets = useSafeAreaInsets();
+
+    // On iOS, TAB_HEIGHT (80) is enough to cover the home indicator.
+    // On Android edge-to-edge, we strictly need to add the bottom inset.
+    const totalHeight = TAB_HEIGHT + (Platform.OS === 'android' ? insets.bottom : 0);
+
     // Filter out routes that shouldn't be displayed (like scan which we handle separately)
     const displayRoutes = state.routes.filter(route => route.name !== 'scan');
 
@@ -47,7 +51,7 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
             position: 'absolute',
             bottom: 0,
             width: TAB_WIDTH,
-            height: TAB_HEIGHT,
+            height: totalHeight,
             backgroundColor: 'transparent',
             // Shadow for the whole bar
             ...Platform.select({
@@ -74,7 +78,7 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
         },
         content: {
             flexDirection: 'row',
-            height: '100%',
+            height: TAB_HEIGHT, // Content stays in the original height area
             alignItems: 'flex-start',
         },
         tabItem: {
@@ -117,16 +121,17 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
             height: 4,
             borderRadius: 2,
             marginTop: 4,
+            backgroundColor: colors.primary,
         }
-    }), [colors]);
+    }), [colors, totalHeight]); // Re-create styles if totalHeight changes
 
     return (
         <View style={styles.container}>
             {/* SVG Background */}
             <View style={styles.svgContainer}>
-                <Svg width={TAB_WIDTH} height={TAB_HEIGHT} style={styles.svg}>
+                <Svg width={TAB_WIDTH} height={totalHeight} style={styles.svg}>
                     <Path
-                        d={getPath()}
+                        d={getPath(totalHeight)}
                         fill={colors.tabBarBackground}
                         stroke={colors.border}
                         strokeWidth={0.5}
@@ -165,7 +170,7 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
                         >
                             <HomeIcon size={28} color={color} />
                             {isFocused && (
-                                <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />
+                                <View style={styles.activeDot} />
                             )}
                         </TouchableOpacity>
                     );
@@ -210,7 +215,7 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
                         >
                             <IconSymbol name="folder.fill" size={26} color={color} />
                             {isFocused && (
-                                <View style={[styles.activeDot, { backgroundColor: colors.primary }]} />
+                                <View style={styles.activeDot} />
                             )}
                         </TouchableOpacity>
                     );

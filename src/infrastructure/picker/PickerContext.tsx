@@ -23,12 +23,17 @@ interface PickerContextType {
     folderCallback: React.MutableRefObject<PickerCallback<Folder> | null>;
     onFolderSelect: (folder: Folder | null) => void;
     setFolderCallback: (callback: PickerCallback<Folder>) => void;
-    
+
     // Attachment Type picker
     typeCallback: React.MutableRefObject<PickerCallback<AttachmentType> | null>;
     onTypeSelect: (type: AttachmentType | null) => void;
     setTypeCallback: (callback: PickerCallback<AttachmentType>) => void;
-    
+
+    // Icon picker
+    iconCallback: React.MutableRefObject<PickerCallback<string> | null>;
+    onIconSelect: (icon: string | null) => void;
+    setIconCallback: (callback: PickerCallback<string>) => void;
+
     // Selection completion tracking
     selectionVersion: number;
 }
@@ -38,6 +43,7 @@ const PickerContext = createContext<PickerContextType | null>(null);
 export function PickerProvider({ children }: { children: React.ReactNode }) {
     const folderCallback = useRef<PickerCallback<Folder> | null>(null);
     const typeCallback = useRef<PickerCallback<AttachmentType> | null>(null);
+    const iconCallback = useRef<PickerCallback<string> | null>(null);
     const [selectionVersion, setSelectionVersion] = useState(0);
 
     const onFolderSelect = useCallback((folder: Folder | null) => {
@@ -54,6 +60,13 @@ export function PickerProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    const onIconSelect = useCallback((icon: string | null) => {
+        if (iconCallback.current) {
+            iconCallback.current(icon);
+            setSelectionVersion(v => v + 1);
+        }
+    }, []);
+
     const setFolderCallback = useCallback((callback: PickerCallback<Folder>) => {
         folderCallback.current = callback;
     }, []);
@@ -62,15 +75,22 @@ export function PickerProvider({ children }: { children: React.ReactNode }) {
         typeCallback.current = callback;
     }, []);
 
+    const setIconCallback = useCallback((callback: PickerCallback<string>) => {
+        iconCallback.current = callback;
+    }, []);
+
     return (
-        <PickerContext.Provider 
-            value={{ 
-                folderCallback, 
-                onFolderSelect, 
+        <PickerContext.Provider
+            value={{
+                folderCallback,
+                onFolderSelect,
                 setFolderCallback,
                 typeCallback,
                 onTypeSelect,
                 setTypeCallback,
+                iconCallback,
+                onIconSelect,
+                setIconCallback,
                 selectionVersion,
             }}
         >

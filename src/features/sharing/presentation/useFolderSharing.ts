@@ -54,20 +54,45 @@ export function useFolderSharing() {
         }
     }, []);
 
+    const [sharedWithMeCursor, setSharedWithMeCursor] = useState<string | undefined>(undefined);
+    const [sharedWithMeHasMore, setSharedWithMeHasMore] = useState(false);
+    const [loadingMoreSharedWithMe, setLoadingMoreSharedWithMe] = useState(false);
+
     /**
      * Load folders shared with me
      */
-    const loadSharedWithMe = useCallback(async (status?: ShareStatus) => {
+    const loadSharedWithMe = useCallback(async (status?: ShareStatus, isLoadMore = false, limit?: number, search?: string) => {
         try {
             setLoading(true);
             setError(null);
+
+            // Reverting pagination: ignore isLoadMore, limit, cursor. 
+            // We pass status and search (if backend supports search without pagination params, otherwise filtering client side?)
+            // The user requested removing pagination/undoing recent changes but keeping filters.
+            // Assuming SharingService.getSharedWithMe now ONLY takes status (as I reverted it in prev step).
+            // BUT wait, I need to check if I can pass search to SharingService. 
+            // In SharingService.getSharedWithMe I removed arguments. So I can only filter by status there.
+            // I should filter by search client-side if the API doesn't support it anymore?
+            // OR I should have kept search in SharingService.
+            // Let's rely on client side filtering for search if API reverted.
+
             const folders = await SharingService.getSharedWithMe(status);
-            setSharedWithMe(folders);
+
+            let filteredFolders = folders;
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                filteredFolders = folders.filter(f => f.name.toLowerCase().includes(lowerSearch));
+            }
+
+            setSharedWithMe(filteredFolders);
+            setSharedWithMeHasMore(false);
+
         } catch (err) {
             console.error('Failed to load shared folders:', err);
             setError('Paylaşılan klasörler yüklenemedi');
         } finally {
             setLoading(false);
+            setLoadingMoreSharedWithMe(false);
         }
     }, []);
 
@@ -108,7 +133,7 @@ export function useFolderSharing() {
             setLoading(true);
             await SharingService.respondToShare(shareId, true);
             // Update local state
-            setSharedWithMe(prev => 
+            setSharedWithMe(prev =>
                 prev.map(f => f.shareId === shareId ? { ...f, status: 'accepted' as ShareStatus } : f)
             );
             setPendingCount(prev => Math.max(0, prev - 1));
@@ -161,11 +186,13 @@ export function useFolderSharing() {
 
     return {
         loading,
+        loadingMoreSharedWithMe,
         error,
         sharedWithMe,
         sharedByMe,
         pendingCount,
         searchResults,
+        sharedWithMeHasMore,
         searchUsers,
         shareFolder,
         loadSharedWithMe,

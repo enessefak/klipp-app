@@ -8,6 +8,7 @@ import { useScanLogic } from '@/src/features/attachments/presentation/hooks/useS
 import { createScanStyles } from '@/src/features/attachments/presentation/screens/ScanScreen.styles';
 import { useFolders } from '@/src/features/folders/presentation/useFolders';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
+import { useFolderSharing } from '@/src/features/sharing/presentation/useFolderSharing';
 
 // Steps
 import { AnalyzingStep } from '@/src/features/attachments/presentation/components/scan/steps/AnalyzingStep';
@@ -22,6 +23,11 @@ export function ScanScreen() {
 
     // Data
     const { folders } = useFolders();
+    const { sharedWithMe, loadSharedWithMe } = useFolderSharing();
+
+    React.useEffect(() => {
+        loadSharedWithMe('accepted');
+    }, []);
 
     // Logic Hooks
     const scanForm = useScanForm();
@@ -50,6 +56,26 @@ export function ScanScreen() {
 
         // 3. Form (Edit Details)
         if (scanLogic.fileUri) {
+            // Merge personal and shared folders
+            const allFolders = [...folders];
+            sharedWithMe.forEach(sf => {
+                allFolders.push({
+                    id: sf.id,
+                    name: sf.name,
+                    icon: sf.icon,
+                    color: sf.color,
+                    parentId: undefined, // Shared folders appear at root
+                    createdAt: sf.createdAt,
+                    isShared: true,
+                    permission: sf.permission,
+                    owner: sf.owner ? {
+                        id: sf.owner.id,
+                        name: sf.owner.name,
+                        email: sf.owner.email
+                    } : undefined
+                });
+            });
+
             return (
                 <EditDetailsStep
                     // Form
@@ -92,7 +118,7 @@ export function ScanScreen() {
                     onRetake={scanLogic.resetScan}
 
                     // Others
-                    folders={folders}
+                    folders={allFolders}
                     onClose={handleClose}
                     insets={insets}
                     styles={styles}

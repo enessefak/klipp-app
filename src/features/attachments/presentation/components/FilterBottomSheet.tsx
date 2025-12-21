@@ -3,6 +3,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Folder } from '@/src/features/folders/domain/Folder';
 import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
+import { SharingService } from '@/src/features/sharing/data/SharingService';
 import { AttachmentTypeService } from '@/src/infrastructure/api/generated/services/AttachmentTypeService';
 import I18nLocal from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
@@ -22,10 +23,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AttachmentFilters } from '../../domain/Attachment';
 import { FieldConfig } from '../../domain/AttachmentTypeFields';
-import { DynamicFilterSection } from './filters/DynamicFilterSection';
-import { FilterDateRange } from './filters/FilterDateRange';
-import { FilterSection } from './filters/FilterSection';
-import { FilterSelectInput } from './filters/FilterSelectInput';
+import { AttachmentFilterSections } from './AttachmentFilterSections';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -93,15 +91,41 @@ export function FilterBottomSheet({
     const loadFilterOptions = async () => {
         setLoadingOptions(true);
         try {
-            const [foldersData, typesResponse] = await Promise.all([
+            const [foldersData, sharedResponse, typesResponse] = await Promise.all([
                 FolderRepository.getFolders(),
+                SharingService.getSharedWithMe('accepted'),
                 AttachmentTypeService.getAttachmentTypes(),
             ]);
 
             // Handle paginated response
             const typesData = Array.isArray(typesResponse) ? typesResponse : ((typesResponse as any).items || []);
 
-            setFolders(foldersData);
+            // Map shared folders
+            const sharedFolders = Array.isArray(sharedResponse) ? sharedResponse : [];
+            const mappedSharedFolders: Folder[] = sharedFolders.map(sf => ({
+                id: sf.id,
+                name: sf.name,
+                icon: sf.icon,
+                color: sf.color,
+                parentId: undefined,
+                createdAt: sf.createdAt,
+                isShared: true,
+                permission: sf.permission,
+                owner: sf.owner ? {
+                    id: sf.owner.id,
+                    name: sf.owner.name,
+                    email: sf.owner.email
+                } : undefined
+            }));
+
+            // Merge folders: Personal + Shared
+            const allFolders = [];
+            if (Array.isArray(foldersData)) {
+                allFolders.push(...foldersData);
+            }
+            allFolders.push(...mappedSharedFolders);
+
+            setFolders(allFolders);
             setAttachmentTypes(typesData);
         } catch (err) {
             console.error('Failed to load filter options:', err);
@@ -120,14 +144,14 @@ export function FilterBottomSheet({
         }
         if (target === 'folder') {
             setFolderCallback((folder) => {
-                updateFilter('folderId', folder.id);
+                updateFilter('folderId', folder?.id);
                 // Optionally re-open or handle UI state if needed
             });
             onClose(); // Close sheet to show picker
             router.push('/picker/folder');
-        } else {
+        } else if (target === 'type') {
             setTypeCallback((type) => {
-                updateFilter('attachmentTypeId', type.id);
+                updateFilter('attachmentTypeId', type?.id);
                 setDynamicValues({}); // Reset dynamic values when type changes
             });
             onClose(); // Close sheet to show picker
@@ -310,62 +334,23 @@ export function FilterBottomSheet({
                                 <ActivityIndicator size="small" color={colors.primary} />
                             </View>
                         ) : (
-                            <>
-                                {/* ... (Folder and Type sections) */}
-                                <FilterSection
-                                    title={I18nLocal.t('filters.sections.folder')}
-                                    onClear={localFilters.folderId ? () => updateFilter('folderId', undefined) : undefined}
-                                >
-                                    <FilterSelectInput
-                                        placeholder={I18nLocal.t('filters.sections.folder_placeholder')}
-                                        value={selectedFolderName}
-                                        icon={selectedFolderIcon}
-                                        onPress={() => triggerNavigation('folder')}
-                                    />
-                                </FilterSection>
-
-                                <FilterSection
-                                    title={I18nLocal.t('filters.sections.document_type')}
-                                    onClear={localFilters.attachmentTypeId ? () => {
-                                        updateFilter('attachmentTypeId', undefined);
-                                        setDynamicValues({}); // Clear dynamic values when type is cleared
-                                    } : undefined}
-                                >
-                                    <FilterSelectInput
-                                        placeholder={I18nLocal.t('filters.sections.type_placeholder')}
-                                        value={selectedTypeName}
-                                        icon={selectedTypeIcon}
-                                        onPress={() => triggerNavigation('type')}
-                                    />
-                                </FilterSection>
-
-                                {/* Dynamic Fields Section */}
-                                {selectedTypeFieldConfig && (
-                                    <DynamicFilterSection
-                                        fieldConfig={selectedTypeFieldConfig}
-                                        values={dynamicValues}
-                                        onChange={handleDynamicChange}
-                                    />
-                                )}
-                            </>
-                        )}
-
-                        {/* Standard Date Range Filter */}
-                        <FilterSection
-                            title={I18nLocal.t('filters.sections.date_range')}
-                            onClear={(localFilters.documentDateFrom || localFilters.documentDateTo) ? () => {
-                                updateFilter('documentDateFrom', undefined);
-                                updateFilter('documentDateTo', undefined);
-                            } : undefined}
-                        >
-                            <FilterDateRange
-                                dateFrom={localFilters.documentDateFrom}
-                                dateTo={localFilters.documentDateTo}
-                                onDateFromChange={(d) => updateFilter('documentDateFrom', d)}
-                                onDateToChange={(d) => updateFilter('documentDateTo', d)}
+                            <AttachmentFilterSections
+                                filters={localFilters}
+                                dynamicValues={dynamicValues}
+                                selectedFolderName={selectedFolderName}
+                                selectedFolderIcon={selectedFolderIcon}
+                                selectedTypeName={selectedTypeName}
+                                selectedTypeIcon={selectedTypeIcon}
+                                selectedTypeFieldConfig={selectedTypeFieldConfig}
+                                onUpdateFilter={updateFilter}
+                                onUpdateDynamicValue={handleDynamicChange}
+                                onTriggerNavigation={triggerNavigation}
+                                onClearType={() => {
+                                    updateFilter('attachmentTypeId', undefined);
+                                    setDynamicValues({});
+                                }}
                             />
-                        </FilterSection>
-
+                        )}
                     </ScrollView>
 
                     <View style={styles.footer}>

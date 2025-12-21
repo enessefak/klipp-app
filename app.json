@@ -26,9 +26,10 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "package": "com.enes.sefa.k.klipp",
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.enes.sefa.k.klipp"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",

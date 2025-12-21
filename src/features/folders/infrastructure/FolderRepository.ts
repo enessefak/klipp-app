@@ -1,18 +1,35 @@
 
-import { FolderService, FolderSharingService } from '@/src/infrastructure/api/generated';
+import { FolderService } from '@/src/infrastructure/api/generated';
 import { CreateFolderDTO, Folder } from '../domain/Folder';
 
 export const FolderRepository = {
-    getFolders: async (): Promise<Folder[]> => {
+    getFolders: async (params?: {
+        parentId?: string | null;
+        cursor?: string;
+        limit?: number;
+        search?: string;
+        flat?: boolean;
+    }): Promise<Folder[]> => {
         try {
-            // Fetch personal and shared folders in parallel
-            const [personalFolders, sharedFolders] = await Promise.all([
-                FolderService.getFolders('true'),
-                FolderSharingService.getFolderSharesSharedWithMe()
-            ]);
+            // Fetch folders from API with pagination and filtering
+            const response = await FolderService.getFolders(
+                params?.flat ? 'true' : 'false',
+                undefined, // cursor
+                undefined, // limit
+                undefined, // search
+                params?.parentId || undefined
+            );
 
-            // Map personal folders
-            const mappedPersonalFolders: Folder[] = personalFolders.map(folder => ({
+            // Handle potential paginated response structure where response might be { items: [...] } instead of directly [...]
+            const foldersData = Array.isArray(response) ? response : (response as any).items || (response as any).data || [];
+
+            if (!Array.isArray(foldersData)) {
+                console.error('Unexpected response format:', response);
+                return [];
+            }
+
+            // Map response to domain model
+            const mappedFolders: Folder[] = foldersData.map((folder: any) => ({
                 id: folder.id,
                 name: folder.name,
                 icon: folder.icon,
@@ -22,20 +39,7 @@ export const FolderRepository = {
                 permission: 'FULL',
             }));
 
-            // Map shared folders
-            const mappedSharedFolders: Folder[] = sharedFolders.map(share => ({
-                id: share.id, // This is usually the folder ID in the share response, or check if it is share ID
-                name: share.name,
-                icon: share.icon,
-                color: share.color,
-                parentId: undefined, // Shared folders appear at root
-                createdAt: share.createdAt,
-                isShared: true,
-                permission: share.permission,
-                owner: share.owner,
-            }));
-
-            return [...mappedPersonalFolders, ...mappedSharedFolders];
+            return mappedFolders;
         } catch (error) {
             console.error('Failed to fetch folders:', error);
             throw error;
@@ -76,6 +80,11 @@ export const FolderRepository = {
                 color: response.color,
                 parentId: response.parentId || undefined,
                 createdAt: response.createdAt,
+                owner: {
+                    id: response.userId,
+                    name: '', // Not returned by API for getFolderById
+                    email: ''
+                }
             };
         } catch (error) {
             console.error('Failed to fetch folder:', error);

@@ -10,8 +10,10 @@ interface SearchBarProps {
     onChangeText?: (text: string) => void;
     onSearch?: (text: string) => void;
     onFilterPress?: () => void;
+    onClear?: () => void;
     debounceMs?: number;
     filterCount?: number;
+    placeholder?: string;
 }
 
 export function SearchBar({
@@ -19,8 +21,10 @@ export function SearchBar({
     onChangeText,
     onSearch,
     onFilterPress,
+    onClear,
     debounceMs = 500,
     filterCount = 0,
+    placeholder,
 }: SearchBarProps) {
     const { colors } = useSettings();
     const [localValue, setLocalValue] = useState(value || '');
@@ -108,7 +112,7 @@ export function SearchBar({
             </View>
             <TextInput
                 style={styles.input}
-                placeholder={i18n.t('receipts.home.searchPlaceholder')}
+                placeholder={placeholder || i18n.t('receipts.home.searchPlaceholder')}
                 placeholderTextColor={colors.gray}
                 value={localValue}
                 onChangeText={handleChangeText}
@@ -118,7 +122,10 @@ export function SearchBar({
             />
             {localValue.length > 0 && (
                 <TouchableOpacity
-                    onPress={() => handleChangeText('')}
+                    onPress={() => {
+                        handleChangeText('');
+                        onClear?.();
+                    }}
                     style={styles.clearButton}
                 >
                     <IconSymbol name="xmark.circle.fill" size={18} color={colors.gray} />

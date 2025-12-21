@@ -53,11 +53,17 @@ export class FolderSharingService {
      * Get folders shared with me
      * List all folders that other users have shared with you. Filter by status (pending/accepted/rejected).
      * @param status
+     * @param cursor
+     * @param limit
+     * @param search
      * @returns any Default Response
      * @throws ApiError
      */
     public static getFolderSharesSharedWithMe(
         status?: 'pending' | 'accepted' | 'rejected',
+        cursor?: string,
+        limit?: number,
+        search?: string,
     ): CancelablePromise<Array<{
         id: string;
         name: string;
@@ -79,16 +85,26 @@ export class FolderSharingService {
             url: '/folder-shares/shared-with-me',
             query: {
                 'status': status,
+                'cursor': cursor,
+                'limit': limit,
+                'search': search,
             },
         });
     }
     /**
      * Get folders I shared
      * List all folders you have shared with other users.
+     * @param cursor
+     * @param limit
+     * @param search
      * @returns any Default Response
      * @throws ApiError
      */
-    public static getFolderSharesSharedByMe(): CancelablePromise<Array<{
+    public static getFolderSharesSharedByMe(
+        cursor?: string,
+        limit?: number,
+        search?: string,
+    ): CancelablePromise<Array<{
         id: string;
         folderId: string;
         folderName: string;
@@ -110,6 +126,11 @@ export class FolderSharingService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/folder-shares/shared-by-me',
+            query: {
+                'cursor': cursor,
+                'limit': limit,
+                'search': search,
+            },
         });
     }
     /**

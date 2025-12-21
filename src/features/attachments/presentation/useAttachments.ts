@@ -19,7 +19,7 @@ export function useAttachments(): UseAttachmentsResult {
             setLoading(true);
             setError(null);
             const data = await AttachmentRepository.getAttachments();
-            setAttachments(data);
+            setAttachments(data.items || []);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch attachments');
         } finally {

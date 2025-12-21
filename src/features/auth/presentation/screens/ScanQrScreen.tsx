@@ -47,18 +47,6 @@ export function ScanQrScreen() {
                     ]);
                     return;
                 }
-            } else {
-                // Fallback for old format
-                if (data.startsWith('kweb:')) {
-                    sessionCode = data.replace('kweb:', '');
-                } else if (data.startsWith('klipp_web:')) {
-                    sessionCode = data.replace('klipp_web:', '');
-                } else {
-                    Alert.alert('Geçersiz QR', `Bu QR kod tanınmadı.\n\nVeri: ${data}`, [
-                        { text: 'Tamam', onPress: () => resetScan() }
-                    ]);
-                    return;
-                }
             }
         } catch (e) {
             console.error('QR Parse Error:', e);

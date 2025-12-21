@@ -10,11 +10,27 @@ export class FolderService {
      * List folders
      * Returns nested folder tree by default. Use ?flat=true for flat list.
      * @param flat
+     * @param cursor
+     * @param limit
+     * @param search
+     * @param parentId
+     * @param from
+     * @param to
+     * @param color
+     * @param icon
      * @returns any Default Response
      * @throws ApiError
      */
     public static getFolders(
         flat?: 'true' | 'false',
+        cursor?: string,
+        limit?: number,
+        search?: string,
+        parentId?: string,
+        from?: string,
+        to?: string,
+        color?: string,
+        icon?: string,
     ): CancelablePromise<Array<{
         id: string;
         name: string;
@@ -31,6 +47,14 @@ export class FolderService {
             url: '/folders/',
             query: {
                 'flat': flat,
+                'cursor': cursor,
+                'limit': limit,
+                'search': search,
+                'parentId': parentId,
+                'from': from,
+                'to': to,
+                'color': color,
+                'icon': icon,
             },
         });
     }

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SearchBar } from '@/components/SearchBar';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
@@ -23,8 +24,17 @@ type FilterTab = 'all' | 'pending' | 'accepted';
 export function SharedWithMeScreen() {
     const { colors } = useSettings();
     const router = useRouter();
-    const { sharedWithMe, loading, loadSharedWithMe, acceptShare, rejectShare } = useFolderSharing();
+    const {
+        sharedWithMe,
+        loading,
+        loadSharedWithMe,
+        acceptShare,
+        rejectShare,
+        sharedWithMeHasMore,
+        loadingMoreSharedWithMe
+    } = useFolderSharing();
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const styles = useMemo(() => StyleSheet.create({
         container: {
@@ -33,6 +43,7 @@ export function SharedWithMeScreen() {
         },
         header: {
             padding: 16,
+            paddingBottom: 8,
             backgroundColor: colors.headerBackground,
             borderBottomWidth: 1,
             borderBottomColor: colors.border,
@@ -179,25 +190,37 @@ export function SharedWithMeScreen() {
         },
     }), [colors]);
 
+    const getStatus = () => activeTab === 'all' ? undefined : activeTab;
+
     useEffect(() => {
-        const status = activeTab === 'all' ? undefined : activeTab;
-        loadSharedWithMe(status as ShareStatus | undefined);
-    }, [activeTab, loadSharedWithMe]);
+        loadSharedWithMe(getStatus() as ShareStatus | undefined, false, 20, searchQuery);
+    }, [activeTab, loadSharedWithMe, searchQuery]);
 
     const handleRefresh = useCallback(() => {
-        const status = activeTab === 'all' ? undefined : activeTab;
-        loadSharedWithMe(status as ShareStatus | undefined);
-    }, [activeTab, loadSharedWithMe]);
+        loadSharedWithMe(getStatus() as ShareStatus | undefined, false, 20, searchQuery);
+    }, [activeTab, loadSharedWithMe, searchQuery]);
+
+    const handleLoadMore = useCallback(() => {
+        if (sharedWithMeHasMore && !loadingMoreSharedWithMe && !loading) {
+            loadSharedWithMe(getStatus() as ShareStatus | undefined, true, 20, searchQuery);
+        }
+    }, [sharedWithMeHasMore, loadingMoreSharedWithMe, loading, activeTab, loadSharedWithMe, searchQuery]);
+
+    const handleSearch = (text: string) => {
+        setSearchQuery(text);
+        // effect will trigger load
+    };
 
     const handleAccept = useCallback(async (shareId: string) => {
         await acceptShare(shareId);
-        handleRefresh();
-    }, [acceptShare, handleRefresh]);
+        // Optimistic update handled in hook, but might want to refresh if filtering
+        if (activeTab === 'pending') handleRefresh();
+    }, [acceptShare, handleRefresh, activeTab]);
 
     const handleReject = useCallback(async (shareId: string) => {
         await rejectShare(shareId);
-        handleRefresh();
-    }, [rejectShare, handleRefresh]);
+        if (activeTab === 'pending') handleRefresh();
+    }, [rejectShare, handleRefresh, activeTab]);
 
     const handleOpenFolder = useCallback((folderId: string) => {
         router.push(`/shared/${folderId}`);
@@ -299,13 +322,21 @@ export function SharedWithMeScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={[styles.header, { paddingTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
-                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginLeft: -4 }}>
-                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <ThemedText type="subtitle" style={[styles.headerTitle, { fontSize: 20 }]}>
-                    Benimle Paylaşılanlar
-                </ThemedText>
+            <View style={[styles.header, { paddingTop: 10, flexDirection: 'column', gap: 12 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <TouchableOpacity onPress={() => router.back()} style={{ padding: 4, marginLeft: -4 }}>
+                        <IconSymbol name="chevron.left" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <ThemedText type="subtitle" style={[styles.headerTitle, { fontSize: 20 }]}>
+                        Benimle Paylaşılanlar
+                    </ThemedText>
+                </View>
+                <SearchBar
+                    value={searchQuery}
+                    onChangeText={handleSearch}
+                    placeholder={i18n.t('common.search')}
+                    onClear={() => handleSearch('')}
+                />
             </View>
 
             {/* Tabs */}
@@ -343,7 +374,7 @@ export function SharedWithMeScreen() {
                 </ScrollView>
             </View>
 
-            {loading && sharedWithMe.length === 0 ? (
+            {loading && !loadingMoreSharedWithMe && sharedWithMe.length === 0 ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
@@ -357,6 +388,9 @@ export function SharedWithMeScreen() {
                     refreshControl={
                         <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
                     }
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={loadingMoreSharedWithMe ? <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 16 }} /> : null}
                 />
             )}
         </SafeAreaView>

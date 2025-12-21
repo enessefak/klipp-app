@@ -6,6 +6,7 @@ import { FolderRepository } from '../infrastructure/FolderRepository';
 import { FolderEvents } from './FolderEvents';
 
 interface UseFoldersOptions {
+    limit?: number;
     isSharedFolder?: boolean;
 }
 
@@ -13,36 +14,53 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
     const [folders, setFolders] = useState<Folder[]>([]);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [cursor, setCursor] = useState<string | undefined>(undefined);
+    const [hasMore, setHasMore] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const limit = options?.limit || 20;
 
     const fetchFolders = useCallback(async () => {
         try {
             setLoading(true);
-            const allFolders = await FolderRepository.getFolders();
 
-            if (parentId) {
-                setFolders(allFolders.filter(f => f.parentId === parentId));
-                // Fetch attachments for this folder
-                // For shared folders, the API automatically checks permissions
+            // Fetch all folders matching search or parent
+            const fetchedFolders = await FolderRepository.getFolders({
+                parentId: parentId || undefined,
+                search: searchQuery || undefined,
+                flat: true
+            });
+
+            setFolders(fetchedFolders);
+
+            // Check if we have more based on some other heuristic or just disable "load more"
+            setHasMore(false);
+            setCursor(undefined);
+
+            if (parentId && !searchQuery) {
                 const folderAttachments = await AttachmentRepository.getAttachmentsByFolder(parentId);
                 setAttachments(folderAttachments.items || []);
-            } else {
-                setFolders(allFolders.filter(f => !f.parentId));
+            } else if (!parentId && !searchQuery) {
                 setAttachments([]);
             }
+
         } catch (err) {
             setError('Failed to load folders');
             console.error(err);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    }, [parentId]);
+    }, [parentId, searchQuery]);
 
+    // Initial load
     useEffect(() => {
         fetchFolders();
-    }, [fetchFolders]);
+    }, [parentId, searchQuery]); // Re-fetch on parentId or search change
 
-    // Listen for global delete events to update state without refresh
+    // Listen for global delete events
     useEffect(() => {
         const unsubscribe = FolderEvents.subscribeToDelete((deletedId) => {
             setFolders(prev => prev.filter(f => f.id !== deletedId));
@@ -63,8 +81,6 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
     const deleteFolder = useCallback(async (id: string) => {
         try {
             await FolderRepository.deleteFolder(id);
-            // If we are observing a parent, refresh. 
-            // If we are verifying this from checking the folders list, removing it from local state avoids refresh.
             setFolders(prev => prev.filter(f => f.id !== id));
         } catch (err) {
             console.error(err);
@@ -72,15 +88,27 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
         }
     }, []);
 
-    const refresh = fetchFolders;
+    const refresh = () => fetchFolders();
+    const loadMore = () => {
+        // Disabled
+    };
+
+    const search = (query: string) => {
+        setSearchQuery(query);
+        // effect will trigger fetch
+    };
 
     return {
         folders,
         attachments,
         loading,
+        loadingMore,
         error,
         createFolder,
         deleteFolder,
-        refresh
+        refresh,
+        loadMore,
+        hasMore,
+        search
     };
 }

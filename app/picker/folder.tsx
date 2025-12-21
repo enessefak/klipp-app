@@ -3,6 +3,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Folder } from '@/src/features/folders/domain/Folder';
 import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
+import { SharingService } from '@/src/features/sharing/data/SharingService';
 import I18nLocal from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 import { getIconDisplay } from '@/src/utils/iconUtils';
@@ -46,14 +47,46 @@ export default function FolderPickerScreen() {
     };
 
     const loadFolders = async () => {
+        setLoading(true);
+        const myFolders: Folder[] = [];
+        const sharedFolders: any[] = [];
+
         try {
             const data = await FolderRepository.getFolders();
-            setFolders(data);
+            if (Array.isArray(data)) {
+                myFolders.push(...data);
+            }
         } catch (err) {
             console.error('Failed to load folders:', err);
-        } finally {
-            setLoading(false);
         }
+
+        try {
+            const fetchedShared = await SharingService.getSharedWithMe('accepted');
+            if (Array.isArray(fetchedShared)) {
+                sharedFolders.push(...fetchedShared);
+            }
+        } catch (err) {
+            console.error('Failed to load shared folders:', err);
+        }
+
+        const mappedSharedFolders: Folder[] = sharedFolders.map(sf => ({
+            id: sf.id,
+            name: sf.name,
+            icon: sf.icon,
+            color: sf.color,
+            parentId: undefined,
+            createdAt: sf.createdAt,
+            isShared: true,
+            permission: sf.permission,
+            owner: sf.owner ? {
+                id: sf.owner.id,
+                name: sf.owner.name,
+                email: sf.owner.email
+            } : undefined
+        }));
+
+        setFolders([...myFolders, ...mappedSharedFolders]);
+        setLoading(false);
     };
 
     const getFolderPath = (folder: Folder, allFolders: Folder[]) => {

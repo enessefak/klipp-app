@@ -3,6 +3,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Folder } from '@/src/features/folders/domain/Folder';
 import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
+import { SharingService } from '@/src/features/sharing/data/SharingService';
 import I18nLocal from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 import { getIconDisplay } from '@/src/utils/iconUtils';
@@ -110,17 +111,38 @@ export function FolderSelector({
 
     const loadFolderDetails = async () => {
         try {
-            // Optimization: In a real app we might want a synchronous way to get folder name from a cached list 
-            // or pass the folder object directly. For now, we fetch or assume we can find it.
-            // Since we don't have a direct "getById" that is synchronous, and we don't want to fetch all folders every time...
-            // Let's assume for now we might need to fetch all to find it, or if we have a getById.
-            // Looking at FolderRepository, it likely has getFolders.
-            // Let's optimize by fetching all folders once or relying on a passed prop?
-            // Existing FolderPicker fetched all folders.
-            // Let's fetch all for now to implement this correctly.
-            const folders = await FolderRepository.getFolders();
-            const folder = folders.find(f => f.id === value);
-            if (folder) setSelectedFolder(folder);
+            // Try fetching specific folder first (works for owned folders and often shared ones)
+            try {
+                const folder = await FolderRepository.getFolderById(value);
+                if (folder) {
+                    setSelectedFolder(folder);
+                    return;
+                }
+            } catch (ignore) {
+                // If specific fetch fails, it might be a shared folder that needs to be found in the shared list
+                // or the API doesn't support getById for shared folders.
+                const sharedFolders = await SharingService.getSharedWithMe('accepted');
+                // manual mapping because SharingService returns SharedFolder, we need Folder type subset
+                const found = sharedFolders.find(f => f.id === value);
+                if (found) {
+                    setSelectedFolder({
+                        id: found.id,
+                        name: found.name,
+                        icon: found.icon,
+                        color: found.color,
+                        parentId: undefined,
+                        createdAt: found.createdAt,
+                        isShared: true,
+                        permission: found.permission,
+                        owner: found.owner ? {
+                            id: found.owner.id,
+                            name: found.owner.name,
+                            email: found.owner.email
+                        } : undefined
+                    });
+                    return;
+                }
+            }
         } catch (error) {
             console.error('Failed to load folder details', error);
         }

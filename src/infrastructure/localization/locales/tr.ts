@@ -263,7 +263,10 @@ export const tr = {
             permissions: {
                 view: 'Görüntüle',
                 edit: 'Düzenle'
-            }
+            },
+            icon: 'Klasör İkonu',
+            icon_placeholder: 'İkon Seçin',
+            color: 'Klasör Rengi',
         },
         default_name: 'Klasör',
         shared_with_me: 'Benimle Paylaşılanlar',
