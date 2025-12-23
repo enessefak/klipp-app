@@ -5,18 +5,10 @@ import { useNotifications } from '@/src/features/notifications/presentation/useN
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { useFolderSharing } from '@/src/features/sharing/presentation/useFolderSharing';
 import i18n from '@/src/infrastructure/localization/i18n';
+import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-    ActionSheetIOS,
-    Alert,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { ActionSheetIOS, Alert, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SettingItemProps {
@@ -474,7 +466,6 @@ export function ProfileScreen() {
                         title={i18n.t('profile.settings.webLoginUrl') || 'Web Giriş Adresi'}
                         subtitle="https://klipphq.com/login"
                         onPress={async () => {
-                            const Clipboard = require('expo-clipboard');
                             await Clipboard.setStringAsync('https://klipphq.com/login');
                             Alert.alert('Bilgi', i18n.t('profile.settings.urlCopied') || 'Adres kopyalandı');
                         }}
