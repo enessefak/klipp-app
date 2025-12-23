@@ -145,6 +145,7 @@ export class NotificationsService {
     public static postNotificationsRegisterPushToken(
         requestBody: {
             expoPushToken: string;
+            platform?: 'ios' | 'android' | 'web';
         },
     ): CancelablePromise<{
         success: boolean;

@@ -1121,7 +1121,7 @@
                 "tags": [
                     "Folder"
                 ],
-                "description": "Returns nested folder tree by default. Use ?flat=true for flat list.",
+                "description": "Returns paginated list of folders. Use ?flat=true for flat list.",
                 "parameters": [
                     {
                         "schema": {
@@ -1206,57 +1206,75 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": {
-                                                "type": "string",
-                                                "format": "uuid"
-                                            },
-                                            "name": {
-                                                "type": "string"
-                                            },
-                                            "icon": {
-                                                "type": "string"
-                                            },
-                                            "color": {
-                                                "type": "string"
-                                            },
-                                            "userId": {
-                                                "type": "string",
-                                                "format": "uuid"
-                                            },
-                                            "parentId": {
-                                                "type": "string",
-                                                "format": "uuid",
-                                                "nullable": true
-                                            },
-                                            "createdAt": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "updatedAt": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "children": {
-                                                "type": "array",
-                                                "items": {}
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "icon": {
+                                                        "type": "string"
+                                                    },
+                                                    "color": {
+                                                        "type": "string"
+                                                    },
+                                                    "userId": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "parentId": {
+                                                        "type": "string",
+                                                        "format": "uuid",
+                                                        "nullable": true
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updatedAt": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "children": {
+                                                        "type": "array",
+                                                        "items": {}
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "name",
+                                                    "icon",
+                                                    "color",
+                                                    "userId",
+                                                    "parentId",
+                                                    "createdAt",
+                                                    "updatedAt"
+                                                ],
+                                                "additionalProperties": false
                                             }
                                         },
-                                        "required": [
-                                            "id",
-                                            "name",
-                                            "icon",
-                                            "color",
-                                            "userId",
-                                            "parentId",
-                                            "createdAt",
-                                            "updatedAt"
-                                        ],
-                                        "additionalProperties": false
-                                    }
+                                        "hasMore": {
+                                            "type": "boolean"
+                                        },
+                                        "nextCursor": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "required": [
+                                        "items",
+                                        "hasMore",
+                                        "nextCursor"
+                                    ],
+                                    "additionalProperties": false
                                 }
                             }
                         }
@@ -1678,6 +1696,81 @@
                 }
             }
         },
+        "/folders/{id}/export": {
+            "get": {
+                "summary": "Export folder attachments",
+                "tags": [
+                    "Folder"
+                ],
+                "description": "Export attachments in the folder. Supports Excel.",
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
+                        },
+                        "in": "query",
+                        "name": "recursive",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "excel",
+                                "csv",
+                                "json",
+                                "xml"
+                            ]
+                        },
+                        "in": "query",
+                        "name": "format",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "fields",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "mapping",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "type",
+                        "required": false
+                    },
+                    {
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/folder-shares/": {
             "post": {
                 "summary": "Share a folder",
@@ -1918,87 +2011,94 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": {
-                                                "type": "string",
-                                                "format": "uuid"
-                                            },
-                                            "name": {
-                                                "type": "string"
-                                            },
-                                            "icon": {
-                                                "type": "string"
-                                            },
-                                            "color": {
-                                                "type": "string"
-                                            },
-                                            "permission": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "VIEW",
-                                                    "EDIT",
-                                                    "CREATE",
-                                                    "FULL"
-                                                ]
-                                            },
-                                            "status": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "pending",
-                                                    "accepted",
-                                                    "rejected"
-                                                ]
-                                            },
-                                            "owner": {
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
-                                                        "type": "string",
-                                                        "format": "uuid"
+                                                        "type": "string"
                                                     },
                                                     "name": {
                                                         "type": "string"
                                                     },
-                                                    "email": {
+                                                    "icon": {
                                                         "type": "string",
-                                                        "format": "email"
+                                                        "nullable": true
+                                                    },
+                                                    "color": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "permission": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "owner": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "format": "email"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "email"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "shareId": {
+                                                        "type": "string"
+                                                    },
+                                                    "attachmentCount": {
+                                                        "type": "number"
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "required": [
                                                     "id",
                                                     "name",
-                                                    "email"
+                                                    "icon",
+                                                    "color",
+                                                    "permission",
+                                                    "status",
+                                                    "owner",
+                                                    "shareId",
+                                                    "attachmentCount",
+                                                    "createdAt"
                                                 ],
                                                 "additionalProperties": false
-                                            },
-                                            "shareId": {
-                                                "type": "string",
-                                                "format": "uuid"
-                                            },
-                                            "attachmentCount": {
-                                                "type": "integer"
-                                            },
-                                            "createdAt": {
-                                                "type": "string",
-                                                "format": "date-time"
                                             }
                                         },
-                                        "required": [
-                                            "id",
-                                            "name",
-                                            "icon",
-                                            "color",
-                                            "permission",
-                                            "status",
-                                            "owner",
-                                            "shareId",
-                                            "createdAt"
-                                        ],
-                                        "additionalProperties": false
-                                    }
+                                        "hasMore": {
+                                            "type": "boolean"
+                                        },
+                                        "nextCursor": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "required": [
+                                        "items",
+                                        "hasMore",
+                                        "nextCursor"
+                                    ],
+                                    "additionalProperties": false
                                 }
                             }
                         }
@@ -2045,104 +2145,105 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": {
-                                                "type": "string",
-                                                "format": "uuid"
-                                            },
-                                            "folderId": {
-                                                "type": "string",
-                                                "format": "uuid"
-                                            },
-                                            "folderName": {
-                                                "type": "string"
-                                            },
-                                            "sharedBy": {
+                                    "type": "object",
+                                    "properties": {
+                                        "items": {
+                                            "type": "array",
+                                            "items": {
                                                 "type": "object",
                                                 "properties": {
                                                     "id": {
-                                                        "type": "string",
-                                                        "format": "uuid"
-                                                    },
-                                                    "name": {
                                                         "type": "string"
                                                     },
-                                                    "email": {
-                                                        "type": "string",
-                                                        "format": "email"
+                                                    "folderId": {
+                                                        "type": "string"
+                                                    },
+                                                    "folderName": {
+                                                        "type": "string"
+                                                    },
+                                                    "sharedBy": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "email": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "email"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "sharedWith": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "email": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id",
+                                                            "name",
+                                                            "email"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "permission": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "updatedAt": {
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "required": [
                                                     "id",
-                                                    "name",
-                                                    "email"
+                                                    "folderId",
+                                                    "folderName",
+                                                    "sharedBy",
+                                                    "sharedWith",
+                                                    "permission",
+                                                    "status",
+                                                    "createdAt",
+                                                    "updatedAt"
                                                 ],
                                                 "additionalProperties": false
-                                            },
-                                            "sharedWith": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "string",
-                                                        "format": "uuid"
-                                                    },
-                                                    "name": {
-                                                        "type": "string"
-                                                    },
-                                                    "email": {
-                                                        "type": "string",
-                                                        "format": "email"
-                                                    }
-                                                },
-                                                "required": [
-                                                    "id",
-                                                    "name",
-                                                    "email"
-                                                ],
-                                                "additionalProperties": false
-                                            },
-                                            "permission": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "VIEW",
-                                                    "EDIT",
-                                                    "CREATE",
-                                                    "FULL"
-                                                ]
-                                            },
-                                            "status": {
-                                                "type": "string",
-                                                "enum": [
-                                                    "pending",
-                                                    "accepted",
-                                                    "rejected"
-                                                ]
-                                            },
-                                            "createdAt": {
-                                                "type": "string",
-                                                "format": "date-time"
-                                            },
-                                            "updatedAt": {
-                                                "type": "string",
-                                                "format": "date-time"
                                             }
                                         },
-                                        "required": [
-                                            "id",
-                                            "folderId",
-                                            "folderName",
-                                            "sharedBy",
-                                            "sharedWith",
-                                            "permission",
-                                            "status",
-                                            "createdAt",
-                                            "updatedAt"
-                                        ],
-                                        "additionalProperties": false
-                                    }
+                                        "hasMore": {
+                                            "type": "boolean"
+                                        },
+                                        "nextCursor": {
+                                            "type": "string",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "required": [
+                                        "items",
+                                        "hasMore",
+                                        "nextCursor"
+                                    ],
+                                    "additionalProperties": false
                                 }
                             }
                         }
@@ -5595,6 +5696,14 @@
                                 "properties": {
                                     "expoPushToken": {
                                         "type": "string"
+                                    },
+                                    "platform": {
+                                        "type": "string",
+                                        "enum": [
+                                            "ios",
+                                            "android",
+                                            "web"
+                                        ]
                                     }
                                 },
                                 "required": [
@@ -5959,13 +6068,44 @@
                 }
             }
         },
+        "/web/sessions/current": {
+            "delete": {
+                "summary": "Revoke current web session",
+                "tags": [
+                    "Web Session"
+                ],
+                "description": "Logs out the current web session regardless of session ID.",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/web/sessions/{sessionId}": {
             "delete": {
                 "summary": "Revoke a web session",
                 "tags": [
                     "Web Session"
                 ],
-                "description": "Logs out a specific web session. The device will be disconnected immediately.",
+                "description": "Logs out a specific web session. Restricted to mobile users.",
                 "parameters": [
                     {
                         "schema": {
@@ -5996,6 +6136,21 @@
                                         "deviceName": {
                                             "type": "string",
                                             "description": "Revoked device name"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
                                         }
                                     }
                                 }

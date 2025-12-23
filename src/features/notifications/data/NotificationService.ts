@@ -60,9 +60,10 @@ export class NotificationService {
     /**
      * Register Expo push token for push notifications
      */
-    static async registerPushToken(expoPushToken: string): Promise<void> {
+    static async registerPushToken(expoPushToken: string, platform: 'ios' | 'android' | 'web'): Promise<void> {
         await NotificationsService.postNotificationsRegisterPushToken({
             expoPushToken,
+            platform,
         });
     }
 }

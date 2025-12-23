@@ -46,6 +46,7 @@ export const en = {
         }
     },
     common: {
+        search: "Search",
         appName: 'Klipp',
         actions: {
             cancel: 'Cancel',
@@ -136,21 +137,21 @@ export const en = {
             }
         },
         scan: {
-            title: 'Scan Receipt',
+            title: 'Scan Document',
             pickImage: 'Pick Image',
             takePhoto: 'Take Photo',
             noImage: 'No Image Selected',
             detailsTitle: 'Details',
             titlePlaceholder: 'Title (e.g. Grocery Store)',
             amountPlaceholder: 'Amount',
-            saveButton: 'Save Receipt',
+            saveButton: 'Save Document',
             saving: 'Saving...',
-            errorImage: 'Please select or take a photo of the receipt.',
+            errorImage: 'Please select or take a photo of the document.',
             errorFields: 'Please fill in the title and amount.',
             successTitle: 'Success',
-            successMessage: 'Receipt created successfully!',
+            successMessage: 'Document created successfully!',
             errorTitle: 'Error',
-            errorMessage: 'Failed to create receipt.',
+            errorMessage: 'Failed to create document.',
             permissionCamera: 'Camera permission is required to take photos.',
             permissionTitle: 'Permission Required',
             method_subtitle: 'Choose a method to add document',
@@ -289,8 +290,12 @@ export const en = {
             roles: {
                 viewer: 'Viewer',
                 editor: 'Editor',
+                create: 'Create',
+                full: 'Full Access',
                 viewer_desc: 'Can only view',
-                editor_desc: 'Can edit and add',
+                editor_desc: 'Can view and edit',
+                create_desc: 'Can view, edit, and add',
+                full_desc: 'Full access including delete',
             },
             actions: {
                 remove_access: 'Remove Access',
@@ -325,6 +330,8 @@ export const en = {
             roles: {
                 viewer: 'Viewer',
                 editor: 'Editor',
+                create: 'Create',
+                full: 'Full Access',
             },
             share_button: 'Share',
             error_email: 'Please enter a valid email',
@@ -431,8 +438,10 @@ export const en = {
                 en: 'English'
             },
             web: 'WEB',
-            webLogin: 'Log in to Web',
+            webLogin: 'Web Login',
             webLoginSubtitle: 'Scan QR code in browser',
+            webLoginUrl: 'Web Login URL',
+            urlCopied: 'URL Copied',
             activeSessions: 'Active Sessions',
         }
     },

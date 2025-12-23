@@ -8,7 +8,6 @@ import {
     ActionSheetIOS,
     ActivityIndicator,
     Alert,
-    Linking,
     Modal,
     Platform,
     Pressable,
@@ -22,8 +21,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { ImageViewer } from '@/src/components/ImageViewer';
+import { PdfViewer } from '@/src/components/PdfViewer';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { AttachmentTypeService } from '@/src/infrastructure/api/generated/services/AttachmentTypeService';
+import { FileDownloadService } from '../../application/FileDownloadService';
 import { AttachmentService } from '../../data/AttachmentService';
 import { Attachment } from '../../domain/Attachment';
 import { FieldConfig } from '../../domain/AttachmentTypeFields';
@@ -175,6 +177,22 @@ export function AttachmentDetailScreen() {
         router.push(`/attachment/edit/${id}`);
     };
 
+    const handleDownload = async () => {
+        setShowActionMenu(false);
+        // Download main file or all files? For now, if there is a main file logic, use that.
+        // Or if multiple files, maybe zip? The requirement says "files/{fileId}/download".
+        // Let's assume we download the first file for now if simple, or we can't generic "Download Attachment" without zipping.
+        // Actually user said "/files/{fileId}/download".
+        // Let's download ALL files one by one or just the first visible one.
+        // Usually attachments here have `files` array.
+
+        if (files.length > 0) {
+            for (const file of files) {
+                await FileDownloadService.downloadAndShare(file.url, file.filename);
+            }
+        }
+    };
+
     const showMoreOptions = () => {
         if (Platform.OS === 'ios') {
             ActionSheetIOS.showActionSheetWithOptions(
@@ -183,9 +201,10 @@ export function AttachmentDetailScreen() {
                         i18n.t('receipts.detail.actions.cancel'),
                         i18n.t('receipts.detail.actions.share'),
                         i18n.t('receipts.detail.actions.edit'),
+                        i18n.t('common.actions.download'),
                         i18n.t('receipts.detail.actions.delete')
                     ],
-                    destructiveButtonIndex: 3,
+                    destructiveButtonIndex: 4,
                     cancelButtonIndex: 0,
                     title: i18n.t('receipts.detail.actions.menu_title'),
                 },
@@ -198,6 +217,9 @@ export function AttachmentDetailScreen() {
                             handleEdit();
                             break;
                         case 3:
+                            handleDownload();
+                            break;
+                        case 4:
                             handleDelete();
                             break;
                     }
@@ -260,14 +282,20 @@ export function AttachmentDetailScreen() {
         return 'doc.fill';
     };
 
+    const [showImageViewer, setShowImageViewer] = useState(false);
+    const [showPdfViewer, setShowPdfViewer] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<{ url: string; contentType?: string; filename: string } | null>(null);
+
     const handleOpenFile = async (file: { url: string; contentType?: string; filename: string }) => {
         try {
-            // For non-image files, open in browser/external viewer
-            const supported = await Linking.canOpenURL(file.url);
-            if (supported) {
-                await Linking.openURL(file.url);
+            setSelectedFile(file);
+            if (isImageFile(file.contentType)) {
+                setShowImageViewer(true);
+            } else if (isPdfFile(file.contentType)) {
+                setShowPdfViewer(true);
             } else {
-                Alert.alert(i18n.t('receipts.detail.actions.cannot_open_file'));
+                // For other files, try to download and open externally directly
+                await FileDownloadService.downloadAndShare(file.url, file.filename);
             }
         } catch (err) {
             console.error('Failed to open file:', err);
@@ -560,21 +588,48 @@ export function AttachmentDetailScreen() {
             fontWeight: '600',
             textAlign: 'center',
         },
+        viewHintContainer: {
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.2)',
+        },
+        viewHintText: {
+            color: 'white',
+            fontSize: 13,
+            fontWeight: '600',
+        },
     }), [colors]);
 
     const renderFilePreview = (file: { url: string; contentType?: string; filename: string }, isMain: boolean) => {
         if (isImageFile(file.contentType)) {
             // Image file - show preview using expo-image with auth headers
             return (
-                <Image
-                    source={{
-                        uri: file.url,
-                        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : undefined,
-                    }}
-                    style={isMain ? styles.mainImage : styles.thumbnail}
-                    contentFit="cover"
-                    onError={(e) => console.log('Image load error:', e)}
-                />
+                <TouchableOpacity onPress={() => handleOpenFile(file)} activeOpacity={0.9}>
+                    <Image
+                        source={{
+                            uri: file.url,
+                            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : undefined,
+                        }}
+                        style={isMain ? styles.mainImage : styles.thumbnail}
+                        contentFit="cover"
+                        onError={(e) => console.log('Image load error:', e)}
+                    />
+                    {isMain && (
+                        <View style={styles.viewHintContainer}>
+                            <IconSymbol name="arrow.up.left.and.arrow.down.right" size={14} color="white" />
+                            <ThemedText style={styles.viewHintText}>{i18n.t('receipts.detail.actions.open_hint')}</ThemedText>
+                        </View>
+                    )}
+                </TouchableOpacity>
             );
         } else {
             // Document file (PDF, Word, Excel, etc.) - show icon with tap to open
@@ -795,6 +850,11 @@ export function AttachmentDetailScreen() {
                             <ThemedText style={styles.actionMenuText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
                         </TouchableOpacity>
 
+                        <TouchableOpacity style={styles.actionMenuItem} onPress={handleDownload}>
+                            <IconSymbol name="arrow.down.circle" size={22} color={colors.text} />
+                            <ThemedText style={styles.actionMenuText}>{i18n.t('common.actions.download')}</ThemedText>
+                        </TouchableOpacity>
+
                         {attachment?.permission !== 'VIEW' && (
                             <TouchableOpacity style={styles.actionMenuItem} onPress={handleEdit}>
                                 <IconSymbol name="pencil" size={22} color={colors.text} />
@@ -802,21 +862,38 @@ export function AttachmentDetailScreen() {
                             </TouchableOpacity>
                         )}
 
-                        <TouchableOpacity style={[styles.actionMenuItem, styles.deleteMenuItem]} onPress={handleDelete}>
-                            <IconSymbol name="trash" size={22} color={colors.error} />
-                            <ThemedText style={[styles.actionMenuText, { color: colors.error }]}>{i18n.t('receipts.detail.actions.delete')}</ThemedText>
-                        </TouchableOpacity>
+                        {(attachment?.permission === 'FULL' || attachment?.isOwner) && (
+                            <TouchableOpacity style={[styles.actionMenuItem, styles.deleteMenuItem]} onPress={() => { handleDelete(); setShowActionMenu(false); }}>
+                                <IconSymbol name="trash" size={22} color={colors.error} />
+                                <ThemedText style={[styles.actionMenuText, styles.deleteText]}>{i18n.t('receipts.detail.actions.delete')}</ThemedText>
+                            </TouchableOpacity>
+                        )}
 
-                        <TouchableOpacity
-                            style={[styles.actionMenuItem, styles.cancelMenuItem]}
-                            onPress={() => setShowActionMenu(false)}
-                        >
-                            <ThemedText style={styles.cancelText}>{i18n.t('receipts.detail.actions.cancel')}</ThemedText>
+                        <TouchableOpacity style={[styles.actionMenuItem, styles.cancelMenuItem]} onPress={() => setShowActionMenu(false)}>
+                            <ThemedText style={styles.cancelText}>{i18n.t('common.actions.cancel')}</ThemedText>
                         </TouchableOpacity>
                     </View>
                 </Pressable>
             </Modal>
 
+            {selectedFile && (
+                <>
+                    <ImageViewer
+                        visible={showImageViewer}
+                        onClose={() => setShowImageViewer(false)}
+                        url={selectedFile.url}
+                        filename={selectedFile.filename}
+                        headers={authToken ? { Authorization: `Bearer ${authToken}` } : undefined}
+                    />
+                    <PdfViewer
+                        visible={showPdfViewer}
+                        onClose={() => setShowPdfViewer(false)}
+                        url={selectedFile.url}
+                        filename={selectedFile.filename}
+                        headers={authToken ? { Authorization: `Bearer ${authToken}` } : undefined}
+                    />
+                </>
+            )}
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* File Gallery */}
                 {files.length > 0 ? (
@@ -990,6 +1067,6 @@ export function AttachmentDetailScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }

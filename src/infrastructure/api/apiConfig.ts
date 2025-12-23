@@ -1,5 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { OpenAPI } from './generated/core/OpenAPI';
 
 // Assign custom axios to OpenAPI (requires OpenAPI core modification or we can just patch it here if exported)
@@ -18,8 +20,13 @@ globalAxios.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 401) {
-            console.log('[API] 401 Global Interceptor');
-            await SecureStore.deleteItemAsync('token');
+            console.log('[API] 401 Global Interceptor Triggered');
+
+            if (Platform.OS === 'web') {
+                await AsyncStorage.removeItem('token');
+            } else {
+                await SecureStore.deleteItemAsync('token');
+            }
         }
         return Promise.reject(error);
     }
@@ -39,10 +46,20 @@ if (__DEV__) {
 OpenAPI.BASE = API_URL;
 
 // Inject token
-OpenAPI.TOKEN = async () => {
+OpenAPI.TOKEN = async (options) => {
+    // Skip token for auth endpoints to prevent 401s from invalid/expired tokens
+    if (options?.url === '/users/login' || options?.url === '/users/register') {
+        return '';
+    }
+
     try {
-        const token = await SecureStore.getItemAsync('token');
-        return token || '';
+        if (Platform.OS === 'web') {
+            const token = await AsyncStorage.getItem('token');
+            return token || '';
+        } else {
+            const token = await SecureStore.getItemAsync('token');
+            return token || '';
+        }
     } catch (e) {
         return '';
     }

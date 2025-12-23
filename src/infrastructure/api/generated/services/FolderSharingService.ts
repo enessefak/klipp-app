@@ -64,22 +64,26 @@ export class FolderSharingService {
         cursor?: string,
         limit?: number,
         search?: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        name: string;
-        icon: string;
-        color: string;
-        permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        status: 'pending' | 'accepted' | 'rejected';
-        owner: {
+    ): CancelablePromise<{
+        items: Array<{
             id: string;
             name: string;
-            email: string;
-        };
-        shareId: string;
-        attachmentCount?: number;
-        createdAt: string;
-    }>> {
+            icon: string | null;
+            color: string | null;
+            permission: string;
+            status: string;
+            owner: {
+                id: string;
+                name: string | null;
+                email: string;
+            };
+            shareId: string;
+            attachmentCount: number;
+            createdAt: string;
+        }>;
+        hasMore: boolean;
+        nextCursor: string | null;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/folder-shares/shared-with-me',
@@ -104,25 +108,29 @@ export class FolderSharingService {
         cursor?: string,
         limit?: number,
         search?: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        folderId: string;
-        folderName: string;
-        sharedBy: {
+    ): CancelablePromise<{
+        items: Array<{
             id: string;
-            name: string;
-            email: string;
-        };
-        sharedWith: {
-            id: string;
-            name: string;
-            email: string;
-        };
-        permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        status: 'pending' | 'accepted' | 'rejected';
-        createdAt: string;
-        updatedAt: string;
-    }>> {
+            folderId: string;
+            folderName: string;
+            sharedBy: {
+                id: string;
+                name: string | null;
+                email: string;
+            };
+            sharedWith: {
+                id: string;
+                name: string | null;
+                email: string;
+            };
+            permission: string;
+            status: string;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+        hasMore: boolean;
+        nextCursor: string | null;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/folder-shares/shared-by-me',

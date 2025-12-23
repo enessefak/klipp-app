@@ -47,6 +47,7 @@ export const tr = {
     },
     common: {
         appName: 'Klipp',
+        search: "Ara",
         actions: {
             cancel: 'İptal',
             save: 'Kaydet',
@@ -294,8 +295,12 @@ export const tr = {
             roles: {
                 viewer: 'Görüntüleyen',
                 editor: 'Düzenleyen',
+                create: 'Oluştur',
+                full: 'Tam Yetki',
                 viewer_desc: 'Sadece görüntüleyebilir',
-                editor_desc: 'Düzenleyebilir ve ekleyebilir',
+                editor_desc: 'Görüntüleyebilir ve düzenleyebilir',
+                create_desc: 'Görüntüleyebilir, düzenleyebilir ve ekleyebilir',
+                full_desc: 'Tam yetki ve silme izni',
             },
             actions: {
                 remove_access: 'Erişimi Kaldır',
@@ -330,6 +335,8 @@ export const tr = {
             roles: {
                 viewer: 'Görüntüleyici',
                 editor: 'Düzenleyici',
+                create: 'Oluştur',
+                full: 'Tam Yetki',
             },
             share_button: 'Paylaş',
             error_email: 'Geçerli bir e-posta adresi girin',
@@ -436,8 +443,10 @@ export const tr = {
                 en: 'English'
             },
             web: 'WEB',
-            webLogin: 'Web\'e Giriş Yap',
+            webLogin: "Web'e Giriş Yap",
             webLoginSubtitle: 'Tarayıcıda QR kodu okutun',
+            webLoginUrl: 'Web Giriş Adresi',
+            urlCopied: 'Adres Kopyalandı',
             activeSessions: 'Oturumlar',
         }
     },

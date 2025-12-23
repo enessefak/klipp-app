@@ -11,21 +11,19 @@ interface EditShareModalProps {
     visible: boolean;
     onClose: () => void;
     share: FolderShare | null;
-    onUpdate: (shareId: string, permission: 'VIEW' | 'EDIT') => Promise<void>;
+    onUpdate: (shareId: string, permission: FolderShare['permission']) => Promise<void>;
     onRemove: (shareId: string) => Promise<void>;
 }
 
 export function EditShareModal({ visible, onClose, share, onUpdate, onRemove }: EditShareModalProps) {
     const { colors } = useSettings();
     const [loading, setLoading] = useState(false);
-    const [selectedPermission, setSelectedPermission] = useState<'VIEW' | 'EDIT'>(
-        (share?.permission === 'EDIT' || share?.permission === 'FULL') ? 'EDIT' : 'VIEW'
-    );
+    const [selectedPermission, setSelectedPermission] = useState<FolderShare['permission']>('VIEW');
 
     // Reset state when share changes
     React.useEffect(() => {
         if (share) {
-            setSelectedPermission((share.permission === 'EDIT' || share.permission === 'FULL') ? 'EDIT' : 'VIEW');
+            setSelectedPermission(share.permission);
         }
     }, [share]);
 
@@ -41,6 +39,7 @@ export function EditShareModal({ visible, onClose, share, onUpdate, onRemove }: 
             setLoading(false);
         }
     };
+
 
     const handleRemove = () => {
         if (!share) return;
@@ -138,16 +137,19 @@ export function EditShareModal({ visible, onClose, share, onUpdate, onRemove }: 
         },
         permissionOptions: {
             flexDirection: 'row',
+            flexWrap: 'wrap',
             marginBottom: 32,
             gap: 12,
         },
         option: {
-            flex: 1,
+            width: '48%', // Grid layout
             padding: 16,
             borderRadius: 12,
             borderWidth: 1,
             borderColor: colors.border,
             alignItems: 'center',
+            minHeight: 100,
+            justifyContent: 'center',
         },
         optionSelected: {
             borderColor: colors.primary,
@@ -240,6 +242,30 @@ export function EditShareModal({ visible, onClose, share, onUpdate, onRemove }: 
                             </ThemedText>
                             <ThemedText style={styles.optionDesc}>
                                 {i18n.t('folders.sharing.roles.editor_desc')}
+                            </ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.option, selectedPermission === 'CREATE' && styles.optionSelected]}
+                            onPress={() => setSelectedPermission('CREATE')}
+                        >
+                            <ThemedText style={[styles.optionTitle, selectedPermission === 'CREATE' && { color: colors.primary }]}>
+                                {i18n.t('sharing.modal.roles.create')}
+                            </ThemedText>
+                            <ThemedText style={styles.optionDesc}>
+                                {i18n.t('folders.sharing.roles.create_desc')}
+                            </ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.option, selectedPermission === 'FULL' && styles.optionSelected]}
+                            onPress={() => setSelectedPermission('FULL')}
+                        >
+                            <ThemedText style={[styles.optionTitle, selectedPermission === 'FULL' && { color: colors.primary }]}>
+                                {i18n.t('sharing.modal.roles.full')}
+                            </ThemedText>
+                            <ThemedText style={styles.optionDesc}>
+                                {i18n.t('folders.sharing.roles.full_desc')}
                             </ThemedText>
                         </TouchableOpacity>
                     </View>

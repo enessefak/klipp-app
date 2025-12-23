@@ -8,7 +8,7 @@ import { request as __request } from '../core/request';
 export class FolderService {
     /**
      * List folders
-     * Returns nested folder tree by default. Use ?flat=true for flat list.
+     * Returns paginated list of folders. Use ?flat=true for flat list.
      * @param flat
      * @param cursor
      * @param limit
@@ -31,17 +31,21 @@ export class FolderService {
         to?: string,
         color?: string,
         icon?: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        name: string;
-        icon: string;
-        color: string;
-        userId: string;
-        parentId: string | null;
-        createdAt: string;
-        updatedAt: string;
-        children?: Array<any>;
-    }>> {
+    ): CancelablePromise<{
+        items: Array<{
+            id: string;
+            name: string;
+            icon: string;
+            color: string;
+            userId: string;
+            parentId: string | null;
+            createdAt: string;
+            updatedAt: string;
+            children?: Array<any>;
+        }>;
+        hasMore: boolean;
+        nextCursor: string | null;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/folders/',
@@ -173,6 +177,41 @@ export class FolderService {
             url: '/folders/{id}',
             path: {
                 'id': id,
+            },
+        });
+    }
+    /**
+     * Export folder attachments
+     * Export attachments in the folder. Supports Excel.
+     * @param id
+     * @param recursive
+     * @param format
+     * @param fields
+     * @param mapping
+     * @param type
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getFoldersExport(
+        id: string,
+        recursive?: 'true' | 'false',
+        format?: 'excel' | 'csv' | 'json' | 'xml',
+        fields?: string,
+        mapping?: string,
+        type?: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/folders/{id}/export',
+            path: {
+                'id': id,
+            },
+            query: {
+                'recursive': recursive,
+                'format': format,
+                'fields': fields,
+                'mapping': mapping,
+                'type': type,
             },
         });
     }

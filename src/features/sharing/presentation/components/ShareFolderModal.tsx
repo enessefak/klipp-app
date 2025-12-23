@@ -243,10 +243,12 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
         },
         permissionOptions: {
             flexDirection: 'row',
+            flexWrap: 'wrap',
             gap: 12,
         },
         permissionOption: {
-            flex: 1,
+            // flex: 1, // Remove flex: 1 to allow custom sizing
+            width: '48%', // Approx half with gap
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
@@ -472,6 +474,48 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                                                 ]}
                                             >
                                                 {i18n.t('sharing.modal.roles.editor')}
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.permissionOption,
+                                                permission === 'CREATE' && styles.permissionSelected
+                                            ]}
+                                            onPress={() => setPermission('CREATE')}
+                                        >
+                                            <IconSymbol
+                                                name="plus.circle.fill"
+                                                size={20}
+                                                color={permission === 'CREATE' ? colors.white : colors.primary}
+                                            />
+                                            <ThemedText
+                                                style={[
+                                                    styles.permissionText,
+                                                    permission === 'CREATE' && styles.permissionTextSelected
+                                                ]}
+                                            >
+                                                {i18n.t('sharing.modal.roles.create')}
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.permissionOption,
+                                                permission === 'FULL' && styles.permissionSelected
+                                            ]}
+                                            onPress={() => setPermission('FULL')}
+                                        >
+                                            <IconSymbol
+                                                name="star.circle.fill"
+                                                size={20}
+                                                color={permission === 'FULL' ? colors.white : colors.primary}
+                                            />
+                                            <ThemedText
+                                                style={[
+                                                    styles.permissionText,
+                                                    permission === 'FULL' && styles.permissionTextSelected
+                                                ]}
+                                            >
+                                                {i18n.t('sharing.modal.roles.full')}
                                             </ThemedText>
                                         </TouchableOpacity>
                                     </View>

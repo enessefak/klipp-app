@@ -469,6 +469,20 @@ export function ProfileScreen() {
                 {/* Web & Sessions Section */}
                 <SettingSection title={i18n.t('profile.settings.web') || 'WEB'}>
                     <SettingItem
+                        icon="desktopcomputer"
+                        iconColor="#007AFF"
+                        title={i18n.t('profile.settings.webLoginUrl') || 'Web Giriş Adresi'}
+                        subtitle="https://klipphq.com/login"
+                        onPress={async () => {
+                            const Clipboard = require('expo-clipboard');
+                            await Clipboard.setStringAsync('https://klipphq.com/login');
+                            Alert.alert('Bilgi', i18n.t('profile.settings.urlCopied') || 'Adres kopyalandı');
+                        }}
+                        rightElement={
+                            <IconSymbol name="doc.on.doc" size={16} color={colors.primary} />
+                        }
+                    />
+                    <SettingItem
                         icon="qrcode"
                         iconColor="#000000"
                         title={i18n.t('profile.settings.webLogin') || "Web'e Giriş Yap"}
@@ -476,7 +490,7 @@ export function ProfileScreen() {
                         onPress={() => router.push('/scan-qr')}
                     />
                     <SettingItem
-                        icon="desktopcomputer"
+                        icon="lock.shield"
                         iconColor="#5856D6"
                         title={i18n.t('profile.settings.activeSessions') || 'Oturumlar'}
                         onPress={() => router.push('/web-sessions')}

@@ -62,7 +62,8 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
     useEffect(() => {
         if (isAuthenticated && expoPushToken && !tokenRegistered.current) {
             console.log('Registering push token with backend...');
-            NotificationService.registerPushToken(expoPushToken)
+            const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+            NotificationService.registerPushToken(expoPushToken, platform)
                 .then(() => {
                     tokenRegistered.current = true;
                     console.log('Push token registered successfully');

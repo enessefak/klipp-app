@@ -161,8 +161,22 @@ export class WebSessionService {
         });
     }
     /**
+     * Revoke current web session
+     * Logs out the current web session regardless of session ID.
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static deleteWebSessionsCurrent(): CancelablePromise<{
+        message?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/web/sessions/current',
+        });
+    }
+    /**
      * Revoke a web session
-     * Logs out a specific web session. The device will be disconnected immediately.
+     * Logs out a specific web session. Restricted to mobile users.
      * @param sessionId Session ID to revoke
      * @returns any Default Response
      * @throws ApiError
@@ -183,6 +197,7 @@ export class WebSessionService {
                 'sessionId': sessionId,
             },
             errors: {
+                403: `Default Response`,
                 404: `Default Response`,
             },
         });
