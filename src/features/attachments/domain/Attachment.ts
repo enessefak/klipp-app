@@ -10,6 +10,8 @@ export interface Attachment {
     // amount and currency removed, now in details
     documentDate: string; // ISO 8601 date-time
     details?: Record<string, any> | null;
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    rejectionReason?: string | null;
     isOwner?: boolean;
     permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
     createdAt: string; // ISO 8601 date-time
@@ -67,6 +69,7 @@ export interface CreateAttachmentDTO {
 // Filter parameters for fetching attachments
 export interface AttachmentFilters {
     folderId?: string;
+    categoryId?: string;
     attachmentTypeId?: string;
     title?: string;
     search?: string;

@@ -7,6 +7,8 @@ export interface Folder {
     createdAt: string;
     isShared?: boolean;
     permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+    isSystem?: boolean;
+    systemType?: 'INBOX' | string;
     owner?: {
         id: string;
         name: string;

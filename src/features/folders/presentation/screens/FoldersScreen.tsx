@@ -13,9 +13,12 @@ import { useSettings } from '@/src/features/settings/presentation/SettingsContex
 import { SharedFolder } from '@/src/features/sharing/domain/FolderShare';
 import { ShareFolderModal } from '@/src/features/sharing/presentation/components/ShareFolderModal';
 import { useFolderSharing } from '@/src/features/sharing/presentation/useFolderSharing';
+import { CategoryService } from '@/src/infrastructure/api/generated/services/CategoryService';
 import i18n from '@/src/infrastructure/localization/i18n';
+import { Alert } from 'react-native';
 import { Folder } from '../../domain/Folder';
 import { FolderFilters } from '../../domain/FolderFilters';
+import { CreateCategoryModal } from '../components/CreateCategoryModal';
 import { CreateFolderModal } from '../components/CreateFolderModal';
 import { FolderFilterBottomSheet } from '../components/FolderFilterBottomSheet';
 import { useFolders } from '../useFolders';
@@ -52,6 +55,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
     } = useFolderSharing();
 
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -69,6 +73,17 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
     const handleResetFilters = () => {
         setFilters({});
         setFolderFilters({});
+    };
+
+    const handleCreateCategory = async (dto: { name: string; accountCode?: string }) => {
+        try {
+            await CategoryService.postCategories(dto);
+            Alert.alert(i18n.t('common.actions.success'), 'Kategori başarıyla oluşturuldu.');
+            setIsCategoryModalVisible(false);
+        } catch (error) {
+            console.error('Failed to create category', error);
+            Alert.alert(i18n.t('common.error'), 'Kategori oluşturulamadı.');
+        }
     };
 
     const activeFilterCount = Object.keys(filters).length + Object.keys(folderFilters).length;
@@ -486,7 +501,12 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         <SafeAreaView style={styles.container} edges={parentId ? [] : ['top']}>
             <View style={styles.header}>
                 {!parentId && (
-                    <ThemedText type="title" style={{ color: colors.primary, marginBottom: 12 }}>{i18n.t('folders.title')}</ThemedText>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <ThemedText type="title" style={{ color: colors.primary }}>{i18n.t('folders.title')}</ThemedText>
+                        <TouchableOpacity onPress={() => setIsCategoryModalVisible(true)} style={{ padding: 4 }}>
+                            <IconSymbol name="tag.fill" size={24} color={colors.primary} />
+                        </TouchableOpacity>
+                    </View>
                 )}
                 <SearchBar
                     value={searchQuery}
@@ -530,6 +550,12 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                 onClose={() => setIsModalVisible(false)}
                 onSubmit={handleCreate}
                 parentId={parentId || null}
+            />
+
+            <CreateCategoryModal
+                visible={isCategoryModalVisible}
+                onClose={() => setIsCategoryModalVisible(false)}
+                onSubmit={handleCreateCategory}
             />
 
             <FolderFilterBottomSheet

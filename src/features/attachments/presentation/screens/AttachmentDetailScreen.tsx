@@ -14,6 +14,7 @@ import {
     ScrollView,
     Share,
     StyleSheet,
+    TextInput,
     TouchableOpacity,
     UIManager,
     View
@@ -48,6 +49,9 @@ export function AttachmentDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+    const [reviewerEmail, setReviewerEmail] = useState('');
+    const [requestingApproval, setRequestingApproval] = useState(false);
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
@@ -263,6 +267,27 @@ export function AttachmentDetailScreen() {
                 },
             ]
         );
+    };
+
+    const handleRequestApproval = async () => {
+        if (!reviewerEmail || !reviewerEmail.includes('@')) {
+            Alert.alert('Hata', 'Geçerli bir e-posta adresi giriniz.');
+            return;
+        }
+
+        try {
+            setRequestingApproval(true);
+            await AttachmentService.postAttachmentsRequestApproval(id, { reviewerEmail });
+            setApprovalModalVisible(false);
+            Alert.alert('Başarılı', 'Onay isteği gönderildi.');
+            // Refresh attachment
+            const updated = await AttachmentService.getAttachments1(id);
+            setAttachment(updated as any);
+        } catch (err) {
+            Alert.alert('Hata', 'Onay isteği gönderilemedi.');
+        } finally {
+            setRequestingApproval(false);
+        }
     };
 
     const isImageFile = (contentType?: string) => {
@@ -935,6 +960,39 @@ export function AttachmentDetailScreen() {
                             <ThemedText type="title" style={styles.title}>{attachment.title}</ThemedText>
                             <ThemedText style={styles.date}>{formatDate(attachment.documentDate)}</ThemedText>
 
+                            {/* Status Badge */}
+                            {attachment.status && (
+                                <View style={{
+                                    backgroundColor: attachment.status === 'APPROVED' ? colors.success + '15' : 
+                                                    attachment.status === 'REJECTED' ? colors.error + '15' : '#FF980015',
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 4,
+                                    borderRadius: 6,
+                                    alignSelf: 'flex-start',
+                                    marginTop: 8,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 4
+                                }}>
+                                    <IconSymbol 
+                                        name={attachment.status === 'APPROVED' ? 'checkmark.circle.fill' : 
+                                              attachment.status === 'REJECTED' ? 'xmark.circle.fill' : 'clock.fill'} 
+                                        size={12} 
+                                        color={attachment.status === 'APPROVED' ? colors.success : 
+                                               attachment.status === 'REJECTED' ? colors.error : '#FF9800'} 
+                                    />
+                                    <ThemedText style={{
+                                        fontSize: 12,
+                                        color: attachment.status === 'APPROVED' ? colors.success : 
+                                               attachment.status === 'REJECTED' ? colors.error : '#FF9800',
+                                        fontWeight: '600'
+                                    }}>
+                                        {attachment.status === 'APPROVED' ? 'Onaylandı' : 
+                                         attachment.status === 'REJECTED' ? 'Reddedildi' : 'Onay Bekliyor'}
+                                    </ThemedText>
+                                </View>
+                            )}
+
                             {/* Shared Badge */}
                             {isShared && (
                                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
@@ -1039,6 +1097,14 @@ export function AttachmentDetailScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => setApprovalModalVisible(true)}
+                    >
+                        <IconSymbol name="paperplane.fill" size={20} color={colors.primary} />
+                        <ThemedText style={styles.actionText}>Onaya Gönder</ThemedText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                         style={[
                             styles.actionButton,
                             styles.deleteButton,
@@ -1067,6 +1133,49 @@ export function AttachmentDetailScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            <Modal
+                visible={approvalModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setApprovalModalVisible(false)}
+            >
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 12, width: '80%' }}>
+                        <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Onaya Gönder</ThemedText>
+                        <ThemedText style={{ marginBottom: 8 }}>Yöneticinin E-posta Adresi:</ThemedText>
+                        <TextInput
+                            style={{
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                borderRadius: 8,
+                                padding: 10,
+                                marginBottom: 16,
+                                color: colors.text,
+                                backgroundColor: colors.background
+                            }}
+                            value={reviewerEmail}
+                            onChangeText={setReviewerEmail}
+                            placeholder="yonetici@sirket.com"
+                            placeholderTextColor={colors.subtext}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                            <TouchableOpacity onPress={() => setApprovalModalVisible(false)}>
+                                <ThemedText style={{ color: colors.subtext }}>İptal</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleRequestApproval} disabled={requestingApproval}>
+                                {requestingApproval ? (
+                                    <ActivityIndicator size="small" color={colors.primary} />
+                                ) : (
+                                    <ThemedText style={{ color: colors.primary, fontWeight: 'bold' }}>Gönder</ThemedText>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView >
     );
 }

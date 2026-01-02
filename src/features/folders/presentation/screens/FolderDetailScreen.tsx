@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { FileDownloadService } from '@/src/features/attachments/application/FileDownloadService';
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
 import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
@@ -21,10 +22,12 @@ import { SharingService } from '@/src/features/sharing/data/SharingService';
 import { FolderShare } from '@/src/features/sharing/domain/FolderShare';
 import { EditShareModal } from '@/src/features/sharing/presentation/components/EditShareModal';
 import { ShareFolderModal } from '@/src/features/sharing/presentation/components/ShareFolderModal';
+import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
 import { CreateFolderModal } from '../components/CreateFolderModal';
+import { ExportFolderModal } from '../components/ExportFolderModal';
 import { FolderEvents } from '../FolderEvents';
 import { useFolders } from '../useFolders';
 
@@ -43,6 +46,7 @@ export function FolderDetailScreen() {
     const [folderShares, setFolderShares] = useState<FolderShare[]>([]);
     const [sharesLoading, setSharingLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isExportModalVisible, setIsExportModalVisible] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [showShareDetails, setShowShareDetails] = useState(false);
     const [selectedShare, setSelectedShare] = useState<FolderShare | null>(null);
@@ -103,6 +107,23 @@ export function FolderDetailScreen() {
 
     const handleCreate = async (dto: any) => {
         await createFolder(dto);
+    };
+
+    const handleExport = async (templateId?: string) => {
+        if (!folderId) return;
+        try {
+            const baseUrl = OpenAPI.BASE;
+            const url = `${baseUrl}/folders/${folderId}/export?format=excel${templateId ? `&templateId=${templateId}` : ''}`;
+            const filename = `${currentFolder?.name || 'folder'}_export.xlsx`;
+            
+            const success = await FileDownloadService.downloadAndShare(url, filename);
+            if (!success) {
+                Alert.alert(i18n.t('common.error'), 'Dışa aktarma başarısız oldu.');
+            }
+        } catch (error) {
+            console.error('Export failed', error);
+            Alert.alert(i18n.t('common.error'), 'Dışa aktarma sırasında bir hata oluştu.');
+        }
     };
 
     const handleDelete = () => {
@@ -515,11 +536,19 @@ export function FolderDetailScreen() {
                             <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
-                            onPress={handleDelete}
+                            style={styles.shareIconButton}
+                            onPress={() => setIsExportModalVisible(true)}
                         >
-                            <IconSymbol name="trash.fill" size={24} color={colors.error} />
+                            <IconSymbol name="square.and.arrow.up" size={24} color={colors.primary} />
                         </TouchableOpacity>
+                        {!currentFolder?.isSystem && (
+                            <TouchableOpacity
+                                style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
+                                onPress={handleDelete}
+                            >
+                                <IconSymbol name="trash.fill" size={24} color={colors.error} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 )}
             </View>
@@ -693,6 +722,12 @@ export function FolderDetailScreen() {
                 onClose={() => setIsModalVisible(false)}
                 onSubmit={handleCreate}
                 parentId={folderId || null}
+            />
+
+            <ExportFolderModal
+                visible={isExportModalVisible}
+                onClose={() => setIsExportModalVisible(false)}
+                onExport={handleExport}
             />
 
             {currentFolder && (

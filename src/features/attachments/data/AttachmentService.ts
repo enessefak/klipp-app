@@ -24,6 +24,7 @@ export class AttachmentService {
         try {
             const response = await GeneratedAttachmentService.getAttachments(
                 filters?.folderId,
+                filters?.categoryId,
                 filters?.attachmentTypeId,
                 filters?.title,
                 filters?.search,

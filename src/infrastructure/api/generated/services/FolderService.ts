@@ -39,6 +39,8 @@ export class FolderService {
             color: string;
             userId: string;
             parentId: string | null;
+            isSystem?: boolean;
+            systemType?: string | null;
             createdAt: string;
             updatedAt: string;
             children?: Array<any>;
@@ -83,6 +85,8 @@ export class FolderService {
         color: string;
         userId: string;
         parentId: string | null;
+        isSystem?: boolean;
+        systemType?: string | null;
         createdAt: string;
         updatedAt: string;
     }> {
@@ -95,6 +99,17 @@ export class FolderService {
                 400: `Default Response`,
                 404: `Default Response`,
             },
+        });
+    }
+    /**
+     * List available export templates (Luca, Zirve, etc.)
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getFoldersExportTemplates(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/folders/export-templates',
         });
     }
     /**
@@ -112,6 +127,8 @@ export class FolderService {
         color: string;
         userId: string;
         parentId: string | null;
+        isSystem?: boolean;
+        systemType?: string | null;
         createdAt: string;
         updatedAt: string;
     }> {
@@ -146,6 +163,8 @@ export class FolderService {
         color: string;
         userId: string;
         parentId: string | null;
+        isSystem?: boolean;
+        systemType?: string | null;
         createdAt: string;
         updatedAt: string;
     }> {
@@ -189,6 +208,7 @@ export class FolderService {
      * @param fields
      * @param mapping
      * @param type
+     * @param templateId
      * @returns any Default Response
      * @throws ApiError
      */
@@ -199,6 +219,7 @@ export class FolderService {
         fields?: string,
         mapping?: string,
         type?: string,
+        templateId?: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -212,6 +233,7 @@ export class FolderService {
                 'fields': fields,
                 'mapping': mapping,
                 'type': type,
+                'templateId': templateId,
             },
         });
     }

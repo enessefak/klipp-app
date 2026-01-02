@@ -5,6 +5,7 @@ import { useNotifications } from '@/src/features/notifications/presentation/useN
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { useFolderSharing } from '@/src/features/sharing/presentation/useFolderSharing';
 import i18n from '@/src/infrastructure/localization/i18n';
+import { useRevenueCat } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -131,6 +132,7 @@ function SettingSection({ title, children }: { title?: string; children: React.R
 
 export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
+    const { isPro } = useRevenueCat();
     const router = useRouter();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const { unreadCount, refreshUnreadCount } = useNotifications();
@@ -442,13 +444,13 @@ export function ProfileScreen() {
                     <SettingItem
                         icon="checkmark.seal.fill"
                         iconColor="#4A90E2"
-                        title={i18n.t('subscription.title')}
-                        subtitle={i18n.t('subscription.status.free_plan')}
-                        onPress={() => router.push('/subscription/paywall')}
+                        title={isPro ? "Klipp Pro" : i18n.t('subscription.title')}
+                        subtitle={isPro ? "Active" : i18n.t('subscription.status.free_plan')}
+                        onPress={() => router.push(isPro ? '/subscription/customer-center' : '/subscription/paywall')}
                         rightElement={
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <ThemedText style={{ color: colors.primary, fontSize: 13, marginRight: 4 }}>
-                                    {i18n.t('common.actions.upgrade')}
+                                    {isPro ? "Manage" : i18n.t('common.actions.upgrade')}
                                 </ThemedText>
                                 <IconSymbol name="chevron.right" size={14} color={colors.primary} />
                             </View>

@@ -2,7 +2,7 @@ import i18n from '@/src/infrastructure/localization/i18n';
 import { DarkColors, LightColors, ThemeColors } from '@/src/infrastructure/theme/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme } from 'react-native';
+import { Appearance, useColorScheme } from 'react-native';
 
 type Language = 'tr' | 'en';
 type Theme = 'system' | 'light' | 'dark';
@@ -31,6 +31,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         loadSettings();
     }, []);
+
+    useEffect(() => {
+        // Sync with system appearance for native components (like RevenueCat Paywall)
+        if (theme === 'system') {
+            Appearance.setColorScheme(null);
+        } else {
+            Appearance.setColorScheme(theme);
+        }
+    }, [theme]);
 
     const loadSettings = async () => {
         try {

@@ -369,7 +369,7 @@ export const tr = {
         expired: 'Süresi doldu',
         expires_today: 'Bugün doluyor',
         days_left: '{{count}} gün kaldı',
-        months_left: '~{{count}} ay kaldı',
+        months_left: '{{count}} ay kaldı',
         months_left_exact: '{{count}} ay kaldı',
         years_months_left: '{{years}} yıl {{months}} ay',
         years_left: '{{count}} yıl kaldı',

@@ -7,9 +7,38 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AttachmentService {
     /**
+     * Request approval for an attachment via email
+     * @param id
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postAttachmentsRequestApproval(
+        id: string,
+        requestBody: {
+            reviewerEmail: string;
+        },
+    ): CancelablePromise<{
+        message?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/attachments/{id}/request-approval',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                404: `Default Response`,
+            },
+        });
+    }
+    /**
      * List attachments with filters and pagination
      * List all attachments for the authenticated user. Supports filtering by folder, attachment type, title, amount range, currency, document date range, and text search across title, description and details fields. Uses cursor-based pagination.
      * @param folderId
+     * @param categoryId
      * @param attachmentTypeId
      * @param title
      * @param search
@@ -26,6 +55,7 @@ export class AttachmentService {
      */
     public static getAttachments(
         folderId?: string,
+        categoryId?: string,
         attachmentTypeId?: string,
         title?: string,
         search?: string,
@@ -42,15 +72,17 @@ export class AttachmentService {
             id: string;
             userId: string;
             folderId: string;
+            categoryId?: string | null;
             attachmentTypeId: string;
             title: string;
             description: string | null;
             documentDate: string;
             details?: any;
+            status: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rejectionReason?: string | null;
             images?: Array<{
                 id: string;
                 imageUrl: string;
-                attachmentId: string;
                 createdAt: string;
             }>;
             attachmentType?: {
@@ -58,13 +90,19 @@ export class AttachmentService {
                 name: string;
                 icon: string;
                 color: string;
-                requiresWarranty: boolean;
+                expires: boolean;
+                transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
             };
             folder?: {
                 id: string;
                 name: string;
                 icon: string;
                 color: string;
+            };
+            category?: {
+                id: string;
+                name: string;
+                accountCode?: string | null;
             };
             isOwner?: boolean;
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
@@ -79,6 +117,7 @@ export class AttachmentService {
             url: '/attachments/',
             query: {
                 'folderId': folderId,
+                'categoryId': categoryId,
                 'attachmentTypeId': attachmentTypeId,
                 'title': title,
                 'search': search,
@@ -102,6 +141,7 @@ export class AttachmentService {
     public static postAttachments(
         requestBody: {
             folderId: string;
+            categoryId?: string;
             attachmentTypeId: string;
             title: string;
             description?: string;
@@ -112,15 +152,17 @@ export class AttachmentService {
         id: string;
         userId: string;
         folderId: string;
+        categoryId?: string | null;
         attachmentTypeId: string;
         title: string;
         description: string | null;
         documentDate: string;
         details?: any;
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+        rejectionReason?: string | null;
         images?: Array<{
             id: string;
             imageUrl: string;
-            attachmentId: string;
             createdAt: string;
         }>;
         attachmentType?: {
@@ -128,13 +170,19 @@ export class AttachmentService {
             name: string;
             icon: string;
             color: string;
-            requiresWarranty: boolean;
+            expires: boolean;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
         };
         folder?: {
             id: string;
             name: string;
             icon: string;
             color: string;
+        };
+        category?: {
+            id: string;
+            name: string;
+            accountCode?: string | null;
         };
         isOwner?: boolean;
         permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
@@ -163,15 +211,17 @@ export class AttachmentService {
         id: string;
         userId: string;
         folderId: string;
+        categoryId?: string | null;
         attachmentTypeId: string;
         title: string;
         description: string | null;
         documentDate: string;
         details?: any;
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+        rejectionReason?: string | null;
         images?: Array<{
             id: string;
             imageUrl: string;
-            attachmentId: string;
             createdAt: string;
         }>;
         attachmentType?: {
@@ -179,13 +229,19 @@ export class AttachmentService {
             name: string;
             icon: string;
             color: string;
-            requiresWarranty: boolean;
+            expires: boolean;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
         };
         folder?: {
             id: string;
             name: string;
             icon: string;
             color: string;
+        };
+        category?: {
+            id: string;
+            name: string;
+            accountCode?: string | null;
         };
         isOwner?: boolean;
         permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
@@ -211,6 +267,7 @@ export class AttachmentService {
         id: string,
         requestBody?: {
             folderId?: string;
+            categoryId?: string;
             attachmentTypeId?: string;
             title?: string;
             description?: string;
@@ -221,15 +278,17 @@ export class AttachmentService {
         id: string;
         userId: string;
         folderId: string;
+        categoryId?: string | null;
         attachmentTypeId: string;
         title: string;
         description: string | null;
         documentDate: string;
         details?: any;
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+        rejectionReason?: string | null;
         images?: Array<{
             id: string;
             imageUrl: string;
-            attachmentId: string;
             createdAt: string;
         }>;
         attachmentType?: {
@@ -237,13 +296,19 @@ export class AttachmentService {
             name: string;
             icon: string;
             color: string;
-            requiresWarranty: boolean;
+            expires: boolean;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
         };
         folder?: {
             id: string;
             name: string;
             icon: string;
             color: string;
+        };
+        category?: {
+            id: string;
+            name: string;
+            accountCode?: string | null;
         };
         isOwner?: boolean;
         permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';

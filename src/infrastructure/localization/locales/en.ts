@@ -364,7 +364,7 @@ export const en = {
         expired: 'Expired',
         expires_today: 'Expires today',
         days_left: '{{count}} days left',
-        months_left: '~{{count}} months left',
+        months_left: '{{count}} months left',
         months_left_exact: '{{count}} months left',
         years_months_left: '{{years}} years {{months}} months',
         years_left: '{{count}} years left',

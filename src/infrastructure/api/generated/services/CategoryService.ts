@@ -14,6 +14,7 @@ export class CategoryService {
     public static getCategories(): CancelablePromise<Array<{
         id: string;
         name: string;
+        accountCode?: string | null;
         userId: string;
         createdAt: string;
         updatedAt: string;
@@ -32,10 +33,12 @@ export class CategoryService {
     public static postCategories(
         requestBody: {
             name: string;
+            accountCode?: string;
         },
     ): CancelablePromise<{
         id: string;
         name: string;
+        accountCode?: string | null;
         userId: string;
         createdAt: string;
         updatedAt: string;
@@ -61,6 +64,7 @@ export class CategoryService {
     ): CancelablePromise<{
         id: string;
         name: string;
+        accountCode?: string | null;
         userId: string;
         createdAt: string;
         updatedAt: string;
@@ -84,10 +88,12 @@ export class CategoryService {
         id: string,
         requestBody?: {
             name?: string;
+            accountCode?: string;
         },
     ): CancelablePromise<{
         id: string;
         name: string;
+        accountCode?: string | null;
         userId: string;
         createdAt: string;
         updatedAt: string;

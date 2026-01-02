@@ -31,7 +31,9 @@ const formatCurrency = (amount: number, currency: string) => {
 // Calculate remaining days from a date string
 const getRemainingDays = (dateString: string): number => {
     const endDate = new Date(dateString);
+    endDate.setHours(0, 0, 0, 0);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const diffTime = endDate.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };

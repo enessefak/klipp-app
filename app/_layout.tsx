@@ -1,9 +1,9 @@
 import { AuthProvider, useAuth } from '@/src/features/auth/presentation/useAuth';
 import { usePushNotifications } from '@/src/features/notifications';
 import { SettingsProvider } from '@/src/features/settings/presentation/SettingsContext';
-import { SubscriptionProvider } from '@/src/features/subscription/presentation/SubscriptionContext';
 import '@/src/infrastructure/api/apiConfig';
 import { PickerProvider } from '@/src/infrastructure/picker/PickerContext';
+import { RevenueCatProvider } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, useFonts } from '@expo-google-fonts/outfit';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -88,11 +88,11 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SettingsProvider>
-        <SubscriptionProvider>
+        <RevenueCatProvider>
           <PickerProvider>
             <RootLayoutContent />
           </PickerProvider>
-        </SubscriptionProvider>
+        </RevenueCatProvider>
       </SettingsProvider>
     </AuthProvider>
   );

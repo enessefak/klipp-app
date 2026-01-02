@@ -16,7 +16,8 @@ export class AttachmentTypeService {
         name: string;
         icon: string;
         color: string;
-        requiresWarranty: boolean;
+        expires: boolean;
+        transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
         fieldConfig?: Array<{
             key: string;
             label: string;
