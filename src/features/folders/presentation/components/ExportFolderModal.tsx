@@ -1,9 +1,8 @@
-
 import { Button } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
-import { FolderService } from '@/src/infrastructure/api/generated/services/FolderService';
+import { ExportService } from '@/src/infrastructure/api/generated/services/ExportService';
 import i18n from '@/src/infrastructure/localization/i18n';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -34,33 +33,35 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
     const loadTemplates = async () => {
         try {
             setLoading(true);
-            // Mocking response structure based on assumption, adjust if API differs
-            const response = await FolderService.getFoldersExportTemplates();
-            // Assuming response is array or has items. 
-            // If API returns simple array of strings:
-            // setTemplates(response.map((t: string) => ({ id: t, name: t })));
-            // If API returns objects:
-            if (Array.isArray(response)) {
-                setTemplates(response);
-            } else if (response && Array.isArray(response.items)) {
-                setTemplates(response.items);
+            const response = await ExportService.getExportFormats();
+            const data = (response as any).data || response;
+
+            if (Array.isArray(data)) {
+                setTemplates(data.map((item: any) => ({
+                    id: item.code,
+                    name: item.name
+                })));
             } else {
-                // Fallback hardcoded if API not ready or different
+                // Fallback hardcoded
                 setTemplates([
-                    { id: 'luca', name: 'Luca' },
-                    { id: 'zirve', name: 'Zirve' },
-                    { id: 'logo', name: 'Logo' },
-                    { id: 'excel', name: 'Standart Excel' }
+                    { id: 'TR_EXCEL', name: 'Excel (TR)' },
+                    { id: 'DE_DATEV', name: 'DATEV (DE)' },
+                    { id: 'JSON', name: 'JSON' },
+                    { id: 'CSV', name: 'CSV' },
+                    { id: 'XML', name: 'XML' },
+                    { id: 'EXCEL', name: 'Standard Excel' }
                 ]);
             }
         } catch (error) {
             console.error('Failed to load templates', error);
             // Fallback
             setTemplates([
-                { id: 'luca', name: 'Luca' },
-                { id: 'zirve', name: 'Zirve' },
-                { id: 'logo', name: 'Logo' },
-                { id: 'excel', name: 'Standart Excel' }
+                { id: 'TR_EXCEL', name: 'Excel (TR)' },
+                { id: 'DE_DATEV', name: 'DATEV (DE)' },
+                { id: 'JSON', name: 'JSON' },
+                { id: 'CSV', name: 'CSV' },
+                { id: 'XML', name: 'XML' },
+                { id: 'EXCEL', name: 'Standard Excel' }
             ]);
         } finally {
             setLoading(false);
@@ -151,10 +152,10 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
                                             ]}
                                             onPress={() => setSelectedTemplateId(template.id)}
                                         >
-                                            <IconSymbol 
-                                                name={selectedTemplateId === template.id ? "checkmark.circle.fill" : "circle"} 
-                                                size={20} 
-                                                color={selectedTemplateId === template.id ? colors.primary : colors.subtext} 
+                                            <IconSymbol
+                                                name={selectedTemplateId === template.id ? "checkmark.circle.fill" : "circle"}
+                                                size={20}
+                                                color={selectedTemplateId === template.id ? colors.primary : colors.subtext}
                                             />
                                             <ThemedText style={styles.templateName}>{template.name}</ThemedText>
                                         </TouchableOpacity>

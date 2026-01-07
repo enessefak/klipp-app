@@ -9,15 +9,19 @@ export class AttachmentRepository {
      */
     static async createAttachment(
         data: CreateAttachmentDTO,
-        fileUri: string,
-        mimeType: string = 'image/jpeg'
+        files: { fileUri: string; mimeType?: string }[]
     ): Promise<Attachment> {
         try {
-            // Optional: OCR Step (currently not used, data already filled)
-            // const ocrResult = await OCRService.scanImage(imageUri);
+            if (!files || files.length === 0) {
+                throw new Error('At least one file is required to create an attachment');
+            }
 
-            // Proceed with creation and upload
-            const attachment = await AttachmentService.createAttachmentWithFile(data, fileUri, mimeType);
+            const normalizedFiles = files.map(file => ({
+                fileUri: file.fileUri,
+                mimeType: file.mimeType || 'image/jpeg',
+            }));
+
+            const attachment = await AttachmentService.createAttachmentWithFiles(data, normalizedFiles);
 
             return attachment;
         } catch (error: any) {

@@ -14,7 +14,8 @@ export class SharingService {
      */
     static async searchUsersByEmail(email: string): Promise<SearchedUser[]> {
         const response = await UserService.getUsersSearch(email);
-        return response;
+        const data = (response as any).data || response;
+        return Array.isArray(data) ? data : [];
     }
 
     /**
@@ -23,10 +24,11 @@ export class SharingService {
     static async getUserById(userId: string): Promise<SearchedUser | null> {
         try {
             const response = await UserService.getUsers(userId);
+            const data = (response as any).data || response;
             return {
-                id: response.id,
-                name: response.name,
-                email: response.email,
+                id: data.id,
+                name: data.name,
+                email: data.email,
             };
         } catch {
             return null;
@@ -42,7 +44,7 @@ export class SharingService {
             targetUserId: data.targetUserId,
             permission: data.permission || 'VIEW',
         });
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -51,7 +53,7 @@ export class SharingService {
     static async getSharedWithMe(status?: ShareStatus): Promise<SharedFolder[]> {
         // @ts-ignore - Ignoring missing args for now to fix regression
         const response = await FolderSharingService.getFolderSharesSharedWithMe(status);
-        const items = Array.isArray(response) ? response : (response as any).items || (response as any).data || [];
+        const items = (response as any).data?.items || (response as any).data || (Array.isArray(response) ? response : []);
         return items;
     }
 
@@ -60,7 +62,7 @@ export class SharingService {
      */
     static async getSharedByMe(): Promise<FolderShare[]> {
         const response = await FolderSharingService.getFolderSharesSharedByMe();
-        const items = Array.isArray(response) ? response : (response as any).items || (response as any).data || [];
+        const items = (response as any).data?.items || (response as any).data || (Array.isArray(response) ? response : []);
         return items;
     }
 
@@ -69,7 +71,7 @@ export class SharingService {
      */
     static async getPendingCount(): Promise<number> {
         const response = await FolderSharingService.getFolderSharesPendingCount();
-        return response.count;
+        return (response as any).data?.count ?? (response as any).count ?? 0;
     }
 
     /**
@@ -77,7 +79,7 @@ export class SharingService {
      */
     static async getFolderShares(folderId: string): Promise<FolderShare[]> {
         const response = await FolderSharingService.getFolderSharesFolder(folderId);
-        const items = Array.isArray(response) ? response : (response as any).items || (response as any).data || [];
+        const items = (response as any).data?.items || (response as any).data || (Array.isArray(response) ? response : []);
         return items;
     }
 
@@ -88,7 +90,7 @@ export class SharingService {
         const response = await FolderSharingService.patchFolderSharesRespond(shareId, {
             status: accept ? 'accepted' : 'rejected',
         });
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -98,7 +100,7 @@ export class SharingService {
         const response = await FolderSharingService.patchFolderShares(shareId, {
             permission,
         });
-        return response;
+        return (response as any).data || response;
     }
 
     /**

@@ -1,6 +1,7 @@
 import { Button } from '@/components/form/Button';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Folder } from '@/src/features/folders/domain/Folder';
 import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
@@ -12,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     ScrollView,
     StyleSheet,
@@ -25,15 +27,19 @@ export default function FolderPickerScreen() {
     const { colors } = useSettings();
     const router = useRouter();
     const { onFolderSelect } = usePicker();
-    const params = useLocalSearchParams<{ selectedId?: string; requiredPermission?: string }>();
+    const params = useLocalSearchParams<{ selectedId?: string; requiredPermission?: string; moveAttachmentId?: string }>();
     const selectedId = params.selectedId;
     const requiredPermission = params.requiredPermission;
+    const moveAttachmentId = params.moveAttachmentId;
+
+    const isMoveMode = !!moveAttachmentId;
 
     const [folders, setFolders] = useState<Folder[]>([]);
     const [loading, setLoading] = useState(true);
+    const [moving, setMoving] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-    
+
     const breadcrumbScrollRef = useRef<ScrollView>(null);
     const hasInitializedRef = useRef(false);
 
@@ -43,13 +49,13 @@ export default function FolderPickerScreen() {
 
     useEffect(() => {
         if (!loading && folders.length > 0 && selectedId && !hasInitializedRef.current) {
-             const selected = folders.find(f => f.id === selectedId);
-             if (selected) {
-                 setCurrentFolderId(selected.parentId || null);
-             }
-             hasInitializedRef.current = true;
+            const selected = folders.find(f => f.id === selectedId);
+            if (selected) {
+                setCurrentFolderId(isMoveMode ? selected.id : selected.parentId || null);
+            }
+            hasInitializedRef.current = true;
         }
-    }, [loading, folders, selectedId]);
+    }, [loading, folders, selectedId, isMoveMode]);
 
     useEffect(() => {
         if (breadcrumbScrollRef.current) {
@@ -76,7 +82,7 @@ export default function FolderPickerScreen() {
         const sharedFolders: any[] = [];
 
         try {
-            const data = await FolderRepository.getFolders();
+            const data = await FolderRepository.getFolders({ flat: true });
             if (Array.isArray(data)) {
                 myFolders.push(...data);
             }
@@ -113,9 +119,9 @@ export default function FolderPickerScreen() {
         setLoading(false);
     };
 
-    const currentFolder = useMemo(() => 
-        folders.find(f => f.id === currentFolderId), 
-    [folders, currentFolderId]);
+    const currentFolder = useMemo(() =>
+        folders.find(f => f.id === currentFolderId),
+        [folders, currentFolderId]);
 
     const breadcrumbs = useMemo(() => {
         const path: Folder[] = [];
@@ -123,7 +129,8 @@ export default function FolderPickerScreen() {
         while (curr) {
             path.unshift(curr);
             if (!curr.parentId) break;
-            curr = folders.find(f => f.id === curr.parentId);
+            const parentId = curr.parentId;
+            curr = folders.find(f => f.id === parentId);
         }
         return path;
     }, [currentFolder, folders]);
@@ -145,8 +152,34 @@ export default function FolderPickerScreen() {
     }, [folders, searchQuery, currentFolderId]);
 
     const handleSelect = (folder: Folder | null) => {
+        if (isMoveMode) {
+            return;
+        }
+
         onFolderSelect(folder);
         router.back();
+    };
+
+    const handleMoveToFolder = async (folder: Folder | null) => {
+        if (!moveAttachmentId || !folder) {
+            Alert.alert(I18nLocal.t('common.error'), I18nLocal.t('folders.picker.select_folder_error'));
+            return;
+        }
+
+        setMoving(true);
+        try {
+            await AttachmentService.updateAttachment(moveAttachmentId, { folderId: folder.id });
+            Alert.alert(
+                I18nLocal.t('common.success'),
+                I18nLocal.t('folders.picker.move_success', { folderName: folder.name }),
+                [{ text: 'OK', onPress: () => router.back() }]
+            );
+        } catch (err) {
+            console.error('Move failed:', err);
+            Alert.alert(I18nLocal.t('common.error'), I18nLocal.t('folders.picker.move_error'));
+        } finally {
+            setMoving(false);
+        }
     };
 
     const handleNavigate = (folder: Folder) => {
@@ -285,16 +318,16 @@ export default function FolderPickerScreen() {
 
     const renderBreadcrumbs = () => {
         if (searchQuery) return null;
-        
+
         return (
             <View style={styles.breadcrumbContainer}>
-                <ScrollView 
+                <ScrollView
                     ref={breadcrumbScrollRef}
-                    horizontal 
+                    horizontal
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.breadcrumbContent}
                 >
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={() => handleBreadcrumbPress(null)}
                         style={styles.breadcrumbItem}
                     >
@@ -303,14 +336,14 @@ export default function FolderPickerScreen() {
 
                     {breadcrumbs.map((folder, index) => (
                         <View key={folder.id} style={styles.breadcrumbItem}>
-                            <IconSymbol 
-                                name="chevron.right" 
-                                size={12} 
-                                color={colors.gray} 
-                                style={styles.breadcrumbSeparator} 
+                            <IconSymbol
+                                name="chevron.right"
+                                size={12}
+                                color={colors.gray}
+                                style={styles.breadcrumbSeparator}
                             />
                             <TouchableOpacity onPress={() => handleBreadcrumbPress(folder.id)}>
-                                <ThemedText 
+                                <ThemedText
                                     style={[
                                         styles.breadcrumbText,
                                         index === breadcrumbs.length - 1 && styles.breadcrumbTextActive
@@ -327,15 +360,28 @@ export default function FolderPickerScreen() {
     };
 
     const renderItem = ({ item }: { item: Folder }) => {
-        const isSelected = selectedId === item.id;
+        const isSelected = !isMoveMode && selectedId === item.id;
+
+        const handleItemPress = () => {
+            if (isMoveMode) {
+                handleNavigate(item);
+                return;
+            }
+
+            if (searchQuery) {
+                handleSelect(item);
+            } else {
+                handleNavigate(item);
+            }
+        };
 
         return (
             <TouchableOpacity
                 style={styles.item}
-                onPress={() => searchQuery ? handleSelect(item) : handleNavigate(item)}
+                onPress={handleItemPress}
             >
                 <View style={styles.itemContent}>
-                    <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
+                    <View style={[styles.iconContainer, { backgroundColor: (item.color || '#3B82F6') + '20' }]}>
                         <ThemedText style={styles.iconEmoji}>{getIconDisplay(item.icon)}</ThemedText>
                     </View>
                     <View style={{ flex: 1 }}>
@@ -345,9 +391,9 @@ export default function FolderPickerScreen() {
                         )}
                     </View>
                 </View>
-                
-                {searchQuery ? (
-                     isSelected && <IconSymbol name="checkmark" size={20} color={colors.primary} />
+
+                {searchQuery && !isMoveMode ? (
+                    isSelected && <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
                 ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <IconSymbol name="chevron.right" size={16} color={colors.gray} />
@@ -363,7 +409,9 @@ export default function FolderPickerScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
                     <IconSymbol name="xmark" size={22} color={colors.text} />
                 </TouchableOpacity>
-                <ThemedText type="defaultSemiBold" style={styles.title}>{I18nLocal.t('folders.picker.modal_title')}</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.title}>
+                    {isMoveMode ? I18nLocal.t('folders.picker.move_title') : I18nLocal.t('folders.picker.modal_title')}
+                </ThemedText>
                 <View style={styles.closeButton} />
             </View>
 
@@ -409,12 +457,22 @@ export default function FolderPickerScreen() {
 
             {!searchQuery && (
                 <View style={styles.footer}>
-                    <Button 
-                        title={currentFolder 
-                            ? `Select "${currentFolder.name}"`
-                            : I18nLocal.t('folders.picker.all')
+                    <Button
+                        title={
+                            moving
+                                ? I18nLocal.t('common.loading')
+                                : isMoveMode
+                                    ? (currentFolder ? `${I18nLocal.t('folders.picker.move_title')}: "${currentFolder.name}"` : I18nLocal.t('folders.picker.move_title'))
+                                    : (currentFolder ? `Select "${currentFolder.name}"` : I18nLocal.t('folders.picker.all'))
                         }
-                        onPress={() => handleSelect(currentFolder || null)}
+                        onPress={() => {
+                            if (isMoveMode) {
+                                handleMoveToFolder(currentFolder || null);
+                            } else {
+                                handleSelect(currentFolder || null);
+                            }
+                        }}
+                        disabled={moving || (isMoveMode ? !currentFolder : false)}
                     />
                 </View>
             )}

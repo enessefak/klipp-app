@@ -1,25 +1,59 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import i18n from '../localization/i18n';
 import { OpenAPI } from './generated/core/OpenAPI';
 
-// Assign custom axios to OpenAPI (requires OpenAPI core modification or we can just patch it here if exported)
-// The generated code imports axios directly, but usually allows passing a client.
-// Looking at 'request.ts', it takes 'axiosClient' as optional arg, defaulting to global 'axios'.
-// We cannot easily inject this instance into the static service calls because they use internal '__request'
-// which uses 'OpenAPI' config but not an instance.
-// However, 'axios' import in generated code refers to the module. 
-// We can try to set interceptors on the default axios instance if the generated code allows it.
-// Or better: The generated 'request.ts' uses strict 'import axios from "axios"'. 
-// So modifying the global default should work if we do it early.
+// ... (existing comments)
 
 const globalAxios = axios;
 
 globalAxios.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+
+        // Handle Subscription Required
+        if (status === 403 && (data?.error === 'subscription_required' || data?.error === 'subscription_required_guest')) {
+            console.log('[API] Subscription Required Triggered');
+
+            // Show alert if message is provided
+            if (data?.message) {
+                Alert.alert(
+                    'Abonelik Gerekli',
+                    data.message,
+                    [
+                        {
+                            text: 'İptal',
+                            style: 'cancel',
+                            onPress: () => console.log('Subscription cancelled')
+                        },
+                        {
+                            text: 'Abone Ol',
+                            style: 'default',
+                            onPress: () => {
+                                console.log('Navigating to paywall from interceptor');
+                                try {
+                                    // Use replace to avoid stacking if already there, or push
+                                    router.push('/subscription/paywall');
+                                } catch (err) {
+                                    console.error('Navigation error:', err);
+                                }
+                            }
+                        }
+                    ]
+                );
+            } else {
+                router.push('/subscription/paywall');
+            }
+
+            return Promise.reject(error);
+        }
+
+        if (status === 401) {
             console.log('[API] 401 Global Interceptor Triggered');
 
             if (Platform.OS === 'web') {
@@ -65,7 +99,10 @@ OpenAPI.TOKEN = async (options) => {
     }
 };
 
-// Fix for server compression issue
-OpenAPI.HEADERS = {
-    'Accept-Encoding': 'identity',
+// Fix for server compression issue & Localization
+OpenAPI.HEADERS = async () => {
+    return {
+        'Accept-Encoding': 'identity',
+        'Accept-Language': i18n.locale || 'tr',
+    };
 };

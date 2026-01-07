@@ -3,9 +3,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
@@ -23,6 +23,7 @@ import { useSettings } from '@/src/features/settings/presentation/SettingsContex
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { OCRService } from '../../data/OCRService';
+import { DynamicFieldsSection } from '../components/scan/DynamicFieldsSection';
 
 // Conditionally import DocumentScanner (only works in dev builds, not Expo Go)
 let DocumentScanner: any = null;
@@ -99,6 +100,25 @@ export default function EditAttachmentScreen() {
     const [user, setUser] = useState<{ id: string } | null>(null);
     const [originalAttachment, setOriginalAttachment] = useState<Attachment | null>(null);
 
+    // Scroll ref for auto-scrolling to errors
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    const onError = (errors: any) => {
+        let scrollY = 0;
+
+        // Determine scroll position based on error hierarchy (approximate)
+        if (errors.title) scrollY = 0;
+        else if (errors.documentDate) scrollY = 80;
+        else if (errors.folderId) scrollY = 160;
+        else if (errors.attachmentTypeId) scrollY = 240;
+        else if (errors.details) scrollY = 320; // Dynamic fields start
+        else if (errors.customFields) scrollY = 500;
+
+        scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+
+        Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.validation.check_fields'));
+    };
+
     // Initial Load
     // Initial Load
     useEffect(() => {
@@ -107,10 +127,10 @@ export default function EditAttachmentScreen() {
             AuthService.getUser().then(u => setUser(u)).catch(console.error);
         });
 
-        if (id && attachmentTypes.length > 0) {
+        if (id) {
             loadAttachment();
         }
-    }, [id, attachmentTypes.length]);
+    }, [id]);
 
     const loadAttachment = async () => {
         try {
@@ -195,7 +215,7 @@ export default function EditAttachmentScreen() {
         setStep('analyzing');
 
         try {
-            const ocrResult = await OCRService.scanDocument(uri, mime);
+            const ocrResult = await OCRService.scanDocument([{ uri, mimeType: mime }]);
 
             // Auto-fill form fields (only empty ones or overwrite all? usually specific update)
             // For logic consistency: let's overwrite for now or ask user?
@@ -371,7 +391,7 @@ export default function EditAttachmentScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            <FormContainer scrollable contentStyle={styles.content}>
+            <FormContainer ref={scrollViewRef} scrollable contentStyle={styles.content}>
                 <View style={styles.form}>
 
                     {/* File Preview & Replace */}
@@ -464,27 +484,14 @@ export default function EditAttachmentScreen() {
                     {dynamicFields.length > 0 && (
                         <View>
                             <ThemedText style={styles.sectionTitle}>{i18n.t('receipts.scan.details_section_title')}</ThemedText>
-                            {dynamicFields.map((field) => (
-                                <View key={field.key} style={{ marginBottom: 16 }}>
-                                    <ThemedText style={styles.label}>{field.label}</ThemedText>
-                                    {field.type === 'date' ? (
-                                        <DatePickerField
-                                            value={watchedDetails[field.key] ? new Date(watchedDetails[field.key]) : undefined}
-                                            onChange={(date) => setValue('details', { ...watchedDetails, [field.key]: date.toISOString() })}
-                                            placeholder={field.placeholder || i18n.t('common.actions.select_date')}
-                                        />
-                                    ) : (
-                                        <TextInput
-                                            value={watchedDetails[field.key] ? String(watchedDetails[field.key]) : ''}
-                                            onChangeText={(text) => setValue('details', { ...watchedDetails, [field.key]: text })}
-                                            placeholder={field.placeholder}
-                                            keyboardType={field.type === 'number' || field.type === 'duration' ? 'numeric' : 'default'}
-                                            multiline={field.type === 'textarea'}
-                                            style={field.type === 'textarea' ? { minHeight: 80, textAlignVertical: 'top' } : undefined}
-                                        />
-                                    )}
-                                </View>
-                            ))}
+                            <DynamicFieldsSection
+                                control={control}
+                                dynamicFields={dynamicFields}
+                                watchedDetails={watchedDetails}
+                                watchedDocumentDate={watch('documentDate')}
+                                setValue={setValue}
+                                fieldStyle={attachmentTypes?.find(t => t.id === watchedTypeId)?.fieldStyle}
+                            />
                         </View>
                     )}
 
@@ -536,7 +543,7 @@ export default function EditAttachmentScreen() {
 
                     <Button
                         title={i18n.t('common.actions.save')}
-                        onPress={handleSubmit(onSubmit)}
+                        onPress={handleSubmit(onSubmit, onError)}
                         loading={submitting}
                         style={styles.submitButton}
                     />

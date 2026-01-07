@@ -24,11 +24,11 @@ export function WebSessionsScreen() {
             console.log('WebSessions Response:', JSON.stringify(result, null, 2));
 
             // Handle response based on generated service signature: { sessions: Array<{...}> }
-            if (result && Array.isArray(result.sessions)) {
-                setSessions(result.sessions);
-            } else if (Array.isArray(result)) {
-                // Fallback if API returns array directly
-                setSessions(result);
+            const data = (result as any).data || result;
+            const sessions = data.sessions || data;
+
+            if (sessions && Array.isArray(sessions)) {
+                setSessions(sessions);
             } else {
                 setSessions([]);
             }

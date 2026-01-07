@@ -112,12 +112,15 @@ export function useScanForm() {
     // --- Helpers ---
 
     const getTypeIdByOcrKey = (ocrTypeKey: string): string | undefined => {
+        console.log('[getTypeIdByOcrKey] Trying to match key:', ocrTypeKey);
+
         const ocrKeyToNameMap: Record<string, string[]> = {
             'warranty_document': ['Garanti Belgesi', 'Warranty', 'warranty'],
             'invoice': ['Fatura', 'Invoice', 'invoice'],
             'receipt': ['Fiş', 'Receipt', 'receipt'],
             'check': ['Çek', 'Check', 'check'],
             'slip': ['Dekont', 'Bank Slip', 'bank_slip', 'slip'],
+            'bank_slip': ['Dekont', 'Bank Slip', 'bank_slip', 'slip'],
             'contract': ['Sözleşme', 'Contract', 'contract'],
             'insurance': ['Sigorta', 'Insurance', 'insurance'],
             'subscription': ['Abonelik', 'Subscription', 'subscription'],
@@ -129,19 +132,27 @@ export function useScanForm() {
             'vehicle_document': ['Araç Belgesi', 'Vehicle Document', 'vehicle_document'],
         };
         const possibleNames = ocrKeyToNameMap[ocrTypeKey] || [ocrTypeKey];
+        console.log('[getTypeIdByOcrKey] Possible names:', possibleNames);
 
         for (const name of possibleNames) {
-            const found = attachmentTypes?.find?.(t =>
-                t.name.toLowerCase() === name.toLowerCase() ||
-                t.id.toLowerCase() === name.toLowerCase()
-            );
-            if (found) return found.id;
+            const found = attachmentTypes?.find?.(t => {
+                const nameMatch = t.name.toLowerCase() === name.toLowerCase();
+                const idMatch = t.id.toLowerCase() === name.toLowerCase();
+                // console.log(`Checking vs ${t.name} (${t.id}): nameMatch=${nameMatch}, idMatch=${idMatch}`);
+                return nameMatch || idMatch;
+            });
+            if (found) {
+                console.log('[getTypeIdByOcrKey] Found match:', found.id);
+                return found.id;
+            }
         }
 
         const foundPartial = attachmentTypes?.find?.(t =>
             t.name.toLowerCase().includes(ocrTypeKey.replace('_', ' ')) ||
             ocrTypeKey.toLowerCase().includes(t.name.toLowerCase())
         );
+        if (foundPartial) console.log('[getTypeIdByOcrKey] Found partial match:', foundPartial.id);
+
         return foundPartial?.id;
     };
 
@@ -180,7 +191,12 @@ export function useScanForm() {
         if (ocrResult.extractedData.type) {
             if (attachmentTypes.length > 0) {
                 const typeId = getTypeIdByOcrKey(ocrResult.extractedData.type);
-                if (typeId) setValue('attachmentTypeId', typeId);
+                if (typeId) {
+                    setValue('attachmentTypeId', typeId);
+
+                    // Force update dynamic fields based on this type immediately
+                    // The useEffect will handle it but we want to ensure any details matching fields are kept
+                }
             } else {
                 setPendingOcrType(ocrResult.extractedData.type);
             }
@@ -202,26 +218,17 @@ export function useScanForm() {
             setValue('details', { ...currentD, ...newData });
         }
 
-        // Description (Search Index)
-        const searchableFields: string[] = [];
-        if (ocrResult.rawText) searchableFields.push(ocrResult.rawText.substring(0, 2000));
-        if (ocrResult.extractedData.title) searchableFields.push(`Başlık: ${ocrResult.extractedData.title}`);
-        if (ocrResult.extractedData.amount) searchableFields.push(`Tutar: ${ocrResult.extractedData.amount} ${ocrResult.extractedData.currency || 'TRY'}`);
-        if (ocrResult.extractedData.date) searchableFields.push(`Tarih: ${new Date(ocrResult.extractedData.date).toLocaleDateString('tr-TR')}`);
-        if (ocrResult.extractedData.type) searchableFields.push(`Tip: ${ocrResult.extractedData.type}`);
-        if (ocrResult.extractedData.details) {
-            Object.entries(ocrResult.extractedData.details).forEach(([key, value]) => {
-                if (value) searchableFields.push(`${key}: ${value}`);
-            });
+        // Description - Use suggested description directly
+        if (ocrResult.extractedData.description) {
+            setValue('description', ocrResult.extractedData.description);
         }
-        setValue('description', searchableFields.join(' | '));
     };
 
     // --- Submit Logic ---
 
-    const submitForm = async (file: ScanResult) => {
+    const submitForm = async (files: ScanResult[], onError?: (errors: any) => void) => {
         return handleSubmit(async (data) => {
-            if (!file.fileUri) {
+            if (!files || files.length === 0) {
                 Alert.alert(i18n.t('receipts.scan.file_required.title'), i18n.t('receipts.scan.file_required.message'));
                 return;
             }
@@ -244,7 +251,12 @@ export function useScanForm() {
             };
 
             try {
-                const result = await createAttachment(dto, file.fileUri, file.mimeType);
+                const payload = files.map(item => ({
+                    fileUri: item.fileUri,
+                    mimeType: item.mimeType,
+                }));
+
+                const result = await createAttachment(dto, payload);
                 if (result) {
                     Alert.alert(i18n.t('receipts.scan.save_success.title'), i18n.t('receipts.scan.save_success.message'));
                     router.replace('/(tabs)');
@@ -264,7 +276,7 @@ export function useScanForm() {
                     Alert.alert(i18n.t('receipts.scan.save_error.title'), i18n.t('receipts.scan.save_error.message'));
                 }
             }
-        })();
+        }, onError)();
     };
 
     // --- Custom Field Actions ---

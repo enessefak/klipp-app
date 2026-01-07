@@ -5,6 +5,8 @@ import { Buffer } from 'buffer';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import { UpdateUserProfileInput, UserProfile } from '../domain/User';
+
 const setToken = async (token: string) => {
     if (Platform.OS === 'web') {
         await AsyncStorage.setItem('token', token);
@@ -31,11 +33,7 @@ const removeToken = async () => {
 
 interface LoginResponse {
     token: string;
-    user?: {
-        id: string;
-        email: string;
-        name?: string;
-    };
+    user?: UserProfile;
     isNewUser?: boolean;
 }
 
@@ -45,7 +43,8 @@ export const AuthService = {
             await removeToken();
 
             const response = await UserService.postUsersLogin({ email, password });
-            const { token } = response;
+            const data = (response as any).data || response;
+            const { token } = data;
 
             await setToken(token);
             return { token };
@@ -60,7 +59,8 @@ export const AuthService = {
             await removeToken();
 
             const response = await UserService.postUsersRegister({ name, email, password });
-            const { token } = response;
+            const data = (response as any).data || response;
+            const { token } = data;
 
             await setToken(token);
             return { token };
@@ -73,7 +73,8 @@ export const AuthService = {
     async loginWithGoogle(idToken: string): Promise<LoginResponse> {
         try {
             const response = await OAuthService.postAuthGoogle({ idToken });
-            const { token, user, isNewUser } = response;
+            const data = (response as any).data || response;
+            const { token, user, isNewUser } = data;
 
             await setToken(token);
             return { token, user, isNewUser };
@@ -87,7 +88,8 @@ export const AuthService = {
         try {
             const response = await OAuthService.postAuthApple({ identityToken, user });
             console.log('Apple login response:', response);
-            const { token, user: responseUser, isNewUser } = response;
+            const data = (response as any).data || response;
+            const { token, user: responseUser, isNewUser } = data;
 
             await setToken(token);
             return { token, user: responseUser, isNewUser };
@@ -122,9 +124,9 @@ export const AuthService = {
         }
     },
 
-    async updateProfile(name: string): Promise<void> {
+    async updateProfile(payload: UpdateUserProfileInput): Promise<void> {
         try {
-            await UserService.patchUsersMe({ name });
+            await UserService.patchUsersMe(payload);
         } catch (error) {
             console.error('Update profile error:', error);
             throw error;
@@ -144,13 +146,20 @@ export const AuthService = {
         }
     },
 
-    async getUser(): Promise<{ id: string; name: string; email: string }> {
+    async getUser(): Promise<UserProfile> {
         try {
             const response = await UserService.getUsersMe();
+            const data = (response as any).data || response;
             return {
-                id: response.id,
-                name: response.name,
-                email: response.email,
+                id: data.id,
+                name: data.name,
+                email: data.email,
+                taxNumber: data.taxNumber,
+                taxOffice: data.taxOffice,
+                address: data.address,
+                city: data.city,
+                subdivision: data.subdivision,
+                phone: data.phone,
             };
         } catch (error: any) {
             // FIX: If unauthorized, do not fallback. Invalid token means invalid session.
@@ -167,10 +176,17 @@ export const AuthService = {
                     const payload = this.parseJwt(token);
                     if (payload && payload.userId) {
                         const userResponse = await UserService.getUsers(payload.userId);
+                        const userData = (userResponse as any).data || userResponse;
                         return {
-                            id: userResponse.id,
-                            name: userResponse.name,
-                            email: userResponse.email,
+                            id: userData.id,
+                            name: userData.name,
+                            email: userData.email,
+                            taxNumber: userData.taxNumber,
+                            taxOffice: userData.taxOffice,
+                            address: userData.address,
+                            city: userData.city,
+                            subdivision: userData.subdivision,
+                            phone: userData.phone,
                         };
                     }
                 }

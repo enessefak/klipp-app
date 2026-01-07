@@ -19,7 +19,11 @@ export class AttachmentService {
             reviewerEmail: string;
         },
     ): CancelablePromise<{
+        success: boolean;
         message?: string;
+        data?: {
+            message?: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -40,7 +44,10 @@ export class AttachmentService {
      * @param folderId
      * @param categoryId
      * @param attachmentTypeId
+     * @param tagId
+     * @param transactionType
      * @param title
+     * @param status
      * @param search
      * @param documentDateFrom
      * @param documentDateTo
@@ -49,6 +56,8 @@ export class AttachmentService {
      * @param includeShared
      * @param detailsFilter
      * @param cursor
+     * @param page
+     * @param skip
      * @param limit
      * @returns any Default Response
      * @throws ApiError
@@ -57,7 +66,10 @@ export class AttachmentService {
         folderId?: string,
         categoryId?: string,
         attachmentTypeId?: string,
+        tagId?: string,
+        transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL',
         title?: string,
+        status?: 'PENDING' | 'APPROVED' | 'REJECTED',
         search?: string,
         documentDateFrom?: string,
         documentDateTo?: string,
@@ -66,9 +78,110 @@ export class AttachmentService {
         includeShared?: 'true' | 'false',
         detailsFilter?: string,
         cursor?: string,
+        page?: number,
+        skip?: number,
         limit?: number,
     ): CancelablePromise<{
-        items: Array<{
+        success: boolean;
+        message?: string;
+        data?: {
+            items: Array<{
+                id: string;
+                userId: string;
+                folderId: string;
+                categoryId?: string | null;
+                attachmentTypeId: string;
+                title: string;
+                description: string | null;
+                documentDate: string;
+                transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                details?: any;
+                status: 'PENDING' | 'APPROVED' | 'REJECTED';
+                rejectionReason?: string | null;
+                images?: Array<{
+                    id: string;
+                    imageUrl: string;
+                    createdAt: string;
+                }>;
+                attachmentType?: {
+                    id: string;
+                    name: string;
+                    icon: string;
+                    color: string;
+                    expires: boolean;
+                    transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                };
+                folder?: {
+                    id: string;
+                    name: string;
+                    icon: string;
+                    color: string;
+                };
+                category?: {
+                    id: string;
+                    name: string;
+                    accountCode?: string | null;
+                };
+                tags?: Array<{
+                    id: string;
+                    name: string;
+                    color: string;
+                }>;
+                isOwner?: boolean;
+                permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+                createdAt: string;
+                updatedAt: string;
+            }>;
+            hasMore: boolean;
+            nextCursor: string | null;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/attachments/',
+            query: {
+                'folderId': folderId,
+                'categoryId': categoryId,
+                'attachmentTypeId': attachmentTypeId,
+                'tagId': tagId,
+                'transactionType': transactionType,
+                'title': title,
+                'status': status,
+                'search': search,
+                'documentDateFrom': documentDateFrom,
+                'documentDateTo': documentDateTo,
+                'createdAtFrom': createdAtFrom,
+                'createdAtTo': createdAtTo,
+                'includeShared': includeShared,
+                'detailsFilter': detailsFilter,
+                'cursor': cursor,
+                'page': page,
+                'skip': skip,
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * Create attachment
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postAttachments(
+        requestBody: {
+            folderId: string;
+            categoryId?: string;
+            attachmentTypeId: string;
+            title: string;
+            description?: string;
+            documentDate: string;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            details?: Record<string, any> | null;
+        },
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
             userId: string;
             folderId: string;
@@ -77,6 +190,7 @@ export class AttachmentService {
             title: string;
             description: string | null;
             documentDate: string;
+            transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
             details?: any;
             status: 'PENDING' | 'APPROVED' | 'REJECTED';
             rejectionReason?: string | null;
@@ -104,90 +218,16 @@ export class AttachmentService {
                 name: string;
                 accountCode?: string | null;
             };
+            tags?: Array<{
+                id: string;
+                name: string;
+                color: string;
+            }>;
             isOwner?: boolean;
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
             createdAt: string;
             updatedAt: string;
-        }>;
-        hasMore: boolean;
-        nextCursor: string | null;
-    }> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/attachments/',
-            query: {
-                'folderId': folderId,
-                'categoryId': categoryId,
-                'attachmentTypeId': attachmentTypeId,
-                'title': title,
-                'search': search,
-                'documentDateFrom': documentDateFrom,
-                'documentDateTo': documentDateTo,
-                'createdAtFrom': createdAtFrom,
-                'createdAtTo': createdAtTo,
-                'includeShared': includeShared,
-                'detailsFilter': detailsFilter,
-                'cursor': cursor,
-                'limit': limit,
-            },
-        });
-    }
-    /**
-     * Create attachment
-     * @param requestBody
-     * @returns any Default Response
-     * @throws ApiError
-     */
-    public static postAttachments(
-        requestBody: {
-            folderId: string;
-            categoryId?: string;
-            attachmentTypeId: string;
-            title: string;
-            description?: string;
-            documentDate: string;
-            details?: Record<string, any> | null;
-        },
-    ): CancelablePromise<{
-        id: string;
-        userId: string;
-        folderId: string;
-        categoryId?: string | null;
-        attachmentTypeId: string;
-        title: string;
-        description: string | null;
-        documentDate: string;
-        details?: any;
-        status: 'PENDING' | 'APPROVED' | 'REJECTED';
-        rejectionReason?: string | null;
-        images?: Array<{
-            id: string;
-            imageUrl: string;
-            createdAt: string;
-        }>;
-        attachmentType?: {
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-            expires: boolean;
-            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
         };
-        folder?: {
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-        };
-        category?: {
-            id: string;
-            name: string;
-            accountCode?: string | null;
-        };
-        isOwner?: boolean;
-        permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        createdAt: string;
-        updatedAt: string;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -208,45 +248,55 @@ export class AttachmentService {
     public static getAttachments1(
         id: string,
     ): CancelablePromise<{
-        id: string;
-        userId: string;
-        folderId: string;
-        categoryId?: string | null;
-        attachmentTypeId: string;
-        title: string;
-        description: string | null;
-        documentDate: string;
-        details?: any;
-        status: 'PENDING' | 'APPROVED' | 'REJECTED';
-        rejectionReason?: string | null;
-        images?: Array<{
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
-            imageUrl: string;
+            userId: string;
+            folderId: string;
+            categoryId?: string | null;
+            attachmentTypeId: string;
+            title: string;
+            description: string | null;
+            documentDate: string;
+            transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            details?: any;
+            status: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rejectionReason?: string | null;
+            images?: Array<{
+                id: string;
+                imageUrl: string;
+                createdAt: string;
+            }>;
+            attachmentType?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+                expires: boolean;
+                transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            };
+            folder?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+            };
+            category?: {
+                id: string;
+                name: string;
+                accountCode?: string | null;
+            };
+            tags?: Array<{
+                id: string;
+                name: string;
+                color: string;
+            }>;
+            isOwner?: boolean;
+            permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
             createdAt: string;
-        }>;
-        attachmentType?: {
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-            expires: boolean;
-            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            updatedAt: string;
         };
-        folder?: {
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-        };
-        category?: {
-            id: string;
-            name: string;
-            accountCode?: string | null;
-        };
-        isOwner?: boolean;
-        permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        createdAt: string;
-        updatedAt: string;
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -272,48 +322,59 @@ export class AttachmentService {
             title?: string;
             description?: string;
             documentDate?: string;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
             details?: Record<string, any> | null;
         },
     ): CancelablePromise<{
-        id: string;
-        userId: string;
-        folderId: string;
-        categoryId?: string | null;
-        attachmentTypeId: string;
-        title: string;
-        description: string | null;
-        documentDate: string;
-        details?: any;
-        status: 'PENDING' | 'APPROVED' | 'REJECTED';
-        rejectionReason?: string | null;
-        images?: Array<{
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
-            imageUrl: string;
+            userId: string;
+            folderId: string;
+            categoryId?: string | null;
+            attachmentTypeId: string;
+            title: string;
+            description: string | null;
+            documentDate: string;
+            transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            details?: any;
+            status: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rejectionReason?: string | null;
+            images?: Array<{
+                id: string;
+                imageUrl: string;
+                createdAt: string;
+            }>;
+            attachmentType?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+                expires: boolean;
+                transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            };
+            folder?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+            };
+            category?: {
+                id: string;
+                name: string;
+                accountCode?: string | null;
+            };
+            tags?: Array<{
+                id: string;
+                name: string;
+                color: string;
+            }>;
+            isOwner?: boolean;
+            permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
             createdAt: string;
-        }>;
-        attachmentType?: {
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-            expires: boolean;
-            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            updatedAt: string;
         };
-        folder?: {
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-        };
-        category?: {
-            id: string;
-            name: string;
-            accountCode?: string | null;
-        };
-        isOwner?: boolean;
-        permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        createdAt: string;
-        updatedAt: string;
     }> {
         return __request(OpenAPI, {
             method: 'PUT',
@@ -342,6 +403,86 @@ export class AttachmentService {
             url: '/attachments/{id}',
             path: {
                 'id': id,
+            },
+        });
+    }
+    /**
+     * Review an attachment (Approve or Reject)
+     * Allows folder owners (and users with FULL permission) to approve or reject attachments uploaded with PENDING status. Rejection requires a reason.
+     * @param id
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static patchAttachmentsStatus(
+        id: string,
+        requestBody: {
+            status: 'APPROVED' | 'REJECTED';
+            rejectionReason?: string;
+        },
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            userId: string;
+            folderId: string;
+            categoryId?: string | null;
+            attachmentTypeId: string;
+            title: string;
+            description: string | null;
+            documentDate: string;
+            transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            details?: any;
+            status: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rejectionReason?: string | null;
+            images?: Array<{
+                id: string;
+                imageUrl: string;
+                createdAt: string;
+            }>;
+            attachmentType?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+                expires: boolean;
+                transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            };
+            folder?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+            };
+            category?: {
+                id: string;
+                name: string;
+                accountCode?: string | null;
+            };
+            tags?: Array<{
+                id: string;
+                name: string;
+                color: string;
+            }>;
+            isOwner?: boolean;
+            permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            createdAt: string;
+            updatedAt: string;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/attachments/{id}/status',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
+                403: `Default Response`,
+                404: `Default Response`,
             },
         });
     }

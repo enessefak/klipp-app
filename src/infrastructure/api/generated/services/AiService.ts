@@ -25,7 +25,9 @@ export class AiService {
      * - 100 requests per day
      *
      * **Request:**
-     * - `file`: Base64 encoded dosya (görsel veya PDF) - zorunlu
+     * - `files` veya `file`: Base64 encoded dosya(lar) (görsel veya PDF).
+     * - Tek dosya için string, çok sayfalı/parçalı belgeler için string array gönderebilirsiniz.
+     * - `images` ve `image` alanları da desteklenir.
      * - `mimeType`: Dosya MIME tipi (opsiyonel, varsayılan: image/jpeg)
      * - Desteklenen: image/jpeg, image/png, image/gif, image/webp, application/pdf
      * - `attachmentTypeId`: Verilirse, AI o tipe özel alanları çıkarır
@@ -46,27 +48,32 @@ export class AiService {
      */
     public static postAiScanDocument(
         requestBody?: {
-            file?: string;
-            image?: string;
+            file?: (string | Array<string>);
+            files?: Array<string>;
+            image?: (string | Array<string>);
+            images?: Array<string>;
             /**
              * Dosya MIME tipi. Desteklenen formatlar: image/jpeg, image/png, image/gif, image/webp, application/pdf. Varsayılan: image/jpeg
              */
             mimeType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | 'application/pdf';
             attachmentTypeId?: string;
+            folderId?: string;
         },
     ): CancelablePromise<{
         success: boolean;
-        suggestedType: {
-            id: string;
-            name: string;
-            confidence: number;
-        } | null;
-        suggestedTitle: string | null;
-        suggestedDescription: string | null;
-        suggestedDate: string | null;
-        extractedDetails: Record<string, any>;
-        rawText: string | null;
-        error?: string;
+        message?: string;
+        data?: {
+            suggestedType: {
+                id: string;
+                name: string;
+                confidence: number;
+            } | null;
+            suggestedTitle: string | null;
+            suggestedDescription: string | null;
+            suggestedDate: string | null;
+            extractedDetails: Record<string, any>;
+            rawText: string | null;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',

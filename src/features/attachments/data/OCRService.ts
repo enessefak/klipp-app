@@ -5,6 +5,7 @@ export interface OCRResult {
     rawText: string;
     extractedData: {
         title?: string;
+        description?: string;
         amount?: number;
         currency?: string;
         date?: string;
@@ -14,49 +15,72 @@ export interface OCRResult {
     confidence: number;
 }
 
+export interface OCRScanFileInput {
+    uri: string;
+    mimeType: string;
+}
+
 export class OCRService {
     /**
      * Main entry point: scans image or PDF using AI Backend
      */
-    static async scanDocument(uri: string, mimeType: string): Promise<OCRResult> {
+    static async scanDocument(files: OCRScanFileInput[]): Promise<OCRResult> {
         try {
-            // Read file as base64 using new File API
-            const file = new File(uri);
-            const base64 = await file.base64();
+            if (!files || files.length === 0) {
+                throw new Error('No files provided for OCR scan');
+            }
 
-            // Normalize mimeType for API
+            // Read files as base64 in parallel
+            const base64Files = await Promise.all(files.map(async (input) => {
+                const file = new File(input.uri);
+                return file.base64();
+            }));
+
+            // Normalize mimeType for API using first file as reference
+            const primaryMime = files[0].mimeType?.toLowerCase() || 'image/jpeg';
             let apiMimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | 'application/pdf' = 'image/jpeg';
 
-            if (mimeType.toLowerCase().includes('pdf')) {
+            if (primaryMime.includes('pdf')) {
                 apiMimeType = 'application/pdf';
-            } else if (mimeType.toLowerCase().includes('png')) {
+            } else if (primaryMime.includes('png')) {
                 apiMimeType = 'image/png';
-            } else if (mimeType.toLowerCase().includes('gif')) {
+            } else if (primaryMime.includes('gif')) {
                 apiMimeType = 'image/gif';
-            } else if (mimeType.toLowerCase().includes('webp')) {
+            } else if (primaryMime.includes('webp')) {
                 apiMimeType = 'image/webp';
             }
             // default jpeg
 
-            const response = await AiService.postAiScanDocument({
-                file: base64,
+            const requestPayload: Record<string, any> = {
                 mimeType: apiMimeType,
-            });
+            };
+
+            if (base64Files.length === 1) {
+                requestPayload.file = base64Files[0];
+            } else {
+                requestPayload.files = base64Files;
+            }
+
+            const response = await AiService.postAiScanDocument(requestPayload);
 
             console.log("------------------- [AI SERVICE RESPONSE START] -------------------")
             console.log(JSON.stringify(response, null, 2))
             console.log("------------------- [AI SERVICE RESPONSE END] -------------------")
 
-            let extractedDetails = response.extractedDetails || {};
-            let suggestedType = response.suggestedType;
-            let suggestedTitle = response.suggestedTitle;
-            let suggestedDate = response.suggestedDate;
+            const data = (response as any).data || response;
+
+            let extractedDetails = data.extractedDetails || {};
+            let suggestedType = data.suggestedType;
+            let suggestedTitle = data.suggestedTitle;
+            let suggestedDescription = data.suggestedDescription;
+            let suggestedDate = data.suggestedDate;
+            let rawText = data.rawText;
 
             // Fallback: If AI returned raw JSON in rawText but backend failed to parse it
-            if ((!response.success || Object.keys(extractedDetails).length === 0) && response.rawText) {
+            if ((!data.success && Object.keys(extractedDetails).length === 0) && rawText) {
                 try {
                     // Try to clean markdown code blocks if present
-                    let cleanText = response.rawText.trim();
+                    let cleanText = rawText.trim();
                     if (cleanText.includes('```')) {
                         cleanText = cleanText.replace(/```json/g, '').replace(/```/g, '');
                     }
@@ -67,12 +91,13 @@ export class OCRService {
 
                         if (rawJson.documentType) {
                             suggestedType = {
-                                id: rawJson.documentType,
+                                id: rawJson.documentType, // Use key as ID for fallback
                                 name: rawJson.documentType,
                                 confidence: rawJson.confidence || 0.8
                             };
                         }
                         if (rawJson.title) suggestedTitle = rawJson.title;
+                        if (rawJson.description) suggestedDescription = rawJson.description;
                         if (rawJson.date) suggestedDate = rawJson.date; // Ensure AI returns ISO or valid format
 
                         // Map details
@@ -82,8 +107,7 @@ export class OCRService {
                         // otherwise use the original rawText if it wasn't just the JSON string
                         if (rawJson.rawText) {
                             // Update the main rawText variable to be returned
-                            // We can't modify response.rawText, so we'll handle return below
-                            response.rawText = rawJson.rawText;
+                            rawText = rawJson.rawText;
                         }
                     }
                 } catch (e) {
@@ -130,11 +154,12 @@ export class OCRService {
             });
 
             return {
-                rawText: response.rawText || '',
+                rawText: '', // User requested to stop using rawText
                 extractedData: {
                     title: suggestedTitle || undefined,
+                    description: suggestedDescription || undefined,
                     date: suggestedDate || undefined,
-                    type: suggestedType?.id,
+                    type: suggestedType?.name || suggestedType?.id, // Use name as primary key
                     amount: normalizedDetails.amount,
                     currency: normalizedDetails.currency,
                     details: normalizedDetails,

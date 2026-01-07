@@ -1,17 +1,18 @@
 import { useRouter, useSegments } from 'expo-router';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { AuthService } from '../data/AuthService';
+import { UpdateUserProfileInput, UserProfile } from '../domain/User';
 
 interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
-    user: { id: string; name: string; email: string } | null;
+    user: UserProfile | null;
     login: (email: string, password: string) => Promise<void>;
     register: (name: string, email: string, password: string) => Promise<void>;
     loginWithGoogle: (idToken: string) => Promise<void>;
     loginWithApple: (identityToken: string, user?: { email?: string; name?: { firstName?: string; lastName?: string } }) => Promise<void>;
     logout: () => Promise<void>;
-    updateProfile: (name: string) => Promise<void>;
+    updateProfile: (payload: UpdateUserProfileInput) => Promise<void>;
     deleteAccount: (password?: string) => Promise<void>;
 }
 
@@ -23,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const segments = useSegments();
     const router = useRouter();
 
-    const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
+    const [user, setUser] = useState<UserProfile | null>(null);
 
     useEffect(() => {
         checkAuth();
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isLoading) return;
 
         const inAuthGroup = segments[0] === '(auth)';
-        const inWebGroup = segments[0] === 'web';
+        const inWebGroup = (segments[0] as string) === 'web';
 
         if (!isAuthenticated && !inAuthGroup && !inWebGroup) {
             // Redirect to the sign-in page.
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const response = await AuthService.loginWithApple(identityToken, user);
 
             if (response.user) {
-                setUser(response.user);
+                setUser({ ...response.user, name: response.user.name || '' });
             } else {
                 const userData = await AuthService.getUser();
                 setUser(userData);
@@ -143,10 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false);
     };
 
-    const updateProfile = async (name: string) => {
+    const updateProfile = async (payload: UpdateUserProfileInput) => {
         setIsLoading(true);
         try {
-            await AuthService.updateProfile(name);
+            await AuthService.updateProfile(payload);
             const userData = await AuthService.getUser();
             setUser(userData);
         } catch (error) {

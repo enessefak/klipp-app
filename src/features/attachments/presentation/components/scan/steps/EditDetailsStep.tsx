@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Control, Controller, FieldErrors, UseFormSetValue } from 'react-hook-form';
-import { Platform, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { AttachmentTypeSelector } from '@/components/AttachmentTypeSelector';
 import { FolderSelector } from '@/components/FolderSelector';
@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
 import { CustomFieldsList } from '@/src/features/attachments/presentation/components/scan/CustomFieldsList';
 import { DynamicFieldsSection } from '@/src/features/attachments/presentation/components/scan/DynamicFieldsSection';
+import { ScanMethodSelector } from '@/src/features/attachments/presentation/components/scan/ScanMethodSelector';
 import { ScanPreview } from '@/src/features/attachments/presentation/components/scan/ScanPreview';
 import { ScanFormData } from '@/src/features/attachments/presentation/hooks/useScanForm';
 import { ScanResult } from '@/src/features/attachments/presentation/hooks/useScanLogic';
@@ -33,14 +34,18 @@ interface EditDetailsStepProps {
     watchedTypeId: string;
 
     // Actions
-    onSubmit: () => void;
+    onSubmit: (onError?: (errors: any) => void) => void;
     onAddCustomField: () => void;
     onRemoveCustomField: (index: number) => void;
     onUpdateCustomField: (index: number, field: 'key' | 'value', value: string) => void;
     onTypeSelect: (typeId: string) => void;
 
     // File
-    file: ScanResult;
+    files: ScanResult[];
+    canAddMoreFiles: boolean;
+    maxFiles: number;
+    onRemoveFile: (id: string) => void;
+    onSelectCaptureMethod: (method: 'scan' | 'camera' | 'gallery' | 'file') => void;
 
     // Others
     folders: any[];
@@ -68,7 +73,11 @@ export const EditDetailsStep = ({
     onRemoveCustomField,
     onUpdateCustomField,
     onTypeSelect,
-    file,
+    files,
+    canAddMoreFiles,
+    maxFiles,
+    onRemoveFile,
+    onSelectCaptureMethod,
     folders,
     onRetake,
     onClose,
@@ -76,9 +85,33 @@ export const EditDetailsStep = ({
     styles,
 }: EditDetailsStepProps) => {
     const [showDetails, setShowDetails] = useState(true);
+    const [showAddOptions, setShowAddOptions] = useState(false);
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    useEffect(() => {
+        if (!canAddMoreFiles) {
+            setShowAddOptions(false);
+        }
+    }, [canAddMoreFiles]);
+
+    const handleValidationError = (errors: any) => {
+        let scrollY = 0;
+
+        // Scroll to first error field (approximate positions)
+        if (errors.folderId) scrollY = 100;
+        else if (errors.attachmentTypeId) scrollY = 180;
+        else if (errors.title) scrollY = 280;
+        else if (errors.documentDate) scrollY = 380;
+        else if (errors.details) scrollY = 480;
+
+        scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+
+        Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.validation.check_fields'));
+    };
 
     return (
         <FormContainer
+            ref={scrollViewRef}
             contentStyle={[styles.scrollContent, { paddingTop: insets.top + 10 }]}
             keyboardOffset={Platform.OS === 'ios' ? 0 : 20}
         >
@@ -95,12 +128,35 @@ export const EditDetailsStep = ({
 
             {/* File Preview */}
             <ScanPreview
-                fileUri={file.fileType === 'image' ? file.fileUri : null}
-                fileType={file.fileType}
-                fileName={file.fileName}
-                mimeType={file.mimeType}
-                onRetake={onRetake}
+                files={files}
+                maxFiles={maxFiles}
+                canAddMore={canAddMoreFiles}
+                onAddPress={() => {
+                    if (!canAddMoreFiles) return;
+                    setShowAddOptions(prev => !prev);
+                }}
+                onRemoveFile={(id) => {
+                    onRemoveFile(id);
+                    if (files.length <= 1) {
+                        setShowAddOptions(false);
+                    }
+                }}
+                onResetAll={() => {
+                    onRetake();
+                    setShowAddOptions(false);
+                }}
             />
+
+            {showAddOptions && canAddMoreFiles && (
+                <View style={styles.addMethodCard}>
+                    <ScanMethodSelector
+                        onSelectMethod={(method) => {
+                            setShowAddOptions(false);
+                            onSelectCaptureMethod(method);
+                        }}
+                    />
+                </View>
+            )}
 
             {/* Folder Selection */}
             <Controller
@@ -202,6 +258,7 @@ export const EditDetailsStep = ({
                                 watchedDetails={watchedDetails}
                                 watchedDocumentDate={watchedDocumentDate}
                                 setValue={setValue}
+                                fieldStyle={attachmentTypes?.find(t => t.id === watchedTypeId)?.fieldStyle}
                             />
 
                             {/* Custom Key-Value Fields */}
@@ -254,7 +311,7 @@ export const EditDetailsStep = ({
 
             <Button
                 title={i18n.t('receipts.scan.saveButton')}
-                onPress={onSubmit}
+                onPress={() => onSubmit(handleValidationError)}
                 loading={isSubmitting}
                 disabled={isSubmitting}
                 size="large"

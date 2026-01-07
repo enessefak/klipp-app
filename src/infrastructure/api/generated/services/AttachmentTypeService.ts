@@ -11,27 +11,54 @@ export class AttachmentTypeService {
      * @returns any Default Response
      * @throws ApiError
      */
-    public static getAttachmentTypes(): CancelablePromise<Array<{
-        id: string;
-        name: string;
-        icon: string;
-        color: string;
-        expires: boolean;
-        transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-        fieldConfig?: Array<{
-            key: string;
+    public static getAttachmentTypes(): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
+            id: string;
+            /**
+             * Unique identifier key (e.g. invoice, receipt)
+             */
+            name: string;
+            /**
+             * Translated display name (e.g. Fatura, Fiş)
+             */
             label: string;
-            type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration';
-            required?: boolean;
-            placeholder?: string;
-            unit?: string;
-            options?: Array<string>;
-            defaultValue?: any;
-            filterable?: boolean;
-            filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
-        }> | null;
-        defaultDetails?: Record<string, any> | null;
-    }>> {
+            icon: string;
+            color: string;
+            expires: boolean;
+            transactionType: {
+                name: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                /**
+                 * Translated transaction type (e.g. Gider, Gelir)
+                 */
+                label: string;
+            };
+            fieldConfig?: Array<{
+                key: string;
+                label: string;
+                type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration';
+                required?: boolean;
+                placeholder?: string;
+                unit?: string;
+                options?: Array<string>;
+                defaultValue?: any;
+                filterable?: boolean;
+                filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+            }> | null;
+            defaultDetails?: Record<string, any> | null;
+            fieldStyle?: {
+                mobile?: {
+                    gridTemplateAreas: Array<string>;
+                    gap?: string;
+                };
+                desktop?: {
+                    gridTemplateAreas: Array<string>;
+                    gap?: string;
+                };
+            } | null;
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/attachment-types/',

@@ -2,6 +2,31 @@
 import { FolderService } from '@/src/infrastructure/api/generated';
 import { CreateFolderDTO, Folder } from '../domain/Folder';
 
+const mapFolder = (folder: any, fallbackParentId?: string | null): Folder => ({
+    id: folder.id,
+    name: folder.name,
+    icon: folder.icon,
+    color: folder.color,
+    parentId: folder.parentId ?? fallbackParentId ?? undefined,
+    createdAt: folder.createdAt,
+    permission: folder.permission ?? 'FULL',
+});
+
+const flattenFolders = (items: any[], parentId?: string | null): Folder[] => {
+    if (!Array.isArray(items)) return [];
+
+    return items.reduce<Folder[]>((acc, item) => {
+        const mapped = mapFolder(item, parentId);
+        acc.push(mapped);
+
+        if (Array.isArray(item.children) && item.children.length > 0) {
+            acc.push(...flattenFolders(item.children, item.id));
+        }
+
+        return acc;
+    }, []);
+};
+
 export const FolderRepository = {
     getFolders: async (params?: {
         parentId?: string | null;
@@ -14,14 +39,14 @@ export const FolderRepository = {
             // Fetch folders from API with pagination and filtering
             const response = await FolderService.getFolders(
                 params?.flat ? 'true' : 'false',
-                undefined, // cursor
-                undefined, // limit
-                undefined, // search
+                params?.cursor,
+                params?.limit,
+                params?.search,
                 params?.parentId || undefined
             );
 
             // Handle potential paginated response structure where response might be { items: [...] } instead of directly [...]
-            const foldersData = Array.isArray(response) ? response : (response as any).items || (response as any).data || [];
+            const foldersData = (response as any).data?.items || (response as any).data || (Array.isArray(response) ? response : []);
 
             if (!Array.isArray(foldersData)) {
                 console.error('Unexpected response format:', response);
@@ -29,17 +54,11 @@ export const FolderRepository = {
             }
 
             // Map response to domain model
-            const mappedFolders: Folder[] = foldersData.map((folder: any) => ({
-                id: folder.id,
-                name: folder.name,
-                icon: folder.icon,
-                color: folder.color,
-                parentId: folder.parentId || undefined,
-                createdAt: folder.createdAt,
-                permission: 'FULL',
-            }));
+            if (params?.flat) {
+                return foldersData.map((folder: any) => mapFolder(folder));
+            }
 
-            return mappedFolders;
+            return flattenFolders(foldersData);
         } catch (error) {
             console.error('Failed to fetch folders:', error);
             throw error;
@@ -55,13 +74,16 @@ export const FolderRepository = {
                 parentId: dto.parentId || null,
             });
 
+            // Unwrap data if necessary (though postFolders usually returns the object directly in generated code, checking if it's wrapped)
+            const folder = (response as any).data || response;
+
             return {
-                id: response.id,
-                name: response.name,
-                icon: response.icon,
-                color: response.color,
-                parentId: response.parentId || undefined,
-                createdAt: response.createdAt,
+                id: folder.id,
+                name: folder.name,
+                icon: folder.icon,
+                color: folder.color,
+                parentId: folder.parentId || undefined,
+                createdAt: folder.createdAt,
             };
         } catch (error) {
             console.error('Failed to create folder:', error);
@@ -72,16 +94,17 @@ export const FolderRepository = {
     getFolderById: async (id: string): Promise<Folder> => {
         try {
             const response = await FolderService.getFolders1(id);
+            const folder = (response as any).data || response;
 
             return {
-                id: response.id,
-                name: response.name,
-                icon: response.icon,
-                color: response.color,
-                parentId: response.parentId || undefined,
-                createdAt: response.createdAt,
+                id: folder.id,
+                name: folder.name,
+                icon: folder.icon,
+                color: folder.color,
+                parentId: folder.parentId || undefined,
+                createdAt: folder.createdAt,
                 owner: {
-                    id: response.userId,
+                    id: folder.userId,
                     name: '', // Not returned by API for getFolderById
                     email: ''
                 }

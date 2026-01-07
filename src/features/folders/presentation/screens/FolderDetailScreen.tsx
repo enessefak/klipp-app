@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { FileDownloadService } from '@/src/features/attachments/application/FileDownloadService';
+import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
 import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
@@ -26,6 +27,7 @@ import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
+import { BreadcrumbNavigation, buildBreadcrumbPath } from '../components/BreadcrumbNavigation';
 import { CreateFolderModal } from '../components/CreateFolderModal';
 import { ExportFolderModal } from '../components/ExportFolderModal';
 import { FolderEvents } from '../FolderEvents';
@@ -50,8 +52,9 @@ export function FolderDetailScreen() {
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [showShareDetails, setShowShareDetails] = useState(false);
     const [selectedShare, setSelectedShare] = useState<FolderShare | null>(null);
+    const [allFolders, setAllFolders] = useState<Folder[]>([]);
 
-    const handleUpdateShare = async (shareId: string, permission: 'VIEW' | 'EDIT') => {
+    const handleUpdateShare = async (shareId: string, permission: FolderShare['permission']) => {
         await SharingService.updateSharePermission(shareId, permission);
         loadFolderShares();
     };
@@ -70,7 +73,20 @@ export function FolderDetailScreen() {
                 loadFolderShares();
             }
         }
-    }, [folderId, isSharedFolder]);
+    }, [folderId, isSharedFolder, loadFolderShares]);
+
+    // Load all folders for breadcrumb navigation
+    useEffect(() => {
+        const loadAllFolders = async () => {
+            try {
+                const data = await FolderRepository.getFolders({ flat: true });
+                setAllFolders(data);
+            } catch (err) {
+                console.error('Failed to load folders for breadcrumb:', err);
+            }
+        };
+        loadAllFolders();
+    }, []);
 
     const loadFolderInfo = async () => {
         try {
@@ -88,7 +104,7 @@ export function FolderDetailScreen() {
         }
     };
 
-    const loadFolderShares = async () => {
+    const loadFolderShares = useCallback(async () => {
         try {
             setSharingLoading(true);
             const shares = await SharingService.getFolderShares(folderId!);
@@ -103,7 +119,16 @@ export function FolderDetailScreen() {
         } finally {
             setSharingLoading(false);
         }
-    };
+    }, [folderId]);
+
+    useFocusEffect(
+        useCallback(() => {
+            refresh();
+            if (!isSharedFolder) {
+                loadFolderShares();
+            }
+        }, [folderId, isSharedFolder, loadFolderShares])
+    );
 
     const handleCreate = async (dto: any) => {
         await createFolder(dto);
@@ -115,7 +140,7 @@ export function FolderDetailScreen() {
             const baseUrl = OpenAPI.BASE;
             const url = `${baseUrl}/folders/${folderId}/export?format=excel${templateId ? `&templateId=${templateId}` : ''}`;
             const filename = `${currentFolder?.name || 'folder'}_export.xlsx`;
-            
+
             const success = await FileDownloadService.downloadAndShare(url, filename);
             if (!success) {
                 Alert.alert(i18n.t('common.error'), 'Dışa aktarma başarısız oldu.');
@@ -164,12 +189,61 @@ export function FolderDetailScreen() {
         router.push(`/attachment/${attachment.id}`);
     };
 
+    const handleBreadcrumbNavigate = (id: string | null) => {
+        if (id === null) {
+            router.push('/folders');
+        } else {
+            router.push(`/folders/${id}`);
+        }
+    };
+
+    const breadcrumbItems = useMemo(() => {
+        return buildBreadcrumbPath(currentFolder, allFolders);
+    }, [currentFolder, allFolders]);
+
     const handleRefresh = useCallback(() => {
         refresh();
         if (!isSharedFolder) {
             loadFolderShares();
         }
     }, [refresh, isSharedFolder]);
+
+    const handleMoveAttachment = (attachment: Attachment) => {
+        // Navigate to folder picker and handle move
+        router.push({
+            pathname: '/picker/folder',
+            params: {
+                moveAttachmentId: attachment.id,
+                selectedId: folderId || undefined,
+            },
+        });
+    };
+
+    const handleEditAttachment = (attachment: Attachment) => {
+        router.push(`/attachment/${attachment.id}/edit`);
+    };
+
+    const handleDeleteAttachment = (attachment: Attachment) => {
+        Alert.alert(
+            i18n.t('attachments.actions.delete'),
+            `"${attachment.title}" belgesini silmek istediğinize emin misiniz?`,
+            [
+                { text: i18n.t('common.actions.cancel'), style: 'cancel' },
+                {
+                    text: i18n.t('attachments.actions.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await AttachmentService.deleteAttachment(attachment.id);
+                            refresh();
+                        } catch (err) {
+                            Alert.alert(i18n.t('common.error'), 'Belge silinemedi');
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     const acceptedShares = folderShares.filter(s => s.status === 'accepted');
     const pendingShares = folderShares.filter(s => s.status === 'pending');
@@ -218,6 +292,12 @@ export function FolderDetailScreen() {
             fontSize: 20,
             color: colors.text,
             marginBottom: 4,
+            lineHeight: 24,
+        },
+        folderNameHint: {
+            fontSize: 13,
+            color: colors.textLight,
+            marginBottom: 6,
         },
         statsRow: {
             flexDirection: 'row',
@@ -463,14 +543,15 @@ export function FolderDetailScreen() {
     const renderItem = ({ item }: { item: { type: 'folder' | 'attachment', data: any } }) => {
         if (item.type === 'folder') {
             const folder = item.data as Folder;
+            const folderColor = folder.color || '#3B82F6'; // Default blue color
             return (
                 <TouchableOpacity
                     style={styles.folderItem}
                     onPress={() => handlePressFolder(folder)}
                     activeOpacity={0.7}
                 >
-                    <View style={[styles.iconContainer, { backgroundColor: folder.color + '20' }]}>
-                        <IconSymbol name={folder.icon as any} size={28} color={folder.color} />
+                    <View style={[styles.iconContainer, { backgroundColor: folderColor + '20' }]}>
+                        <IconSymbol name={(folder.icon || 'folder.fill') as any} size={28} color={folderColor} />
                     </View>
                     <View style={styles.folderItemInfo}>
                         <ThemedText type="defaultSemiBold" style={styles.folderItemName}>
@@ -490,14 +571,23 @@ export function FolderDetailScreen() {
                     <AttachmentCard
                         attachment={attachment}
                         onPress={() => handlePressAttachment(attachment)}
+                        onMoveToFolder={handleMoveAttachment}
+                        onEdit={handleEditAttachment}
+                        onDelete={handleDeleteAttachment}
                     />
                 </View>
             );
         }
     };
 
-    const FolderHeader = () => (
-        <View style={styles.headerSection}>
+    const FolderHeader = () => {
+        const rawName = currentFolder?.name || i18n.t('folders.default_name');
+        const MAX_FOLDER_NAME = 28;
+        const isLongName = rawName.length > MAX_FOLDER_NAME;
+        const displayName = isLongName ? `${rawName.slice(0, MAX_FOLDER_NAME - 1).trim()}…` : rawName;
+
+        return (
+            <View style={styles.headerSection}>
             {/* Folder Info */}
             <View style={styles.folderInfoCard}>
                 <View style={[
@@ -511,9 +601,23 @@ export function FolderDetailScreen() {
                     />
                 </View>
                 <View style={styles.folderDetails}>
-                    <ThemedText type="title" style={styles.folderName}>
-                        {currentFolder?.name || i18n.t('folders.default_name')}
+                    <ThemedText
+                        type="title"
+                        style={styles.folderName}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                    >
+                        {displayName}
                     </ThemedText>
+                    {isLongName && (
+                        <ThemedText
+                            style={styles.folderNameHint}
+                            numberOfLines={1}
+                            ellipsizeMode="middle"
+                        >
+                            {rawName}
+                        </ThemedText>
+                    )}
                     <View style={styles.statsRow}>
                         <View style={styles.stat}>
                             <IconSymbol name="folder.fill" size={14} color={colors.gray} />
@@ -678,8 +782,9 @@ export function FolderDetailScreen() {
                     </View>
                 )
             }
-        </View >
-    );
+            </View>
+        );
+    };
 
     const EmptyState = () => (
         <View style={styles.emptyContainer}>
@@ -695,6 +800,12 @@ export function FolderDetailScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={[]}>
+            {/* Breadcrumb Navigation */}
+            <BreadcrumbNavigation
+                items={breadcrumbItems}
+                onNavigate={handleBreadcrumbNavigate}
+            />
+
             {loading && !currentFolder ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color={colors.primary} />

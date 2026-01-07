@@ -40,8 +40,9 @@ export default function AttachmentTypePickerScreen() {
 
     const loadTypes = async () => {
         try {
-            const data = await AttachmentTypeService.getAttachmentTypes();
-            setTypes(data);
+            const response = await AttachmentTypeService.getAttachmentTypes();
+            const data = (response as any).data || response;
+            setTypes(Array.isArray(data) ? data : (data as any).items || []);
         } catch (err) {
             console.error('Failed to load attachment types:', err);
         } finally {

@@ -18,16 +18,20 @@ export class CollaborationService {
             text: string;
         },
     ): CancelablePromise<{
-        id: string;
-        text: string;
-        userId: string;
-        attachmentId: string;
-        createdAt: string;
-        updatedAt: string;
-        user?: {
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
-            name: string;
-            email?: string;
+            text: string;
+            userId: string;
+            attachmentId: string;
+            createdAt: string;
+            updatedAt: string;
+            user?: {
+                id: string;
+                name: string;
+                email?: string;
+            };
         };
     }> {
         return __request(OpenAPI, {
@@ -45,19 +49,23 @@ export class CollaborationService {
      */
     public static getCollaborationComments(
         attachmentId: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        text: string;
-        userId: string;
-        attachmentId: string;
-        createdAt: string;
-        updatedAt: string;
-        user?: {
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
             id: string;
-            name: string;
-            email?: string;
-        };
-    }>> {
+            text: string;
+            userId: string;
+            attachmentId: string;
+            createdAt: string;
+            updatedAt: string;
+            user?: {
+                id: string;
+                name: string;
+                email?: string;
+            };
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/collaboration/comments/{attachmentId}',
@@ -97,12 +105,16 @@ export class CollaborationService {
             color?: string;
         },
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        color: string;
-        userId: string;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            color: string;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -116,14 +128,18 @@ export class CollaborationService {
      * @returns any Default Response
      * @throws ApiError
      */
-    public static getCollaborationTags(): CancelablePromise<Array<{
-        id: string;
-        name: string;
-        color: string;
-        userId: string;
-        createdAt: string;
-        updatedAt: string;
-    }>> {
+    public static getCollaborationTags(): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
+            id: string;
+            name: string;
+            color: string;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/collaboration/tags',
@@ -179,19 +195,7 @@ export class CollaborationService {
      */
     public static getCollaborationAuditLogs(
         attachmentId: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        action: 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW' | 'DOWNLOAD' | 'STATUS_CHANGE';
-        details: string | null;
-        userId: string;
-        attachmentId: string | null;
-        changes?: any;
-        createdAt: string;
-        user?: {
-            id: string;
-            name: string;
-        };
-    }>> {
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/collaboration/audit-logs/{attachmentId}',

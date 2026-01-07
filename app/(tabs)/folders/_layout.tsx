@@ -6,7 +6,7 @@ export default function FoldersLayout() {
     return (
         <Stack>
             <Stack.Screen name="index" options={{ headerShown: false, title: i18n.t('folders.title') }} />
-            <Stack.Screen name="[id]" options={{ title: '', headerBackTitle: i18n.t('folders.title') }} />
+            <Stack.Screen name="[id]" options={{ headerShown: false }} />
         </Stack>
     );
 }

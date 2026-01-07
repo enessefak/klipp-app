@@ -10,7 +10,7 @@ export class AttachmentService {
      */
     static async createAttachment(data: CreateAttachmentDTO): Promise<Attachment> {
         const response = await GeneratedAttachmentService.postAttachments(data);
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -21,27 +21,27 @@ export class AttachmentService {
         filters?: AttachmentFilters,
         pagination?: PaginationParams
     ): Promise<PaginatedAttachments> {
-        try {
-            const response = await GeneratedAttachmentService.getAttachments(
-                filters?.folderId,
-                filters?.categoryId,
-                filters?.attachmentTypeId,
-                filters?.title,
-                filters?.search,
-                filters?.documentDateFrom,
-                filters?.documentDateTo,
-                filters?.createdAtFrom,
-                filters?.createdAtTo,
-                filters?.includeShared ? 'true' : undefined,
-                filters?.detailsFilter,
-                pagination?.cursor,
-                pagination?.limit
-            );
-            return response;
-        } catch (error: any) {
-            console.error('AttachmentService.getAttachments error:', error);
-            throw error;
-        }
+        const response = await GeneratedAttachmentService.getAttachments(
+            filters?.folderId,
+            filters?.categoryId,
+            filters?.attachmentTypeId,
+            undefined, // tagId
+            filters?.transactionType as 'INCOME' | 'EXPENSE' | 'NEUTRAL' | undefined,
+            filters?.title,
+            undefined, // status
+            filters?.search,
+            filters?.documentDateFrom,
+            filters?.documentDateTo,
+            filters?.createdAtFrom,
+            filters?.createdAtTo,
+            filters?.includeShared ? 'true' : undefined,
+            filters?.detailsFilter,
+            pagination?.cursor,
+            undefined, // page
+            undefined, // skip
+            pagination?.limit
+        );
+        return (response as any).data || response;
     }
 
     /**
@@ -49,10 +49,11 @@ export class AttachmentService {
      * Backend auto-generates key with user prefix
      */
     static async getPresignedUrl(filename: string, contentType: string) {
-        return await GeneratedFilesService.postFilesPresignedUrl({
+        const response = await GeneratedFilesService.postFilesPresignedUrl({
             filename,
             contentType,
         });
+        return (response as any).data || response;
     }
 
     /**
@@ -80,10 +81,11 @@ export class AttachmentService {
      * Backend validates ownership and key prefix
      */
     static async saveFileToAttachment(attachmentId: string, key: string) {
-        return await GeneratedFilesService.postFiles({
+        const response = await GeneratedFilesService.postFiles({
             attachmentId,
             key,
         });
+        return (response as any).data || response;
     }
 
     /**
@@ -106,42 +108,58 @@ export class AttachmentService {
     }
 
     /**
-     * Composite method: Full Flow - Create attachment and upload file
+     * Composite method: Full Flow - Create attachment and upload multiple files sequentially
      * Supports images, PDFs, Word documents, Excel files
+     */
+    static async createAttachmentWithFiles(
+        data: CreateAttachmentDTO,
+        files: { fileUri: string; mimeType?: string }[]
+    ): Promise<Attachment> {
+        if (!files || files.length === 0) {
+            throw new Error('No files provided for attachment');
+        }
+
+        // 1. Create Attachment Metadata
+        const attachment = await this.createAttachment(data);
+
+        try {
+            for (const [index, file] of files.entries()) {
+                const contentType = file.mimeType || 'image/jpeg';
+                const extension = this.getExtensionFromContentType(contentType);
+                const filename = `${attachment.id}_${Date.now()}_${index}.${extension}`;
+
+                // 2. Get Presigned URL (backend auto-prefixes with user ID)
+                const { uploadUrl, key } = await this.getPresignedUrl(filename, contentType);
+
+                console.log('Got presigned URL, key:', key);
+
+                // 3. Upload File to R2
+                await this.uploadImageToR2(uploadUrl, file.fileUri, contentType);
+
+                console.log('Upload complete');
+
+                // 4. Save file record (backend validates ownership and returns viewUrl)
+                const savedFile = await this.saveFileToAttachment(attachment.id, key);
+
+                console.log('File saved, viewUrl:', savedFile.viewUrl);
+            }
+
+            return attachment;
+        } catch (error) {
+            console.error('Error uploading file(s) for attachment:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Composite helper for single file compatibility
      */
     static async createAttachmentWithFile(
         data: CreateAttachmentDTO,
         fileUri: string,
         contentType: string = 'image/jpeg'
     ): Promise<Attachment> {
-        // 1. Create Attachment Metadata
-        const attachment = await this.createAttachment(data);
-
-        try {
-            // Generate unique filename with proper extension
-            const extension = this.getExtensionFromContentType(contentType);
-            const filename = `${attachment.id}_${Date.now()}.${extension}`;
-
-            // 2. Get Presigned URL (backend auto-prefixes with user ID)
-            const { uploadUrl, key } = await this.getPresignedUrl(filename, contentType);
-
-            console.log('Got presigned URL, key:', key);
-
-            // 3. Upload File to R2
-            await this.uploadImageToR2(uploadUrl, fileUri, contentType);
-
-            console.log('Upload complete');
-
-            // 4. Save file record (backend validates ownership and returns viewUrl)
-            const savedFile = await this.saveFileToAttachment(attachment.id, key);
-
-            console.log('File saved, viewUrl:', savedFile.viewUrl);
-
-            return attachment;
-        } catch (error) {
-            console.error('Error uploading file for attachment:', error);
-            throw error;
-        }
+        return this.createAttachmentWithFiles(data, [{ fileUri, mimeType: contentType }]);
     }
 
     /**
@@ -160,7 +178,7 @@ export class AttachmentService {
      */
     static async getAttachmentById(id: string): Promise<Attachment> {
         const response = await GeneratedAttachmentService.getAttachments1(id);
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -169,7 +187,7 @@ export class AttachmentService {
      */
     static async getAttachmentFiles(attachmentId: string): Promise<{ id: string; viewUrl: string; filename: string; contentType?: string; createdAt: string }[]> {
         const response = await GeneratedFilesService.getFilesAttachment(attachmentId);
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -177,7 +195,7 @@ export class AttachmentService {
      */
     static async updateAttachment(id: string, data: Partial<CreateAttachmentDTO>): Promise<Attachment> {
         const response = await GeneratedAttachmentService.putAttachments(id, data);
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -185,5 +203,12 @@ export class AttachmentService {
      */
     static async deleteAttachment(id: string): Promise<void> {
         await GeneratedAttachmentService.deleteAttachments(id);
+    }
+
+    /**
+     * Request approval for an attachment
+     */
+    static async postAttachmentsRequestApproval(id: string, data: { reviewerEmail: string }): Promise<void> {
+        await GeneratedAttachmentService.postAttachmentsRequestApproval(id, data);
     }
 }

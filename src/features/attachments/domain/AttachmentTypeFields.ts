@@ -15,3 +15,12 @@ export interface FieldConfig {
 }
 
 
+export interface GridConfig {
+    gridTemplateAreas: string[];
+    gap?: string;
+}
+
+export interface FieldStyle {
+    mobile?: GridConfig;
+    desktop?: GridConfig;
+}

@@ -96,7 +96,8 @@ export function Select<T = string>({
             justifyContent: 'space-between',
             backgroundColor: colors.inputBackground,
             borderRadius: 12,
-            padding: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
             borderWidth: 1,
             borderColor: colors.border,
         },
@@ -226,7 +227,7 @@ export function Select<T = string>({
     }), [colors]);
 
     return (
-        <View style={[styles.container, compact && styles.compactContainer]}>
+        <View style={[styles.container, (compact || hideLabel) && styles.compactContainer]}>
             {!hideLabel && <ThemedText style={styles.label}>{label}</ThemedText>}
 
             <TouchableOpacity

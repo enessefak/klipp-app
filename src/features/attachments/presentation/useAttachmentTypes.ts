@@ -16,8 +16,12 @@ export function useAttachmentTypes() {
             setLoading(true);
             setError(null);
             const response: any = await AttachmentTypeService.getAttachmentTypes();
-            // Handle both array and paginated response
-            const types = Array.isArray(response) ? response : (response.items || []);
+
+            // Handle standard API response format { data: [...] } as well as direct array or items
+            const types = Array.isArray(response)
+                ? response
+                : (response.data || response.items || []);
+
             setAttachmentTypes(types);
         } catch (err) {
             console.error('Failed to load attachment types:', err);

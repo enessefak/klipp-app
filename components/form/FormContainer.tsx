@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, forwardRef, useMemo } from 'react';
 import {
     Keyboard,
     KeyboardAvoidingView,
@@ -32,14 +32,14 @@ interface FormContainerProps {
  * FormContainer - Wraps form content with keyboard avoiding behavior
  * Provides consistent keyboard handling across all forms
  */
-export function FormContainer({
+export const FormContainer = forwardRef<ScrollView, FormContainerProps>(({
     children,
     safeArea = true,
     scrollable = true,
     contentStyle,
     keyboardOffset = 0,
     backgroundColor,
-}: FormContainerProps) {
+}, ref) => {
     const { colors } = useSettings();
     const containerBackgroundColor = backgroundColor || colors.background;
 
@@ -72,6 +72,7 @@ export function FormContainer({
         >
             {scrollable ? (
                 <ScrollView
+                    ref={ref}
                     contentContainerStyle={[styles.scrollContent, contentStyle]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
@@ -97,4 +98,6 @@ export function FormContainer({
     }
 
     return <View style={[styles.container, { backgroundColor: containerBackgroundColor }]}>{content}</View>;
-}
+});
+
+FormContainer.displayName = 'FormContainer';

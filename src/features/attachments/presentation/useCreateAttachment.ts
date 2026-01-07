@@ -8,14 +8,13 @@ export function useCreateAttachment() {
 
     const createAttachment = async (
         data: CreateAttachmentDTO,
-        fileUri: string,
-        mimeType: string = 'image/jpeg'
+        files: { fileUri: string; mimeType?: string }[]
     ): Promise<Attachment | null> => {
         try {
             setLoading(true);
             setError(null);
 
-            const attachment = await AttachmentRepository.createAttachment(data, fileUri, mimeType);
+            const attachment = await AttachmentRepository.createAttachment(data, files);
 
             return attachment;
         } catch (err) {

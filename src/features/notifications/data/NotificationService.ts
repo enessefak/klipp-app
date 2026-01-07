@@ -15,7 +15,7 @@ export class NotificationService {
             limit?.toString(),
             cursor
         );
-        return response;
+        return (response as any).data || response;
     }
 
     /**
@@ -23,7 +23,7 @@ export class NotificationService {
      */
     static async getUnreadCount(): Promise<number> {
         const response = await NotificationsService.getNotificationsUnreadCount();
-        return response.count;
+        return (response as any).data?.count ?? (response as any).count ?? 0;
     }
 
     /**

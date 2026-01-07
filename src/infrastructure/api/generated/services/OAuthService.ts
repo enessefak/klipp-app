@@ -18,13 +18,17 @@ export class OAuthService {
             idToken: string;
         },
     ): CancelablePromise<{
-        token: string;
-        user: {
-            id: string;
-            email: string;
-            name: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            token: string;
+            user: {
+                id: string;
+                email: string;
+                name: string;
+            };
+            isNewUser: boolean;
         };
-        isNewUser: boolean;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -56,13 +60,17 @@ export class OAuthService {
             };
         },
     ): CancelablePromise<{
-        token: string;
-        user: {
-            id: string;
-            email: string;
-            name: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            token: string;
+            user: {
+                id: string;
+                email: string;
+                name: string;
+            };
+            isNewUser: boolean;
         };
-        isNewUser: boolean;
     }> {
         return __request(OpenAPI, {
             method: 'POST',

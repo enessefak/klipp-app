@@ -20,13 +20,23 @@ export class UserService {
             name: string;
         },
     ): CancelablePromise<{
-        token: string;
-        user: {
-            id: string;
-            email: string;
-            name: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            token: string;
+            user: {
+                id: string;
+                email: string;
+                name: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                city?: string | null;
+                subdivision?: string | null;
+                address?: string | null;
+                phone?: string | null;
+            };
+            isNewUser: boolean;
         };
-        isNewUser: boolean;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -51,7 +61,30 @@ export class UserService {
             password: string;
         },
     ): CancelablePromise<{
-        token: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            token: string;
+            user?: {
+                id: string;
+                email: string;
+                name: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                city?: string | null;
+                subdivision?: string | null;
+                address?: string | null;
+                phone?: string | null;
+            };
+            suggestMobileApp?: boolean;
+            subscription?: {
+                isValid: boolean;
+                planId: string | null;
+                status: string;
+                provider: string | null;
+                endDate: string | null;
+            };
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -76,7 +109,9 @@ export class UserService {
             email: string;
         },
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: null;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -98,7 +133,9 @@ export class UserService {
             newPassword: string;
         },
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: null;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -116,11 +153,30 @@ export class UserService {
      * @throws ApiError
      */
     public static getUsersMe(): CancelablePromise<{
-        id: string;
-        email: string;
-        name: string;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            email: string;
+            name: string;
+            taxNumber?: string | null;
+            taxOffice?: string | null;
+            city?: string | null;
+            subdivision?: string | null;
+            address?: string | null;
+            phone?: string | null;
+            linkedProviders?: Array<string>;
+            hasPassword?: boolean;
+            subscription?: {
+                isValid: boolean;
+                planId: string | null;
+                status: string;
+                provider: string | null;
+                endDate: string | null;
+            };
+            createdAt: string;
+            updatedAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -135,11 +191,19 @@ export class UserService {
      * @throws ApiError
      */
     public static patchUsersMe(
-        requestBody: {
-            name: string;
+        requestBody?: {
+            name?: string;
+            taxNumber?: string;
+            taxOffice?: string;
+            address?: string;
+            city?: string;
+            subdivision?: string;
+            phone?: string;
         },
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: null;
     }> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -164,7 +228,9 @@ export class UserService {
             confirmation: 'DELETE_MY_ACCOUNT';
         },
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: null;
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -186,11 +252,15 @@ export class UserService {
      */
     public static getUsersSearch(
         email: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        name: string;
-        email: string;
-    }>> {
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
+            id: string;
+            name: string;
+            email: string;
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/users/search',
@@ -212,11 +282,30 @@ export class UserService {
     public static getUsers(
         userId: string,
     ): CancelablePromise<{
-        id: string;
-        email: string;
-        name: string;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            email: string;
+            name: string;
+            taxNumber?: string | null;
+            taxOffice?: string | null;
+            city?: string | null;
+            subdivision?: string | null;
+            address?: string | null;
+            phone?: string | null;
+            linkedProviders?: Array<string>;
+            hasPassword?: boolean;
+            subscription?: {
+                isValid: boolean;
+                planId: string | null;
+                status: string;
+                provider: string | null;
+                endDate: string | null;
+            };
+            createdAt: string;
+            updatedAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -242,7 +331,9 @@ export class UserService {
             newPassword: string;
         },
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: null;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -267,7 +358,9 @@ export class UserService {
             password?: string;
         },
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: null;
     }> {
         return __request(OpenAPI, {
             method: 'POST',

@@ -173,4 +173,12 @@ export const createScanStyles = (colors: ThemeColors) => StyleSheet.create({
     submitButton: {
         marginTop: 32,
     },
+    addMethodCard: {
+        marginBottom: 24,
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+    },
 });

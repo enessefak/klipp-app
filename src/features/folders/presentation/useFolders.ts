@@ -8,6 +8,7 @@ import { FolderEvents } from './FolderEvents';
 interface UseFoldersOptions {
     limit?: number;
     isSharedFolder?: boolean;
+    fetchMode?: 'all' | 'rootOnly';
 }
 
 export function useFolders(parentId?: string, options?: UseFoldersOptions) {
@@ -21,19 +22,27 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
     const [searchQuery, setSearchQuery] = useState('');
 
     const limit = options?.limit || 20;
+    const fetchMode = options?.fetchMode || 'all';
 
     const fetchFolders = useCallback(async () => {
         try {
             setLoading(true);
 
             // Fetch all folders matching search or parent
+            const isRootView = fetchMode === 'rootOnly' && !parentId && !searchQuery;
+
             const fetchedFolders = await FolderRepository.getFolders({
                 parentId: parentId || undefined,
                 search: searchQuery || undefined,
-                flat: true
+                flat: !isRootView,
+                limit
             });
 
-            setFolders(fetchedFolders);
+            const normalizedFolders = isRootView
+                ? fetchedFolders.filter(folder => !folder.parentId)
+                : fetchedFolders;
+
+            setFolders(normalizedFolders);
 
             // Check if we have more based on some other heuristic or just disable "load more"
             setHasMore(false);

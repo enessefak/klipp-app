@@ -48,6 +48,7 @@ export const tr = {
     common: {
         appName: 'Klipp',
         search: "Ara",
+        success: 'Başarılı',
         actions: {
             cancel: 'İptal',
             save: 'Kaydet',
@@ -62,6 +63,7 @@ export const tr = {
             upgrade: 'Yükselt',
             grant_permission: 'İzin Ver',
             select_date: 'Tarih Seç',
+            download: 'İndir',
         },
         units: {
             day: 'Gün',
@@ -185,6 +187,7 @@ export const tr = {
             back: '← Geri',
             edit_details: 'Detayları Düzenle',
             tap_to_change: 'Değiştirmek için dokun',
+            file_limit_reached: 'Bir belgeye en fazla {{limit}} dosya ekleyebilirsiniz.',
             currency_label: 'Birim',
             currency_select_label: 'Para Birimi',
             document_date: 'Belge Tarihi',
@@ -192,7 +195,8 @@ export const tr = {
             validation: {
                 title_required: 'Başlık zorunludur',
                 type_required: 'Belge tipi seçin',
-                folder_required: 'Klasör seçin'
+                folder_required: 'Klasör seçin',
+                check_fields: 'Lütfen zorunlu alanları kontrol edin'
             },
             folder_select_label: 'Klasör Seç',
             type_select_label: 'Belge Tipi',
@@ -236,6 +240,12 @@ export const tr = {
             save_error: {
                 title: 'Hata',
                 message: 'Belge kaydedilemedi'
+            },
+            files_section: {
+                title: 'Dosyalar ({{count}}/{{limit}})',
+                add_more: '+ Dosya ekle',
+                clear: 'Temizle',
+                hint: '{{remaining}} hak kaldı'
             }
         },
         card: {
@@ -253,6 +263,7 @@ export const tr = {
         picker: {
             placeholder: 'Klasör Seçin',
             modal_title: 'Klasör Seç',
+            move_title: 'Klasöre Taşı',
             search_placeholder: 'Klasör ara...',
             back: 'Seçim',
             root: 'Ana Dizin',
@@ -268,6 +279,9 @@ export const tr = {
             icon: 'Klasör İkonu',
             icon_placeholder: 'İkon Seçin',
             color: 'Klasör Rengi',
+            move_success: '"{{folderName}}" klasörüne taşındı',
+            move_error: 'Taşıma işlemi başarısız',
+            select_folder_error: 'Lütfen bir klasör seçin',
         },
         default_name: 'Klasör',
         shared_with_me: 'Benimle Paylaşılanlar',
@@ -320,6 +334,12 @@ export const tr = {
             desc: 'Alt klasör veya belge eklemek için + butonuna basın',
         },
         shared: 'Paylaşılan',
+        actions: {
+            share: 'Paylaş',
+            export: 'Dışa Aktar',
+            edit: 'Düzenle',
+            delete: 'Sil',
+        },
     },
     sharing: {
         modal: {
@@ -373,6 +393,13 @@ export const tr = {
         months_left_exact: '{{count}} ay kaldı',
         years_months_left: '{{years}} yıl {{months}} ay',
         years_left: '{{count}} yıl kaldı',
+    },
+    attachments: {
+        actions: {
+            move_to_folder: 'Klasöre Taşı',
+            edit: 'Düzenle',
+            delete: 'Sil',
+        },
     },
     notification: {
         attachment_created: {
@@ -448,6 +475,33 @@ export const tr = {
             webLoginUrl: 'Web Giriş Adresi',
             urlCopied: 'Adres Kopyalandı',
             activeSessions: 'Oturumlar',
+            contactError: 'E-posta uygulaması açılamadı. Lütfen tekrar deneyin.',
+        },
+        company: {
+            title: 'Şirket / Fatura Bilgileri',
+            description: 'Bu bilgiler fatura, UBL-TR ve AI alanları için kullanılır.',
+            openButton: 'Fatura Bilgilerini Düzenle',
+            fields: {
+                name: 'Ad / Şirket Adı',
+                taxNumber: 'Vergi No / TCKN',
+                taxOffice: 'Vergi Dairesi',
+                address: 'Adres',
+                city: 'İl',
+                subdivision: 'İlçe',
+                phone: 'Telefon',
+            },
+            placeholders: {
+                name: 'Örnek A.Ş.',
+                taxNumber: '12345678901',
+                taxOffice: 'Maslak VD',
+                address: 'Cadde, sokak, bina...',
+                city: 'İstanbul',
+                subdivision: 'Beşiktaş',
+                phone: '+90 5XX XXX XX XX',
+            },
+            save: 'Bilgileri Kaydet',
+            success: 'Fatura bilgileri güncellendi.',
+            error: 'Bilgiler güncellenemedi.',
         }
     },
     scan_qr: {
@@ -526,5 +580,35 @@ export const tr = {
             free_plan: 'Ücretsiz Plan (Abone Değil)',
             premium_plan: 'Premium Plan',
         }
-    }
+    },
+    tabs: {
+        details: 'Detaylar',
+        comments: 'Yorumlar',
+        activity: 'Geçmiş',
+        export: 'Dışa Aktar',
+    },
+    writeComment: 'Yorum yaz...',
+    viewAllComments: 'Tüm yorumları gör',
+    exportFailed: 'Dışa aktarma başarısız',
+    selectFormat: 'Format Seç',
+    advancedOptions: 'Gelişmiş Seçenekler',
+    addTag: 'Etiket Ekle',
+    folderTabs: {
+        myFolders: 'Klasörlerim',
+        shared: 'Paylaşılanlar',
+        inbox: 'Gelen Kutusu',
+    },
+    inbox: {
+        title: 'Gelen Kutusu',
+        subtitle: 'Email ile gelen belgeler',
+        add_via_email: 'Email ile Belge Ekle',
+        email_instruction: 'Kayıtlı e-postanızdan gönderilen içerik için',
+        to: 'şu adrese',
+        default_behavior: 'Aynı türdeki ekler (örn. 3 resim) tek bir belgede birleştirilir.',
+        split_behavior: 'Ekleri ayrı belgeler olarak kaydetmek için konu satırına',
+        split_behavior_end: 'ekleyin.',
+        mixed_files: 'Karışık dosya türleri (PDF+JPG) her zaman ayrı işlenir.',
+        empty_title: 'Gelen kutusu boş',
+        empty_subtitle: 'Belgeleri inbox@klipphq.com adresine gönderin',
+    },
 };

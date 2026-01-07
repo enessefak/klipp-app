@@ -1,4 +1,4 @@
-import { FieldConfig } from './AttachmentTypeFields';
+import { FieldConfig, FieldStyle } from './AttachmentTypeFields';
 
 export interface Attachment {
     id: string;
@@ -26,6 +26,7 @@ export interface AttachmentType {
     requiresWarranty: boolean;
     fieldConfig?: FieldConfig[];
     defaultDetails?: Record<string, any>;
+    fieldStyle?: FieldStyle;
 }
 
 // Default attachment type IDs (will be fetched from server)
@@ -71,6 +72,7 @@ export interface AttachmentFilters {
     folderId?: string;
     categoryId?: string;
     attachmentTypeId?: string;
+    transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
     title?: string;
     search?: string;
     // amount filters removed

@@ -20,18 +20,22 @@ export class NotificationsService {
         limit?: string,
         cursor?: string,
     ): CancelablePromise<{
-        items: Array<{
-            id: string;
-            type: 'FOLDER_SHARE_INVITE' | 'FOLDER_SHARE_ACCEPTED' | 'FOLDER_SHARE_REJECTED' | 'SYSTEM';
-            title: string;
-            body: string;
-            referenceId: string | null;
-            referenceType: string | null;
-            isRead: boolean;
-            data?: any;
-            createdAt: string;
-        }>;
-        unreadCount: number;
+        success: boolean;
+        message?: string;
+        data?: {
+            items: Array<{
+                id: string;
+                type: 'FOLDER_SHARE_INVITE' | 'FOLDER_SHARE_ACCEPTED' | 'FOLDER_SHARE_REJECTED' | 'SYSTEM';
+                title: string;
+                body: string;
+                referenceId: string | null;
+                referenceType: string | null;
+                isRead: boolean;
+                data?: any;
+                createdAt: string;
+            }>;
+            unreadCount: number;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -50,7 +54,11 @@ export class NotificationsService {
      * @throws ApiError
      */
     public static getNotificationsUnreadCount(): CancelablePromise<{
-        count: number;
+        success: boolean;
+        message?: string;
+        data?: {
+            count: number;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -70,6 +78,10 @@ export class NotificationsService {
         },
     ): CancelablePromise<{
         success: boolean;
+        message?: string;
+        data?: {
+            success: boolean;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -88,6 +100,10 @@ export class NotificationsService {
         notificationId: string,
     ): CancelablePromise<{
         success: boolean;
+        message?: string;
+        data?: {
+            success: boolean;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -109,7 +125,11 @@ export class NotificationsService {
     public static deleteNotifications(
         notificationId: string,
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            message: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -129,7 +149,11 @@ export class NotificationsService {
      * @throws ApiError
      */
     public static deleteNotificationsRead(): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            message: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -149,6 +173,10 @@ export class NotificationsService {
         },
     ): CancelablePromise<{
         success: boolean;
+        message?: string;
+        data?: {
+            success: boolean;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -167,6 +195,10 @@ export class NotificationsService {
      */
     public static postNotificationsTest(): CancelablePromise<{
         success: boolean;
+        message?: string;
+        data?: {
+            success: boolean;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',

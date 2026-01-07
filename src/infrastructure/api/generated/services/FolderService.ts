@@ -8,7 +8,7 @@ import { request as __request } from '../core/request';
 export class FolderService {
     /**
      * List folders
-     * Returns paginated list of folders. Use ?flat=true for flat list.
+     * Get all folders for the current user. Supports pagination and filtering.
      * @param flat
      * @param cursor
      * @param limit
@@ -32,21 +32,28 @@ export class FolderService {
         color?: string,
         icon?: string,
     ): CancelablePromise<{
-        items: Array<{
-            id: string;
-            name: string;
-            icon: string;
-            color: string;
-            userId: string;
-            parentId: string | null;
-            isSystem?: boolean;
-            systemType?: string | null;
-            createdAt: string;
-            updatedAt: string;
-            children?: Array<any>;
-        }>;
-        hasMore: boolean;
-        nextCursor: string | null;
+        success: boolean;
+        message?: string;
+        data?: {
+            items: Array<{
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+                userId: string;
+                parentId: string | null;
+                isSystem?: boolean;
+                systemType?: string | null;
+                createdAt: string;
+                updatedAt: string;
+                requiresApproval?: boolean;
+                allowedTypeIds?: Array<string>;
+                allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+                children?: Array<any>;
+            }>;
+            hasMore: boolean;
+            nextCursor: string | null;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -62,11 +69,14 @@ export class FolderService {
                 'color': color,
                 'icon': icon,
             },
+            errors: {
+                400: `Default Response`,
+            },
         });
     }
     /**
      * Create folder
-     * Create a new folder. Optionally specify parentId to create a subfolder.
+     * Create a new folder.
      * @param requestBody
      * @returns any Default Response
      * @throws ApiError
@@ -77,18 +87,28 @@ export class FolderService {
             icon: string;
             color: string;
             parentId?: string | null;
+            requiresApproval?: boolean;
+            allowedTypeIds?: Array<string>;
+            allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
         },
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        icon: string;
-        color: string;
-        userId: string;
-        parentId: string | null;
-        isSystem?: boolean;
-        systemType?: string | null;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            icon: string;
+            color: string;
+            userId: string;
+            parentId: string | null;
+            isSystem?: boolean;
+            systemType?: string | null;
+            createdAt: string;
+            updatedAt: string;
+            requiresApproval?: boolean;
+            allowedTypeIds?: Array<string>;
+            allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -97,23 +117,24 @@ export class FolderService {
             mediaType: 'application/json',
             errors: {
                 400: `Default Response`,
-                404: `Default Response`,
             },
         });
     }
     /**
-     * List available export templates (Luca, Zirve, etc.)
+     * List system folders
+     * Get all system folders (Inbox, Trash, etc.) for the current user.
      * @returns any Default Response
      * @throws ApiError
      */
-    public static getFoldersExportTemplates(): CancelablePromise<any> {
+    public static getFoldersSystem(): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/folders/export-templates',
+            url: '/folders/system',
         });
     }
     /**
-     * Get folder by id
+     * Get folder by ID
+     * Get a specific folder by ID.
      * @param id
      * @returns any Default Response
      * @throws ApiError
@@ -121,16 +142,24 @@ export class FolderService {
     public static getFolders1(
         id: string,
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        icon: string;
-        color: string;
-        userId: string;
-        parentId: string | null;
-        isSystem?: boolean;
-        systemType?: string | null;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            icon: string;
+            color: string;
+            userId: string;
+            parentId: string | null;
+            isSystem?: boolean;
+            systemType?: string | null;
+            createdAt: string;
+            updatedAt: string;
+            requiresApproval?: boolean;
+            allowedTypeIds?: Array<string>;
+            allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+            children?: Array<any>;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -138,11 +167,14 @@ export class FolderService {
             path: {
                 'id': id,
             },
+            errors: {
+                404: `Default Response`,
+            },
         });
     }
     /**
      * Update folder
-     * Update folder properties. Can move folder to different parent by updating parentId. Prevents circular references.
+     * Update an existing folder.
      * @param id
      * @param requestBody
      * @returns any Default Response
@@ -155,18 +187,28 @@ export class FolderService {
             icon?: string;
             color?: string;
             parentId?: string | null;
+            requiresApproval?: boolean;
+            allowedTypeIds?: Array<string>;
+            allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
         },
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        icon: string;
-        color: string;
-        userId: string;
-        parentId: string | null;
-        isSystem?: boolean;
-        systemType?: string | null;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            icon: string;
+            color: string;
+            userId: string;
+            parentId: string | null;
+            isSystem?: boolean;
+            systemType?: string | null;
+            createdAt: string;
+            updatedAt: string;
+            requiresApproval?: boolean;
+            allowedTypeIds?: Array<string>;
+            allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'PUT',
@@ -184,56 +226,26 @@ export class FolderService {
     }
     /**
      * Delete folder
+     * Delete a folder. System folders cannot be deleted.
      * @param id
-     * @returns void
+     * @returns any Default Response
      * @throws ApiError
      */
     public static deleteFolders(
         id: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: null;
+    }> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/folders/{id}',
             path: {
                 'id': id,
             },
-        });
-    }
-    /**
-     * Export folder attachments
-     * Export attachments in the folder. Supports Excel.
-     * @param id
-     * @param recursive
-     * @param format
-     * @param fields
-     * @param mapping
-     * @param type
-     * @param templateId
-     * @returns any Default Response
-     * @throws ApiError
-     */
-    public static getFoldersExport(
-        id: string,
-        recursive?: 'true' | 'false',
-        format?: 'excel' | 'csv' | 'json' | 'xml',
-        fields?: string,
-        mapping?: string,
-        type?: string,
-        templateId?: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/folders/{id}/export',
-            path: {
-                'id': id,
-            },
-            query: {
-                'recursive': recursive,
-                'format': format,
-                'fields': fields,
-                'mapping': mapping,
-                'type': type,
-                'templateId': templateId,
+            errors: {
+                404: `Default Response`,
             },
         });
     }

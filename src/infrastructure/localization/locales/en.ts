@@ -48,6 +48,7 @@ export const en = {
     common: {
         search: "Search",
         appName: 'Klipp',
+        success: 'Success',
         actions: {
             cancel: 'Cancel',
             save: 'Save',
@@ -61,6 +62,7 @@ export const en = {
             add_new_file: 'Add New File',
             upgrade: 'Upgrade',
             grant_permission: 'Grant Permission',
+            download: 'Download',
         },
         units: {
             day: 'Day',
@@ -183,6 +185,7 @@ export const en = {
             back: '← Back',
             edit_details: 'Edit Details',
             tap_to_change: 'Tap to change',
+            file_limit_reached: 'You can add up to {{limit}} files per document.',
             currency_label: 'Unit',
             currency_select_label: 'Currency',
             document_date: 'Document Date',
@@ -190,7 +193,8 @@ export const en = {
             validation: {
                 title_required: 'Title is required',
                 type_required: 'Select document type',
-                folder_required: 'Select folder'
+                folder_required: 'Select folder',
+                check_fields: 'Please check the required fields'
             },
             folder_select_label: 'Select Folder', // Added
             type_select_label: 'Document Type',   // Added
@@ -234,6 +238,12 @@ export const en = {
             save_error: {
                 title: 'Error',
                 message: 'Could not save document'
+            },
+            files_section: {
+                title: 'Files ({{count}}/{{limit}})',
+                add_more: '+ Add file',
+                clear: 'Reset',
+                hint: '{{remaining}} slots remaining'
             }
         },
         card: {
@@ -251,6 +261,7 @@ export const en = {
         picker: {
             placeholder: 'Select Folder',
             modal_title: 'Select Folder',
+            move_title: 'Move to Folder',
             search_placeholder: 'Search folders...',
             back: 'Selection',
             root: 'Root',
@@ -262,7 +273,10 @@ export const en = {
             permissions: {
                 view: 'View',
                 edit: 'Edit'
-            }
+            },
+            move_success: 'Moved to "{{folderName}}"',
+            move_error: 'Failed to move',
+            select_folder_error: 'Please select a folder',
         },
         default_name: 'Folder',
         shared_with_me: 'Shared with Me',
@@ -314,7 +328,13 @@ export const en = {
             title: 'This folder is empty',
             desc: 'Tap + button to add subfolder or document',
         },
-        shared: 'Shared'
+        shared: 'Shared',
+        actions: {
+            share: 'Share',
+            export: 'Export',
+            edit: 'Edit',
+            delete: 'Delete',
+        },
     },
     sharing: {
         modal: {
@@ -368,6 +388,13 @@ export const en = {
         months_left_exact: '{{count}} months left',
         years_months_left: '{{years}} years {{months}} months',
         years_left: '{{count}} years left',
+    },
+    attachments: {
+        actions: {
+            move_to_folder: 'Move to Folder',
+            edit: 'Edit',
+            delete: 'Delete',
+        },
     },
     notification: {
         attachment_created: {
@@ -443,6 +470,33 @@ export const en = {
             webLoginUrl: 'Web Login URL',
             urlCopied: 'URL Copied',
             activeSessions: 'Active Sessions',
+            contactError: 'Unable to open email app. Please try again.',
+        },
+        company: {
+            title: 'Company & Billing Details',
+            description: 'These details are used on invoices, exports, and AI-assisted fields.',
+            openButton: 'Edit Billing Info',
+            fields: {
+                name: 'Name / Company Name',
+                taxNumber: 'Tax Number / TCKN',
+                taxOffice: 'Tax Office',
+                address: 'Address',
+                city: 'City',
+                subdivision: 'District',
+                phone: 'Phone',
+            },
+            placeholders: {
+                name: 'Acme Corp.',
+                taxNumber: '12345678901',
+                taxOffice: 'Maslak Tax Office',
+                address: 'Street, number, building...',
+                city: 'Istanbul',
+                subdivision: 'Besiktas',
+                phone: '+90 5XX XXX XX XX',
+            },
+            save: 'Save Billing Info',
+            success: 'Billing information updated.',
+            error: 'Could not update billing information.',
         }
     },
     scan_qr: {
@@ -521,5 +575,34 @@ export const en = {
             free_plan: 'Free Plan (Not Subscribed)',
             premium_plan: 'Premium Plan',
         }
-    }
+    },
+    tabs: {
+        details: 'Details',
+        comments: 'Comments',
+        activity: 'Activity',
+        export: 'Export',
+    },
+    writeComment: 'Write a comment...',
+    viewAllComments: 'View all comments',
+    exportFailed: 'Export failed',
+    selectFormat: 'Select Format',
+    advancedOptions: 'Advanced Options',
+    folderTabs: {
+        myFolders: 'My Folders',
+        shared: 'Shared with Me',
+        inbox: 'Inbox',
+    },
+    inbox: {
+        title: 'Inbox',
+        subtitle: 'Inbox Attachments',
+        add_via_email: 'Add Content via Email',
+        email_instruction: 'For content sent from your registered email',
+        to: 'to',
+        default_behavior: 'Attachments of the same type (e.g., 3 images) are merged into a single document.',
+        split_behavior: 'Add',
+        split_behavior_end: 'to the subject line to save attachments as separate documents.',
+        mixed_files: 'Mixed file types (PDF+JPG) are always processed separately.',
+        empty_title: 'No inbox attachments',
+        empty_subtitle: 'Send documents to inbox@klipphq.com',
+    },
 };

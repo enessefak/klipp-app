@@ -1,5 +1,7 @@
+import { Button, TextInput } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
+import type { UpdateUserProfileInput } from '@/src/features/auth/domain/User';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { useNotifications } from '@/src/features/notifications/presentation/useNotifications';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
@@ -9,7 +11,7 @@ import { useRevenueCat } from '@/src/infrastructure/revenuecat/RevenueCatProvide
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActionSheetIOS, Alert, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ActionSheetIOS, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SettingItemProps {
@@ -130,6 +132,27 @@ function SettingSection({ title, children }: { title?: string; children: React.R
     );
 }
 
+type ProfileFormState = {
+    name: string;
+    taxNumber: string;
+    taxOffice: string;
+    address: string;
+    city: string;
+    subdivision: string;
+    phone: string;
+};
+
+type CompanyFieldKey = Exclude<keyof ProfileFormState, 'name'>;
+
+type CompanyFieldConfig = {
+    key: CompanyFieldKey;
+    label: string;
+    placeholder?: string;
+    keyboardType?: React.ComponentProps<typeof TextInput>['keyboardType'];
+    multiline?: boolean;
+    autoCapitalize?: React.ComponentProps<typeof TextInput>['autoCapitalize'];
+};
+
 export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
     const { isPro } = useRevenueCat();
@@ -138,6 +161,20 @@ export function ProfileScreen() {
     const { unreadCount, refreshUnreadCount } = useNotifications();
     const { pendingCount, refreshPendingCount } = useFolderSharing();
     const { language, setLanguage, theme, setTheme, colors } = useSettings();
+
+    const buildProfileFormState = (targetUser: typeof user): ProfileFormState => ({
+        name: targetUser?.name ?? '',
+        taxNumber: targetUser?.taxNumber ?? '',
+        taxOffice: targetUser?.taxOffice ?? '',
+        address: targetUser?.address ?? '',
+        city: targetUser?.city ?? '',
+        subdivision: targetUser?.subdivision ?? '',
+        phone: targetUser?.phone ?? '',
+    });
+
+    const [profileForm, setProfileForm] = useState<ProfileFormState>(() => buildProfileFormState(user));
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+    const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
 
     const styles = useMemo(() => StyleSheet.create({
         container: {
@@ -233,12 +270,164 @@ export function ProfileScreen() {
             fontSize: 13,
             color: colors.gray,
         },
+        companyIntroCard: {
+            padding: 16,
+        },
+        companyIntroText: {
+            fontSize: 14,
+            color: colors.textLight,
+            marginBottom: 16,
+        },
+        companyCtaButton: {
+            alignSelf: 'flex-start',
+        },
+        companyForm: {
+            padding: 16,
+        },
+        sectionHelper: {
+            fontSize: 13,
+            color: colors.textLight,
+            marginBottom: 12,
+        },
+        inputWrapper: {
+            marginBottom: 16,
+        },
+        inputLabel: {
+            fontSize: 14,
+            fontWeight: '600',
+            color: colors.text,
+            marginBottom: 6,
+        },
+        multilineInput: {
+            minHeight: 100,
+            textAlignVertical: 'top',
+        },
+        profileSaveButton: {
+            marginTop: 8,
+        },
+        modalContainer: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        modalHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+        },
+        modalTitle: {
+            fontSize: 18,
+            fontWeight: '600',
+            color: colors.text,
+        },
+        modalCloseButton: {
+            padding: 8,
+            marginRight: -8,
+        },
+        modalScrollContent: {
+            paddingBottom: 32,
+        },
     }), [colors]);
 
     useEffect(() => {
         refreshUnreadCount();
         refreshPendingCount();
     }, []);
+
+    useEffect(() => {
+        setProfileForm(buildProfileFormState(user));
+    }, [user]);
+
+    const companyFieldConfigs: CompanyFieldConfig[] = [
+        {
+            key: 'taxNumber',
+            label: i18n.t('profile.company.fields.taxNumber'),
+            placeholder: i18n.t('profile.company.placeholders.taxNumber'),
+            keyboardType: 'number-pad',
+            autoCapitalize: 'none',
+        },
+        {
+            key: 'taxOffice',
+            label: i18n.t('profile.company.fields.taxOffice'),
+            placeholder: i18n.t('profile.company.placeholders.taxOffice'),
+            autoCapitalize: 'words',
+        },
+        {
+            key: 'city',
+            label: i18n.t('profile.company.fields.city'),
+            placeholder: i18n.t('profile.company.placeholders.city'),
+            autoCapitalize: 'words',
+        },
+        {
+            key: 'subdivision',
+            label: i18n.t('profile.company.fields.subdivision'),
+            placeholder: i18n.t('profile.company.placeholders.subdivision'),
+            autoCapitalize: 'words',
+        },
+        {
+            key: 'address',
+            label: i18n.t('profile.company.fields.address'),
+            placeholder: i18n.t('profile.company.placeholders.address'),
+            multiline: true,
+            autoCapitalize: 'sentences',
+        },
+        {
+            key: 'phone',
+            label: i18n.t('profile.company.fields.phone'),
+            placeholder: i18n.t('profile.company.placeholders.phone'),
+            keyboardType: 'phone-pad',
+            autoCapitalize: 'none',
+        },
+    ];
+
+    const companyKeys: CompanyFieldKey[] = ['taxNumber', 'taxOffice', 'city', 'subdivision', 'address', 'phone'];
+
+    const handleOpenCompanyModal = () => {
+        setProfileForm(buildProfileFormState(user));
+        setCompanyModalVisible(true);
+    };
+
+    const handleCloseCompanyModal = () => {
+        setCompanyModalVisible(false);
+    };
+
+    const handleCompanyFieldChange = (field: keyof ProfileFormState, value: string) => {
+        setProfileForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSaveCompanyInfo = async () => {
+        setIsSavingProfile(true);
+        try {
+            const payload: UpdateUserProfileInput = {};
+            const trimmedName = profileForm.name.trim();
+            if (trimmedName.length >= 2) {
+                payload.name = trimmedName;
+            }
+
+            const ensureField = (field: CompanyFieldKey) => {
+                const trimmedValue = profileForm[field].trim();
+                if (trimmedValue.length > 0) {
+                    payload[field] = trimmedValue;
+                } else if (user?.[field]) {
+                    payload[field] = '';
+                }
+            };
+
+            companyKeys.forEach(ensureField);
+
+            await updateProfile(payload);
+            Alert.alert(i18n.t('common.success'), i18n.t('profile.company.success'));
+            setCompanyModalVisible(false);
+        } catch (error) {
+            console.error('Company info update failed:', error);
+            Alert.alert(i18n.t('common.error'), i18n.t('profile.company.error'));
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
 
     const handleLanguageChange = () => {
         if (Platform.OS === 'ios') {
@@ -297,6 +486,24 @@ export function ProfileScreen() {
         }
     };
 
+    const handleContactPress = async () => {
+        const email = 'info@klipphq.com';
+        const subject = encodeURIComponent(`${i18n.t('common.appName')} Support`);
+        const mailtoUrl = `mailto:${email}?subject=${subject}`;
+
+        try {
+            const canOpen = await Linking.canOpenURL(mailtoUrl);
+            if (!canOpen) {
+                Alert.alert(i18n.t('common.error'), i18n.t('profile.settings.contactError'));
+                return;
+            }
+            await Linking.openURL(mailtoUrl);
+        } catch (error) {
+            console.error('Contact email open failed:', error);
+            Alert.alert(i18n.t('common.error'), i18n.t('profile.settings.contactError'));
+        }
+    };
+
     const handleLogout = () => {
         Alert.alert(
             i18n.t('profile.settings.logoutConfirmTitle'),
@@ -336,7 +543,7 @@ export function ProfileScreen() {
                                 // Execute async logic without returning promise to Alert
                                 (async () => {
                                     try {
-                                        await updateProfile(name);
+                                        await updateProfile({ name });
                                         Alert.alert('Başarılı', 'Profil güncellendi');
                                     } catch (error) {
                                         Alert.alert('Hata', 'Profil güncellenemedi');
@@ -438,6 +645,18 @@ export function ProfileScreen() {
                         <IconSymbol name="pencil" size={16} color={colors.primary} />
                     </TouchableOpacity>
                 </View>
+
+                {/* Company / Tax Details */}
+                <SettingSection title={i18n.t('profile.company.title')}>
+                    <View style={styles.companyIntroCard}>
+                        <ThemedText style={styles.companyIntroText}>{i18n.t('profile.company.description')}</ThemedText>
+                        <Button
+                            title={i18n.t('profile.company.openButton')}
+                            onPress={handleOpenCompanyModal}
+                            style={styles.companyCtaButton}
+                        />
+                    </View>
+                </SettingSection>
 
                 {/* Subscription Section */}
                 <SettingSection title={i18n.t('subscription.title')}>
@@ -575,7 +794,8 @@ export function ProfileScreen() {
                         icon="envelope.fill"
                         iconColor="#007AFF"
                         title={i18n.t('profile.settings.contact')}
-                        onPress={() => Alert.alert('Bilgi', i18n.t('profile.settings.soon'))}
+                        subtitle="info@klipphq.com"
+                        onPress={handleContactPress}
                     />
                     <SettingItem
                         icon="star.fill"
@@ -609,6 +829,62 @@ export function ProfileScreen() {
                     <ThemedText style={styles.versionText}>Klipp v1.0.0</ThemedText>
                 </View>
             </ScrollView>
+
+            <Modal
+                visible={isCompanyModalVisible}
+                animationType="slide"
+                presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
+                onRequestClose={handleCloseCompanyModal}
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={handleCloseCompanyModal} style={styles.modalCloseButton}>
+                            <IconSymbol name="xmark" size={20} color={colors.text} />
+                        </TouchableOpacity>
+                        <ThemedText style={styles.modalTitle}>{i18n.t('profile.company.title')}</ThemedText>
+                        <View style={{ width: 32 }} />
+                    </View>
+
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScrollContent}>
+                        <View style={styles.companyForm}>
+                            <ThemedText style={styles.sectionHelper}>{i18n.t('profile.company.description')}</ThemedText>
+
+                            <View style={styles.inputWrapper}>
+                                <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.name')}</ThemedText>
+                                <TextInput
+                                    value={profileForm.name}
+                                    onChangeText={(text) => handleCompanyFieldChange('name', text)}
+                                    placeholder={i18n.t('profile.company.placeholders.name')}
+                                    autoCapitalize="words"
+                                />
+                            </View>
+
+                            {companyFieldConfigs.map((field) => (
+                                <View key={field.key} style={styles.inputWrapper}>
+                                    <ThemedText style={styles.inputLabel}>{field.label}</ThemedText>
+                                    <TextInput
+                                        value={profileForm[field.key]}
+                                        onChangeText={(text) => handleCompanyFieldChange(field.key, text)}
+                                        placeholder={field.placeholder}
+                                        keyboardType={field.keyboardType}
+                                        multiline={field.multiline}
+                                        numberOfLines={field.multiline ? 3 : 1}
+                                        autoCapitalize={field.autoCapitalize}
+                                        style={field.multiline ? styles.multilineInput : undefined}
+                                    />
+                                </View>
+                            ))}
+
+                            <Button
+                                title={i18n.t('profile.company.save')}
+                                onPress={handleSaveCompanyInfo}
+                                loading={isSavingProfile}
+                                style={styles.profileSaveButton}
+                            />
+                        </View>
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
         </SafeAreaView>
     );
 }

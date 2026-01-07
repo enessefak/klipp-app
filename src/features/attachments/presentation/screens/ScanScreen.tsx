@@ -37,6 +37,13 @@ export function ScanScreen() {
         }
     });
 
+    const handleMethodSelect = React.useCallback((method: 'scan' | 'camera' | 'gallery' | 'file') => {
+        if (method === 'scan') scanLogic.scanDocument();
+        else if (method === 'camera') scanLogic.takePhoto();
+        else if (method === 'gallery') scanLogic.pickImage();
+        else if (method === 'file') scanLogic.pickDocument();
+    }, [scanLogic]);
+
     const handleClose = () => {
         router.back();
     };
@@ -47,7 +54,7 @@ export function ScanScreen() {
         if (scanLogic.isAnalyzing) {
             return (
                 <AnalyzingStep
-                    imageUri={scanLogic.fileUri}
+                    imageUri={scanLogic.analyzingPreviewUri || scanLogic.latestFile?.fileUri || scanLogic.primaryFile?.fileUri || null}
                     insets={insets}
                     styles={styles}
                 />
@@ -55,7 +62,7 @@ export function ScanScreen() {
         }
 
         // 3. Form (Edit Details)
-        if (scanLogic.fileUri) {
+        if (scanLogic.files.length > 0) {
             // Merge personal and shared folders
             const allFolders = [...folders];
             sharedWithMe.forEach(sf => {
@@ -95,26 +102,18 @@ export function ScanScreen() {
                     watchedTypeId={scanForm.state.watchedTypeId}
 
                     // Actions
-                    onSubmit={() => scanForm.actions.submitForm({
-                        fileUri: scanLogic.fileUri,
-                        fileType: scanLogic.fileType,
-                        fileName: scanLogic.fileName,
-                        mimeType: scanLogic.mimeType,
-                        ocrConfidence: scanLogic.ocrConfidence
-                    })}
+                    onSubmit={(onError) => scanForm.actions.submitForm(scanLogic.files, onError)}
                     onAddCustomField={scanForm.actions.addCustomField}
                     onRemoveCustomField={scanForm.actions.removeCustomField}
                     onUpdateCustomField={scanForm.actions.updateCustomField}
                     onTypeSelect={scanForm.actions.handleTypeSelect}
 
                     // Scan Logic / File
-                    file={{
-                        fileUri: scanLogic.fileUri,
-                        fileType: scanLogic.fileType,
-                        fileName: scanLogic.fileName,
-                        mimeType: scanLogic.mimeType,
-                        ocrConfidence: scanLogic.ocrConfidence
-                    }}
+                    files={scanLogic.files}
+                    canAddMoreFiles={scanLogic.canAddMore}
+                    maxFiles={scanLogic.maxFiles}
+                    onRemoveFile={scanLogic.removeFile}
+                    onSelectCaptureMethod={handleMethodSelect}
                     onRetake={scanLogic.resetScan}
 
                     // Others
@@ -129,12 +128,7 @@ export function ScanScreen() {
         // 1. Capture (Default)
         return (
             <CaptureStep
-                onMethodSelect={(method) => {
-                    if (method === 'scan') scanLogic.scanDocument();
-                    else if (method === 'camera') scanLogic.takePhoto();
-                    else if (method === 'gallery') scanLogic.pickImage();
-                    else if (method === 'file') scanLogic.pickDocument();
-                }}
+                onMethodSelect={handleMethodSelect}
                 onClose={handleClose}
                 insets={insets}
                 styles={styles}

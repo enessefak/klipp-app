@@ -20,6 +20,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LineItemsTable } from '../components/LineItemsTable';
 
 import { ThemedText } from '@/components/themed-text';
 import { ImageViewer } from '@/src/components/ImageViewer';
@@ -29,12 +30,22 @@ import { AttachmentTypeService } from '@/src/infrastructure/api/generated/servic
 import { FileDownloadService } from '../../application/FileDownloadService';
 import { AttachmentService } from '../../data/AttachmentService';
 import { Attachment } from '../../domain/Attachment';
-import { FieldConfig } from '../../domain/AttachmentTypeFields';
+import { FieldConfig, FieldStyle } from '../../domain/AttachmentTypeFields';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+
+// ... (existing imports)
+
+
+
+import { AttachmentActivity } from '../components/AttachmentActivity';
+import { AttachmentComments } from '../components/AttachmentComments';
+import { AttachmentExport } from '../components/AttachmentExport';
+import { AttachmentTags } from '../components/AttachmentTags';
 
 export function AttachmentDetailScreen() {
     const { colors } = useSettings();
@@ -55,12 +66,20 @@ export function AttachmentDetailScreen() {
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const [showActionMenu, setShowActionMenu] = useState(false);
 
+    // New state for Tabs
+    const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'activity' | 'export'>('details');
+    const [fieldStyle, setFieldStyle] = useState<FieldStyle | null>(null);
+    const [dynamicFields, setDynamicFields] = useState<FieldConfig[]>([]);
+
     const isShared = useMemo(() => {
         if (!attachment) return false;
         if (attachment.isOwner === false) return true;
         if (user && user.id !== attachment.userId) return true;
         return false;
     }, [attachment, user]);
+
+    // ... (existing helper functions)
+
 
     useFocusEffect(
         React.useCallback(() => {
@@ -108,8 +127,11 @@ export function AttachmentDetailScreen() {
                         const folderVal = permValue[folderPerm as keyof typeof permValue] || 0;
 
                         if (folderVal > currentVal) {
-                            (data as any).permission = folderPerm;
-                            setAttachment({ ...data });
+                            // Only update if permission is different to avoid infinite loop
+                            if ((data as any).permission !== folderPerm) {
+                                (data as any).permission = folderPerm;
+                                setAttachment({ ...data });
+                            }
                         }
                     }
                 } catch (e) {
@@ -119,12 +141,19 @@ export function AttachmentDetailScreen() {
 
             // Fetch attachment types to get configuration
             try {
-                const types = await AttachmentTypeService.getAttachmentTypes();
-                const attachmentType = types.find(t => t.id === data.attachmentTypeId);
+                const typesResponse = await AttachmentTypeService.getAttachmentTypes();
+                const types = (typesResponse as any).data || typesResponse;
+                // Verify types is an array
+                const typesArray = Array.isArray(types) ? types : (types as any).items || [];
+
+                const attachmentType = typesArray.find((t: any) => t.id === data.attachmentTypeId);
                 if (attachmentType) {
                     setAttachmentTypeName(attachmentType.name);
                     if (attachmentType.fieldConfig) {
                         setDynamicFields(attachmentType.fieldConfig);
+                    }
+                    if (attachmentType.fieldStyle) {
+                        setFieldStyle(attachmentType.fieldStyle);
                     }
                 }
             } catch (typeErr) {
@@ -153,6 +182,8 @@ export function AttachmentDetailScreen() {
         }
     };
 
+    // ... (rest of the file until handleRequestApproval)
+
     const handleShare = async () => {
         setShowActionMenu(false);
         try {
@@ -169,7 +200,6 @@ export function AttachmentDetailScreen() {
 
     const handleEdit = () => {
         setShowActionMenu(false);
-
         if (isShared && attachment?.permission === 'VIEW') {
             Alert.alert(
                 i18n.t('common.error'),
@@ -177,24 +207,45 @@ export function AttachmentDetailScreen() {
             );
             return;
         }
-
         router.push(`/attachment/edit/${id}`);
     };
 
     const handleDownload = async () => {
         setShowActionMenu(false);
-        // Download main file or all files? For now, if there is a main file logic, use that.
-        // Or if multiple files, maybe zip? The requirement says "files/{fileId}/download".
-        // Let's assume we download the first file for now if simple, or we can't generic "Download Attachment" without zipping.
-        // Actually user said "/files/{fileId}/download".
-        // Let's download ALL files one by one or just the first visible one.
-        // Usually attachments here have `files` array.
-
         if (files.length > 0) {
             for (const file of files) {
                 await FileDownloadService.downloadAndShare(file.url, file.filename);
             }
         }
+    };
+
+    const handleDelete = () => {
+        setShowActionMenu(false);
+        Alert.alert(
+            i18n.t('receipts.detail.actions.delete_title'),
+            i18n.t('receipts.detail.actions.delete_message'),
+            [
+                { text: i18n.t('receipts.detail.actions.cancel'), style: 'cancel' },
+                {
+                    text: i18n.t('receipts.detail.actions.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setDeleting(true);
+                            await AttachmentService.deleteAttachment(id!);
+                            Alert.alert(i18n.t('common.actions.ok'), i18n.t('receipts.detail.actions.delete_success'), [
+                                { text: i18n.t('common.actions.ok'), onPress: () => router.back() },
+                            ]);
+                        } catch (err) {
+                            console.error('Failed to delete attachment:', err);
+                            Alert.alert(i18n.t('receipts.detail.actions.error_delete'));
+                        } finally {
+                            setDeleting(false);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const showMoreOptions = () => {
@@ -214,59 +265,16 @@ export function AttachmentDetailScreen() {
                 },
                 (buttonIndex) => {
                     switch (buttonIndex) {
-                        case 1:
-                            handleShare();
-                            break;
-                        case 2:
-                            handleEdit();
-                            break;
-                        case 3:
-                            handleDownload();
-                            break;
-                        case 4:
-                            handleDelete();
-                            break;
+                        case 1: handleShare(); break;
+                        case 2: handleEdit(); break;
+                        case 3: handleDownload(); break;
+                        case 4: handleDelete(); break;
                     }
                 }
             );
         } else {
             setShowActionMenu(true);
         }
-    };
-
-    const handleDelete = () => {
-        setShowActionMenu(false);
-        Alert.alert(
-            i18n.t('receipts.detail.actions.delete_title'),
-            i18n.t('receipts.detail.actions.delete_message'),
-            [
-                {
-                    text: i18n.t('receipts.detail.actions.cancel'),
-                    style: 'cancel',
-                },
-                {
-                    text: i18n.t('receipts.detail.actions.delete'),
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            setDeleting(true);
-                            await AttachmentService.deleteAttachment(id!);
-                            Alert.alert(i18n.t('common.actions.ok'), i18n.t('receipts.detail.actions.delete_success'), [
-                                {
-                                    text: i18n.t('common.actions.ok'),
-                                    onPress: () => router.back(),
-                                },
-                            ]);
-                        } catch (err) {
-                            console.error('Failed to delete attachment:', err);
-                            Alert.alert(i18n.t('receipts.detail.actions.error_delete'));
-                        } finally {
-                            setDeleting(false);
-                        }
-                    },
-                },
-            ]
-        );
     };
 
     const handleRequestApproval = async () => {
@@ -277,12 +285,12 @@ export function AttachmentDetailScreen() {
 
         try {
             setRequestingApproval(true);
-            await AttachmentService.postAttachmentsRequestApproval(id, { reviewerEmail });
+            await AttachmentService.postAttachmentsRequestApproval(id!, { reviewerEmail });
             setApprovalModalVisible(false);
             Alert.alert('Başarılı', 'Onay isteği gönderildi.');
             // Refresh attachment
-            const updated = await AttachmentService.getAttachments1(id);
-            setAttachment(updated as any);
+            const updated = await AttachmentService.getAttachmentById(id!);
+            setAttachment(updated);
         } catch (err) {
             Alert.alert('Hata', 'Onay isteği gönderilemedi.');
         } finally {
@@ -330,6 +338,37 @@ export function AttachmentDetailScreen() {
 
     const styles = useMemo(() => StyleSheet.create({
         container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        tabBarContainer: {
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+        },
+        tabBar: {
+            flexDirection: 'row',
+            paddingHorizontal: 4,
+        },
+        tabItem: {
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+            borderBottomWidth: 2,
+            borderBottomColor: 'transparent',
+            minWidth: 80,
+        },
+        activeTabItem: {
+            borderBottomColor: colors.primary,
+        },
+        tabText: {
+            fontSize: 14,
+            fontWeight: '600',
+            color: colors.textLight,
+        },
+        activeTabText: {
+            color: colors.primary,
+        },
+        tabContent: {
             flex: 1,
             backgroundColor: colors.background,
         },
@@ -515,6 +554,14 @@ export function AttachmentDetailScreen() {
             color: colors.textLight,
             marginBottom: 2,
         },
+        detailIcon: {
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.card,
+        },
         detailValue: {
             fontSize: 15,
             color: colors.text,
@@ -622,8 +669,6 @@ export function AttachmentDetailScreen() {
             paddingVertical: 8,
             borderRadius: 20,
             flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
             borderWidth: 1,
             borderColor: 'rgba(255,255,255,0.2)',
         },
@@ -631,6 +676,63 @@ export function AttachmentDetailScreen() {
             color: 'white',
             fontSize: 13,
             fontWeight: '600',
+        },
+        // Line Items Styles
+        lineItemsContainer: {
+            marginTop: 4,
+            width: '100%',
+        },
+        lineItemsHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            backgroundColor: colors.card,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        lineItemsContent: {
+            marginTop: 8,
+            backgroundColor: colors.card,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            padding: 12,
+        },
+        badge: {
+            backgroundColor: colors.primary + '15',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 12,
+        },
+        badgeText: {
+            color: colors.primary,
+            fontSize: 12,
+            fontWeight: '600',
+        },
+        tableHeader: {
+            flexDirection: 'row',
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+            paddingBottom: 8,
+            marginBottom: 8,
+        },
+        tableHeaderText: {
+            fontSize: 12,
+            fontWeight: '600',
+            color: colors.textLight,
+        },
+        tableRow: {
+            flexDirection: 'row',
+            paddingVertical: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border + '40',
+        },
+        tableCell: {
+            fontSize: 13,
+            color: colors.text,
         },
     }), [colors]);
 
@@ -755,69 +857,98 @@ export function AttachmentDetailScreen() {
         }
     };
 
-    const [dynamicFields, setDynamicFields] = useState<FieldConfig[]>([]);
+
+
+
 
 
 
     const renderTypeSpecificFields = () => {
-        const fields = dynamicFields;
-        console.log('Fields for type:', fields);
+        if (!attachment) return null;
 
-        if (fields.length === 0) {
-            console.log('No fields defined for this type');
-            return null;
-        }
+        // Helper to get value securely
+        const getValue = (key: string) => {
+            // Check details first
+            let val = attachment.details?.[key];
+            // If not in details, check root (e.g. amount, currency)
+            if (val === undefined && key in attachment) {
+                val = (attachment as any)[key];
+            }
+            return val;
+        };
 
-        // Show all fields, even if details is empty
-        if (!attachment?.details) {
-            console.log('No details object, showing empty field values');
-            return fields.map((field) => (
-                <View key={field.key} style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                        <IconSymbol name={getFieldIcon(field.key) as any} size={18} color={colors.textLight} />
-                        <View style={styles.detailText}>
-                            <ThemedText style={styles.detailLabel}>{field.label}</ThemedText>
-                            <ThemedText style={styles.detailValue}>-</ThemedText>
-                        </View>
+        const renderFieldItem = (key: string, label: string, flex = 1) => {
+            const field = dynamicFields.find(f => f.key === key);
+            // If field config exists use it, otherwise fallback
+            const finalLabel = field ? field.label : label;
+            const val = getValue(key);
+
+            // Handle Line Items (Array of Objects)
+            if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+                return (
+                    <View key={key} style={{ width: '100%', marginTop: 8 }}>
+                        <LineItemsTable items={val} label={finalLabel} currency={attachment?.details?.currency || 'TRY'} />
                     </View>
-                </View>
-            ));
-        }
+                );
+            }
 
-        const fieldsWithValues = fields.filter(field =>
-            attachment.details?.[field.key] !== null &&
-            attachment.details?.[field.key] !== undefined
-        );
-        console.log('Fields with values:', fieldsWithValues);
+            const displayVal = field ? formatFieldValue(field, val) : val;
 
-        if (fieldsWithValues.length === 0) {
-            console.log('No fields have values, showing all fields with empty values');
-            return fields.map((field) => (
-                <View key={field.key} style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                        <IconSymbol name={getFieldIcon(field.key) as any} size={18} color={colors.textLight} />
-                        <View style={styles.detailText}>
-                            <ThemedText style={styles.detailLabel}>{field.label}</ThemedText>
-                            <ThemedText style={styles.detailValue}>-</ThemedText>
-                        </View>
+            return (
+                <View key={key} style={[styles.detailItem, { flex, backgroundColor: colors.card, marginBottom: 0 }]}>
+                    <View style={styles.detailIcon}>
+                        <IconSymbol name={getFieldIcon(key) as any} size={18} color={colors.textLight} />
                     </View>
-                </View>
-            ));
-        }
-
-        return fieldsWithValues.map((field) => (
-            <View key={field.key} style={styles.detailRow}>
-                <View style={styles.detailItem}>
-                    <IconSymbol name={getFieldIcon(field.key) as any} size={18} color={colors.textLight} />
                     <View style={styles.detailText}>
-                        <ThemedText style={styles.detailLabel}>{field.label}</ThemedText>
+                        <ThemedText style={styles.detailLabel}>{finalLabel}</ThemedText>
                         <ThemedText style={styles.detailValue}>
-                            {formatFieldValue(field, attachment.details?.[field.key])}
+                            {displayVal ?? '-'}
                         </ThemedText>
                     </View>
                 </View>
+            );
+        };
+
+        if (fieldStyle?.mobile?.gridTemplateAreas) {
+            const rows = fieldStyle.mobile.gridTemplateAreas.map(rowStr => {
+                return rowStr.replace(/['"]+/g, '').trim().split(/\s+/);
+            });
+
+            return (
+                <View style={{ gap: 12 }}>
+                    {rows.map((rowKeys, rowIndex) => (
+                        <View key={rowIndex} style={{ flexDirection: 'row', gap: 12 }}>
+                            {rowKeys.map((key, colIndex) => {
+                                // Skip if handled by span
+                                if (colIndex > 0 && key === rowKeys[colIndex - 1]) return null;
+
+                                // Calculate span
+                                let span = 1;
+                                for (let i = colIndex + 1; i < rowKeys.length; i++) {
+                                    if (rowKeys[i] === key) span++;
+                                    else break;
+                                }
+
+                                const field = dynamicFields.find(f => f.key === key);
+                                const label = field ? field.label : key.charAt(0).toUpperCase() + key.slice(1);
+
+                                return renderFieldItem(key, label, span);
+                            })}
+                        </View>
+                    ))}
+                </View>
+            );
+        }
+
+        // Fallback: Vertical list
+        const fields = dynamicFields;
+        if (fields.length === 0) return null;
+
+        return (
+            <View style={{ gap: 12 }}>
+                {fields.map(field => renderFieldItem(field.key, field.label, 0))}
             </View>
-        ));
+        );
     };
 
     if (loading) {
@@ -857,6 +988,250 @@ export function AttachmentDetailScreen() {
                 <TouchableOpacity style={styles.menuButton} onPress={showMoreOptions}>
                     <IconSymbol name="ellipsis" size={24} color={colors.text} />
                 </TouchableOpacity>
+            </View>
+
+            {/* Tab Bar */}
+            <View style={styles.tabBarContainer}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.tabBar}
+                >
+                    {(['details', 'comments', 'activity', 'export'] as const).map((tab) => (
+                        <TouchableOpacity
+                            key={tab}
+                            style={[styles.tabItem, activeTab === tab && styles.activeTabItem]}
+                            onPress={() => setActiveTab(tab)}
+                        >
+                            <ThemedText style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                                {i18n.t(`tabs.${tab}` as any) || tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+
+            {/* Tab Content */}
+            <View style={styles.tabContent}>
+                {activeTab === 'details' && (
+                    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                        {/* File Gallery */}
+                        {files.length > 0 ? (
+                            <View style={styles.imageContainer}>
+                                {renderFilePreview(files[0], true)}
+                                {files.length > 1 && (
+                                    <View style={styles.thumbnailRow}>
+                                        {files.slice(1, 4).map((file, index) => (
+                                            <View key={index}>
+                                                {renderFilePreview(file, false)}
+                                            </View>
+                                        ))}
+                                        {files.length > 4 && (
+                                            <View style={styles.moreThumbnail}>
+                                                <ThemedText style={styles.moreText}>+{files.length - 4}</ThemedText>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <View style={styles.noImageContainer}>
+                                <IconSymbol name="photo" size={48} color={colors.textLight} />
+                                <ThemedText style={styles.noImageText}>{i18n.t('receipts.detail.actions.no_file')}</ThemedText>
+                            </View>
+                        )}
+
+                        {/* Title & Amount Card */}
+                        <View style={styles.card}>
+                            <View style={styles.titleRow}>
+                                <View style={styles.iconBadge}>
+                                    <IconSymbol
+                                        name={getTypeIcon(attachment.attachmentTypeId) as any}
+                                        size={24}
+                                        color={colors.primary}
+                                    />
+                                </View>
+                                <View style={styles.titleInfo}>
+                                    <ThemedText type="title" style={styles.title}>{attachment.title}</ThemedText>
+                                    <ThemedText style={styles.date}>{formatDate(attachment.documentDate)}</ThemedText>
+
+                                    {/* Status Badge */}
+                                    {attachment.status && (
+                                        <View style={{
+                                            backgroundColor: attachment.status === 'APPROVED' ? colors.success + '15' :
+                                                attachment.status === 'REJECTED' ? colors.error + '15' : '#FF980015',
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 4,
+                                            borderRadius: 6,
+                                            alignSelf: 'flex-start',
+                                            marginTop: 8,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            gap: 4
+                                        }}>
+                                            <IconSymbol
+                                                name={attachment.status === 'APPROVED' ? 'checkmark.circle.fill' :
+                                                    attachment.status === 'REJECTED' ? 'xmark.circle.fill' : 'clock.fill'}
+                                                size={12}
+                                                color={attachment.status === 'APPROVED' ? colors.success :
+                                                    attachment.status === 'REJECTED' ? colors.error : '#FF9800'}
+                                            />
+                                            <ThemedText style={{
+                                                fontSize: 12,
+                                                color: attachment.status === 'APPROVED' ? colors.success :
+                                                    attachment.status === 'REJECTED' ? colors.error : '#FF9800',
+                                                fontWeight: '600'
+                                            }}>
+                                                {attachment.status === 'APPROVED' ? 'Onaylandı' :
+                                                    attachment.status === 'REJECTED' ? 'Reddedildi' : 'Onay Bekliyor'}
+                                            </ThemedText>
+                                        </View>
+                                    )}
+
+                                    {/* Shared Badge */}
+                                    {isShared && (
+                                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                                            <View style={{
+                                                backgroundColor: colors.primary + '15',
+                                                paddingHorizontal: 8,
+                                                paddingVertical: 4,
+                                                borderRadius: 6,
+                                                alignSelf: 'flex-start',
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                gap: 4
+                                            }}>
+                                                <IconSymbol name="person.2.fill" size={12} color={colors.primary} />
+                                                <ThemedText style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
+                                                    {i18n.t('folders.picker.shared_badge')}
+                                                </ThemedText>
+                                            </View>
+
+                                            {/* Permission Badge */}
+                                            <View style={{
+                                                backgroundColor: (attachment.permission && attachment.permission !== 'VIEW') ? colors.success + '15' : colors.textLight + '15',
+                                                paddingHorizontal: 8,
+                                                paddingVertical: 4,
+                                                borderRadius: 6,
+                                                alignSelf: 'flex-start'
+                                            }}>
+                                                <ThemedText style={{
+                                                    fontSize: 12,
+                                                    color: (attachment.permission && attachment.permission !== 'VIEW') ? colors.success : colors.textLight,
+                                                    fontWeight: '600'
+                                                }}>
+                                                    {(attachment.permission && attachment.permission !== 'VIEW')
+                                                        ? i18n.t('folders.picker.permissions.edit')
+                                                        : i18n.t('folders.picker.permissions.view')}
+                                                </ThemedText>
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+
+                            {/* Tags Component */}
+                            <AttachmentTags
+                                attachmentId={id!}
+                                onTagsUpdate={() => loadAttachment()} // Reload to refresh tags if needed, or handle locally
+                            />
+
+                            {/* Type-specific fields */}
+                            {renderTypeSpecificFields()}
+                        </View>
+
+                        {/* Actions */}
+                        <View style={styles.actionsContainer}>
+                            <TouchableOpacity
+                                style={styles.actionButton}
+                                onPress={() => {
+                                    if (files.length > 0 && files[0].url) {
+                                        Share.share({
+                                            url: files[0].url,
+                                            title: attachment.title,
+                                        });
+                                    } else {
+                                        Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.no_file'));
+                                    }
+                                }}
+                            >
+                                <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
+                                <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.actionButton,
+                                    (isShared && attachment.permission === 'VIEW') && { opacity: 0.5 }
+                                ]}
+                                onPress={() => {
+                                    if (isShared && attachment.permission === 'VIEW') {
+                                        Alert.alert(
+                                            i18n.t('common.error'),
+                                            i18n.t('receipts.detail.actions.error_permission')
+                                        );
+                                        return;
+                                    }
+                                    router.push(`/attachment/edit/${attachment.id}`);
+                                }}
+                            >
+                                <IconSymbol name="pencil" size={20} color={colors.primary} />
+                                <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.actionButton}
+                                onPress={() => setApprovalModalVisible(true)}
+                            >
+                                <IconSymbol name="paperplane.fill" size={20} color={colors.primary} />
+                                <ThemedText style={styles.actionText}>Onaya Gönder</ThemedText>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.actionButton,
+                                    styles.deleteButton,
+                                    (!isShared || attachment.permission === 'FULL') ? {} : { opacity: 0.5 }
+                                ]}
+                                onPress={() => {
+                                    if (isShared && attachment.permission !== 'FULL') {
+                                        Alert.alert(
+                                            i18n.t('common.error'),
+                                            i18n.t('receipts.detail.actions.error_permission')
+                                        );
+                                        return;
+                                    }
+                                    handleDelete();
+                                }}
+                                disabled={deleting}
+                            >
+                                {deleting ? (
+                                    <ActivityIndicator size="small" color={colors.error} />
+                                ) : (
+                                    <IconSymbol name="trash" size={20} color={colors.error} />
+                                )}
+                                <ThemedText style={[styles.actionText, styles.deleteText]}>{i18n.t('receipts.detail.actions.delete')}</ThemedText>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={{ height: 40 }} />
+                    </ScrollView>
+                )}
+
+                {activeTab === 'comments' && (
+                    <AttachmentComments attachmentId={id!} currentUserId={user?.id} />
+                )}
+
+                {activeTab === 'activity' && (
+                    <AttachmentActivity attachmentId={id!} />
+                )}
+
+                {activeTab === 'export' && (
+                    <AttachmentExport
+                        attachmentId={id!}
+                        fieldConfig={dynamicFields}
+                    />
+                )}
             </View>
 
             {/* Android Action Menu Modal */}
@@ -919,220 +1294,6 @@ export function AttachmentDetailScreen() {
                     />
                 </>
             )}
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* File Gallery */}
-                {files.length > 0 ? (
-                    <View style={styles.imageContainer}>
-                        {renderFilePreview(files[0], true)}
-                        {files.length > 1 && (
-                            <View style={styles.thumbnailRow}>
-                                {files.slice(1, 4).map((file, index) => (
-                                    <View key={index}>
-                                        {renderFilePreview(file, false)}
-                                    </View>
-                                ))}
-                                {files.length > 4 && (
-                                    <View style={styles.moreThumbnail}>
-                                        <ThemedText style={styles.moreText}>+{files.length - 4}</ThemedText>
-                                    </View>
-                                )}
-                            </View>
-                        )}
-                    </View>
-                ) : (
-                    <View style={styles.noImageContainer}>
-                        <IconSymbol name="photo" size={48} color={colors.textLight} />
-                        <ThemedText style={styles.noImageText}>{i18n.t('receipts.detail.actions.no_file')}</ThemedText>
-                    </View>
-                )}
-
-                {/* Title & Amount Card */}
-                <View style={styles.card}>
-                    <View style={styles.titleRow}>
-                        <View style={styles.iconBadge}>
-                            <IconSymbol
-                                name={getTypeIcon(attachment.attachmentTypeId) as any}
-                                size={24}
-                                color={colors.primary}
-                            />
-                        </View>
-                        <View style={styles.titleInfo}>
-                            <ThemedText type="title" style={styles.title}>{attachment.title}</ThemedText>
-                            <ThemedText style={styles.date}>{formatDate(attachment.documentDate)}</ThemedText>
-
-                            {/* Status Badge */}
-                            {attachment.status && (
-                                <View style={{
-                                    backgroundColor: attachment.status === 'APPROVED' ? colors.success + '15' : 
-                                                    attachment.status === 'REJECTED' ? colors.error + '15' : '#FF980015',
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 4,
-                                    borderRadius: 6,
-                                    alignSelf: 'flex-start',
-                                    marginTop: 8,
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    gap: 4
-                                }}>
-                                    <IconSymbol 
-                                        name={attachment.status === 'APPROVED' ? 'checkmark.circle.fill' : 
-                                              attachment.status === 'REJECTED' ? 'xmark.circle.fill' : 'clock.fill'} 
-                                        size={12} 
-                                        color={attachment.status === 'APPROVED' ? colors.success : 
-                                               attachment.status === 'REJECTED' ? colors.error : '#FF9800'} 
-                                    />
-                                    <ThemedText style={{
-                                        fontSize: 12,
-                                        color: attachment.status === 'APPROVED' ? colors.success : 
-                                               attachment.status === 'REJECTED' ? colors.error : '#FF9800',
-                                        fontWeight: '600'
-                                    }}>
-                                        {attachment.status === 'APPROVED' ? 'Onaylandı' : 
-                                         attachment.status === 'REJECTED' ? 'Reddedildi' : 'Onay Bekliyor'}
-                                    </ThemedText>
-                                </View>
-                            )}
-
-                            {/* Shared Badge */}
-                            {isShared && (
-                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                                    <View style={{
-                                        backgroundColor: colors.primary + '15',
-                                        paddingHorizontal: 8,
-                                        paddingVertical: 4,
-                                        borderRadius: 6,
-                                        alignSelf: 'flex-start',
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        gap: 4
-                                    }}>
-                                        <IconSymbol name="person.2.fill" size={12} color={colors.primary} />
-                                        <ThemedText style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
-                                            {i18n.t('folders.picker.shared_badge')}
-                                        </ThemedText>
-                                    </View>
-
-                                    {/* Permission Badge */}
-                                    <View style={{
-                                        backgroundColor: (attachment.permission && attachment.permission !== 'VIEW') ? colors.success + '15' : colors.textLight + '15',
-                                        paddingHorizontal: 8,
-                                        paddingVertical: 4,
-                                        borderRadius: 6,
-                                        alignSelf: 'flex-start'
-                                    }}>
-                                        <ThemedText style={{
-                                            fontSize: 12,
-                                            color: (attachment.permission && attachment.permission !== 'VIEW') ? colors.success : colors.textLight,
-                                            fontWeight: '600'
-                                        }}>
-                                            {(attachment.permission && attachment.permission !== 'VIEW')
-                                                ? i18n.t('folders.picker.permissions.edit')
-                                                : i18n.t('folders.picker.permissions.view')}
-                                        </ThemedText>
-                                    </View>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-
-
-
-                    {/* Type-specific fields */}
-                    {renderTypeSpecificFields()}
-                </View>
-
-                {/* Description Card - Hidden as requested */}
-                {/* 
-                {attachment.description && (
-                    <View style={styles.card}>
-                        ...
-                    </View>
-                )} 
-                */}
-
-                {/* Actions */}
-                <View style={styles.actionsContainer}>
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => {
-                            if (files.length > 0 && files[0].url) {
-                                Share.share({
-                                    url: files[0].url,
-                                    title: attachment.title,
-                                });
-                            } else {
-                                Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.no_file'));
-                            }
-                        }}
-                    >
-                        <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
-                        <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
-                    </TouchableOpacity>
-
-                    {/* Edit Button - Hide or Disable based on permissions */}
-                    {/* We can also just let it navigate and the EditScreen will block it, 
-                        but better UX is to alert or hide here. 
-                        Let's allow navigation but alert if permission is View-only? 
-                        Or just hide if view only? 
-                        User might want to see details. 
-                        Actually, let's just navigate. The EditScreen handles the check now. */}
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            (isShared && attachment.permission === 'VIEW') && { opacity: 0.5 }
-                        ]}
-                        onPress={() => {
-                            if (isShared && attachment.permission === 'VIEW') {
-                                Alert.alert(
-                                    i18n.t('common.error'),
-                                    i18n.t('receipts.detail.actions.error_permission')
-                                );
-                                return;
-                            }
-                            router.push(`/attachment/edit/${attachment.id}`);
-                        }}
-                    >
-                        <IconSymbol name="pencil" size={20} color={colors.primary} />
-                        <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => setApprovalModalVisible(true)}
-                    >
-                        <IconSymbol name="paperplane.fill" size={20} color={colors.primary} />
-                        <ThemedText style={styles.actionText}>Onaya Gönder</ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.actionButton,
-                            styles.deleteButton,
-                            (!isShared || attachment.permission === 'FULL') ? {} : { opacity: 0.5 }
-                        ]}
-                        onPress={() => {
-                            if (isShared && attachment.permission !== 'FULL') {
-                                Alert.alert(
-                                    i18n.t('common.error'),
-                                    i18n.t('receipts.detail.actions.error_permission')
-                                );
-                                return;
-                            }
-                            handleDelete();
-                        }}
-                        disabled={deleting}
-                    >
-                        {deleting ? (
-                            <ActivityIndicator size="small" color={colors.error} />
-                        ) : (
-                            <IconSymbol name="trash" size={20} color={colors.error} />
-                        )}
-                        <ThemedText style={[styles.actionText, styles.deleteText]}>{i18n.t('receipts.detail.actions.delete')}</ThemedText>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={{ height: 40 }} />
-            </ScrollView>
 
             <Modal
                 visible={approvalModalVisible}

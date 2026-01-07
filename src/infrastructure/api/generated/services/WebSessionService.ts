@@ -13,26 +13,30 @@ export class WebSessionService {
      * @throws ApiError
      */
     public static postWebQrGenerate(): CancelablePromise<{
-        /**
-         * Unique session ID
-         */
-        sessionId?: string;
-        /**
-         * Code embedded in QR
-         */
-        sessionCode?: string;
-        /**
-         * JSON data to encode in QR
-         */
-        qrData?: string;
-        /**
-         * QR expiration time
-         */
-        expiresAt?: string;
-        deviceInfo?: {
-            browser?: string;
-            os?: string;
-            deviceName?: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            /**
+             * Unique session ID
+             */
+            sessionId?: string;
+            /**
+             * Code embedded in QR
+             */
+            sessionCode?: string;
+            /**
+             * JSON data to encode in QR
+             */
+            qrData?: string;
+            /**
+             * QR expiration time
+             */
+            expiresAt?: string;
+            deviceInfo?: {
+                browser?: string;
+                os?: string;
+                deviceName?: string;
+            };
         };
     }> {
         return __request(OpenAPI, {
@@ -50,18 +54,22 @@ export class WebSessionService {
     public static getWebQrStatus(
         sessionCode: string,
     ): CancelablePromise<{
-        /**
-         * Current session status
-         */
-        status?: 'pending' | 'confirmed' | 'expired';
-        /**
-         * JWT token (only when confirmed)
-         */
-        token?: string;
-        /**
-         * User ID (only when confirmed)
-         */
-        userId?: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            /**
+             * Current session status
+             */
+            status?: 'pending' | 'confirmed' | 'expired';
+            /**
+             * JWT token (only when confirmed)
+             */
+            token?: string;
+            /**
+             * User ID (only when confirmed)
+             */
+            userId?: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -89,17 +97,21 @@ export class WebSessionService {
             sessionCode: string;
         },
     ): CancelablePromise<{
-        success?: boolean;
+        success: boolean;
         message?: string;
-        deviceInfo?: {
-            /**
-             * Web browser device name
-             */
-            deviceName?: string;
-            /**
-             * Web client IP address
-             */
-            ipAddress?: string;
+        data?: {
+            success?: boolean;
+            message?: string;
+            deviceInfo?: {
+                /**
+                 * Web browser device name
+                 */
+                deviceName?: string;
+                /**
+                 * Web client IP address
+                 */
+                ipAddress?: string;
+            };
         };
     }> {
         return __request(OpenAPI, {
@@ -120,40 +132,44 @@ export class WebSessionService {
      * @throws ApiError
      */
     public static getWebSessions(): CancelablePromise<{
-        sessions?: Array<{
-            /**
-             * Session ID
-             */
-            id?: string;
-            /**
-             * e.g., Chrome on Windows
-             */
-            deviceName?: string;
-            /**
-             * web or mobile
-             */
-            deviceType?: string;
-            /**
-             * Browser name
-             */
-            browser?: string;
-            /**
-             * Operating system
-             */
-            os?: string;
-            /**
-             * Client IP address
-             */
-            ipAddress?: string;
-            /**
-             * Last activity time
-             */
-            lastActiveAt?: string;
-            /**
-             * Session creation time
-             */
-            createdAt?: string;
-        }>;
+        success: boolean;
+        message?: string;
+        data?: {
+            sessions?: Array<{
+                /**
+                 * Session ID
+                 */
+                id?: string;
+                /**
+                 * e.g., Chrome on Windows
+                 */
+                deviceName?: string;
+                /**
+                 * web or mobile
+                 */
+                deviceType?: string;
+                /**
+                 * Browser name
+                 */
+                browser?: string;
+                /**
+                 * Operating system
+                 */
+                os?: string;
+                /**
+                 * Client IP address
+                 */
+                ipAddress?: string;
+                /**
+                 * Last activity time
+                 */
+                lastActiveAt?: string;
+                /**
+                 * Session creation time
+                 */
+                createdAt?: string;
+            }>;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -167,7 +183,11 @@ export class WebSessionService {
      * @throws ApiError
      */
     public static deleteWebSessionsCurrent(): CancelablePromise<{
+        success: boolean;
         message?: string;
+        data?: {
+            message?: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -184,11 +204,15 @@ export class WebSessionService {
     public static deleteWebSessions(
         sessionId: string,
     ): CancelablePromise<{
+        success: boolean;
         message?: string;
-        /**
-         * Revoked device name
-         */
-        deviceName?: string;
+        data?: {
+            message?: string;
+            /**
+             * Revoked device name
+             */
+            deviceName?: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -217,11 +241,15 @@ export class WebSessionService {
             exceptSessionId?: string;
         },
     ): CancelablePromise<{
+        success: boolean;
         message?: string;
-        /**
-         * Number of sessions revoked
-         */
-        count?: number;
+        data?: {
+            message?: string;
+            /**
+             * Number of sessions revoked
+             */
+            count?: number;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',

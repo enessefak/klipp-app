@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActionSheetIOS, Modal, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol, IconSymbolName } from '@/components/ui/icon-symbol';
@@ -132,9 +132,20 @@ const getAttachmentIcon = (attachment: Attachment, colors: ThemeColors): { icon:
 interface AttachmentCardProps {
     attachment: Attachment;
     onPress: () => void;
+    onMoveToFolder?: (attachment: Attachment) => void;
+    onEdit?: (attachment: Attachment) => void;
+    onDelete?: (attachment: Attachment) => void;
+    showMoreButton?: boolean;
 }
 
-export function AttachmentCard({ attachment, onPress }: AttachmentCardProps) {
+export function AttachmentCard({
+    attachment,
+    onPress,
+    onMoveToFolder,
+    onEdit,
+    onDelete,
+    showMoreButton = true,
+}: AttachmentCardProps) {
     const { colors } = useSettings();
     const { icon, color } = getAttachmentIcon(attachment, colors);
     const details = attachment.details || {};
@@ -142,6 +153,7 @@ export function AttachmentCard({ attachment, onPress }: AttachmentCardProps) {
     const currency = details.currency || '';
     const hasAmount = amount > 0 && !!currency;
     const importantInfo = getImportantFieldInfo(attachment, colors);
+    const [menuVisible, setMenuVisible] = useState(false);
 
     const styles = useMemo(() => StyleSheet.create({
         card: {
@@ -218,7 +230,96 @@ export function AttachmentCard({ attachment, onPress }: AttachmentCardProps) {
             fontSize: 12,
             fontWeight: '600',
         },
+        rightSection: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+        },
+        moreButton: {
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        // Menu modal styles
+        menuOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        menuContainer: {
+            backgroundColor: colors.card,
+            borderRadius: 12,
+            minWidth: 180,
+            overflow: 'hidden',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 8,
+        },
+        menuItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            gap: 12,
+        },
+        menuItemBorder: {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+        },
+        menuItemText: {
+            fontSize: 15,
+            color: colors.text,
+        },
+        menuItemTextDestructive: {
+            color: colors.error,
+        },
     }), [colors]);
+
+    const hasActions = onMoveToFolder || onEdit || onDelete;
+
+    const handleMorePress = () => {
+        if (Platform.OS === 'ios') {
+            const options = [
+                i18n.t('common.actions.cancel'),
+                i18n.t('attachments.actions.move_to_folder'),
+                i18n.t('attachments.actions.edit'),
+                i18n.t('attachments.actions.delete'),
+            ];
+
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options,
+                    cancelButtonIndex: 0,
+                    destructiveButtonIndex: 3,
+                },
+                (buttonIndex) => {
+                    switch (buttonIndex) {
+                        case 1:
+                            onMoveToFolder?.(attachment);
+                            break;
+                        case 2:
+                            onEdit?.(attachment);
+                            break;
+                        case 3:
+                            onDelete?.(attachment);
+                            break;
+                    }
+                }
+            );
+        } else {
+            setMenuVisible(true);
+        }
+    };
+
+    const handleMenuAction = (action: () => void) => {
+        setMenuVisible(false);
+        action();
+    };
 
     return (
         <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -261,7 +362,68 @@ export function AttachmentCard({ attachment, onPress }: AttachmentCardProps) {
                 </View>
             </View>
 
-            <IconSymbol name="chevron.right" size={16} color={colors.subtext} />
+            <View style={styles.rightSection}>
+                {showMoreButton && hasActions && (
+                    <TouchableOpacity
+                        style={styles.moreButton}
+                        onPress={handleMorePress}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <IconSymbol name="ellipsis" size={18} color={colors.gray} />
+                    </TouchableOpacity>
+                )}
+                <IconSymbol name="chevron.right" size={16} color={colors.subtext} />
+            </View>
+
+            {/* Android Menu Modal */}
+            <Modal
+                visible={menuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMenuVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+                    <View style={styles.menuOverlay}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.menuContainer}>
+                                {onMoveToFolder && (
+                                    <TouchableOpacity
+                                        style={[styles.menuItem, styles.menuItemBorder]}
+                                        onPress={() => handleMenuAction(() => onMoveToFolder(attachment))}
+                                    >
+                                        <IconSymbol name="folder" size={18} color={colors.text} />
+                                        <ThemedText style={styles.menuItemText}>
+                                            {i18n.t('attachments.actions.move_to_folder')}
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                )}
+                                {onEdit && (
+                                    <TouchableOpacity
+                                        style={[styles.menuItem, styles.menuItemBorder]}
+                                        onPress={() => handleMenuAction(() => onEdit(attachment))}
+                                    >
+                                        <IconSymbol name="pencil" size={18} color={colors.text} />
+                                        <ThemedText style={styles.menuItemText}>
+                                            {i18n.t('attachments.actions.edit')}
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                )}
+                                {onDelete && (
+                                    <TouchableOpacity
+                                        style={styles.menuItem}
+                                        onPress={() => handleMenuAction(() => onDelete(attachment))}
+                                    >
+                                        <IconSymbol name="trash" size={18} color={colors.error} />
+                                        <ThemedText style={[styles.menuItemText, styles.menuItemTextDestructive]}>
+                                            {i18n.t('attachments.actions.delete')}
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </TouchableOpacity>
     );
 }

@@ -2,7 +2,7 @@ import { OCRResult, OCRService } from '@/src/features/attachments/data/OCRServic
 import i18n from '@/src/infrastructure/localization/i18n';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
 // Conditionally import DocumentScanner
@@ -14,12 +14,15 @@ try {
 }
 
 export interface ScanResult {
-    fileUri: string | null;
+    id: string;
+    fileUri: string;
     fileType: 'image' | 'document';
     fileName: string | null;
     mimeType: string;
     ocrConfidence: number;
 }
+
+export const MAX_SCAN_FILES = 5;
 
 interface UseScanLogicProps {
     onOcrStart?: () => void;
@@ -28,57 +31,111 @@ interface UseScanLogicProps {
 }
 
 export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLogicProps = {}) {
-    // Scan/File state
-    const [fileUri, setFileUri] = useState<string | null>(null);
-    const [fileType, setFileType] = useState<'image' | 'document'>('image');
-    const [fileName, setFileName] = useState<string | null>(null);
-    const [mimeType, setMimeType] = useState<string>('image/jpeg');
-    const [ocrConfidence, setOcrConfidence] = useState(0);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    // Refs to hold latest callbacks to avoid stale closures during async OCR
+    const onOcrSuccessRef = useRef(onOcrSuccess);
+    const onOcrErrorRef = useRef(onOcrError);
+    const onOcrStartRef = useRef(onOcrStart);
 
-    // Helper to update local state and call handlers
-    const processFileWithOCR = async (uri: string, type: 'image' | 'document', mime: string, name: string | null = null) => {
-        setFileUri(uri);
-        setFileType(type);
-        setMimeType(mime);
-        setFileName(name);
+    // Update refs on every render
+    useEffect(() => {
+        onOcrSuccessRef.current = onOcrSuccess;
+        onOcrErrorRef.current = onOcrError;
+        onOcrStartRef.current = onOcrStart;
+    });
+
+    // Scan/File state
+    const [files, setFiles] = useState<ScanResult[]>([]);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analyzingPreviewUri, setAnalyzingPreviewUri] = useState<string | null>(null);
+    const filesRef = useRef<ScanResult[]>([]);
+    const hasPopulatedFromOcrRef = useRef(false);
+
+    useEffect(() => {
+        filesRef.current = files;
+    }, [files]);
+
+    type PendingFile = {
+        uri: string;
+        type: 'image' | 'document';
+        mimeType: string;
+        name?: string | null;
+    };
+
+    const addFilesAndAnalyze = async (incomingFiles: PendingFile[]) => {
+        const sanitized = incomingFiles.filter(file => !!file.uri);
+        if (sanitized.length === 0) return;
+
+        const availableSlots = MAX_SCAN_FILES - filesRef.current.length;
+        if (availableSlots <= 0 || sanitized.length > availableSlots) {
+            Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.file_limit_reached', { limit: MAX_SCAN_FILES }));
+            return;
+        }
+
+        const newEntries: ScanResult[] = sanitized.map(file => ({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            fileUri: file.uri,
+            fileType: file.type,
+            fileName: file.name ?? null,
+            mimeType: file.mimeType,
+            ocrConfidence: 0,
+        }));
+
+        const nextFiles = [...filesRef.current, ...newEntries];
+        filesRef.current = nextFiles;
+        setFiles(nextFiles);
+
+        const shouldPopulateFromOcr = !hasPopulatedFromOcrRef.current;
+        setAnalyzingPreviewUri(sanitized[0].uri);
         setIsAnalyzing(true);
 
-        onOcrStart?.();
+        onOcrStartRef.current?.();
 
         try {
-            // Call OCR Service
-            const ocrResult = await OCRService.scanDocument(uri, mime);
-            setOcrConfidence(ocrResult.confidence);
+            const ocrResult = await OCRService.scanDocument(
+                nextFiles.map(file => ({ uri: file.fileUri, mimeType: file.mimeType }))
+            );
 
-            const scanResult: ScanResult = {
-                fileUri: uri,
-                fileType: type,
-                fileName: name,
-                mimeType: mime,
-                ocrConfidence: ocrResult.confidence,
-            };
+            setFiles(prev => prev.map((file, index) =>
+                index === 0 ? { ...file, ocrConfidence: ocrResult.confidence } : file
+            ));
 
-            onOcrSuccess?.(ocrResult, scanResult);
+            if (shouldPopulateFromOcr && nextFiles.length > 0) {
+                hasPopulatedFromOcrRef.current = true;
+                onOcrSuccessRef.current?.(ocrResult, nextFiles[0]);
+            }
         } catch (error) {
             console.error('OCR Process failed:', error);
-            onOcrError?.(error);
+            onOcrErrorRef.current?.(error);
         } finally {
             setIsAnalyzing(false);
+            setAnalyzingPreviewUri(null);
         }
     };
 
     // 1. Pick Image from Gallery
     const pickImage = async () => {
         try {
+            if (filesRef.current.length >= MAX_SCAN_FILES) {
+                Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.file_limit_reached', { limit: MAX_SCAN_FILES }));
+                return;
+            }
+
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: false,
                 quality: 1,
+                allowsMultipleSelection: true,
             });
 
             if (!result.canceled) {
-                await processFileWithOCR(result.assets[0].uri, 'image', 'image/jpeg');
+                const assets = result.assets || [];
+                const pending = assets.map(asset => ({
+                    uri: asset.uri,
+                    type: 'image' as const,
+                    mimeType: asset.mimeType || 'image/jpeg',
+                    name: (asset as any)?.fileName || (asset as any)?.filename || null,
+                }));
+                await addFilesAndAnalyze(pending);
             }
         } catch (error) {
             console.error('Gallery pick failed:', error);
@@ -100,8 +157,13 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
                 quality: 1,
             });
 
-            if (!result.canceled) {
-                await processFileWithOCR(result.assets[0].uri, 'image', 'image/jpeg');
+                if (!result.canceled && result.assets?.length) {
+                await addFilesAndAnalyze([{
+                        uri: result.assets[0].uri,
+                    type: 'image',
+                    mimeType: 'image/jpeg',
+                    name: (result.assets[0] as any)?.fileName || (result.assets[0] as any)?.filename || null,
+                }]);
             }
         } catch (error) {
             console.error('Camera capture failed:', error);
@@ -126,7 +188,17 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
             });
 
             if (result.scannedImages && result.scannedImages.length > 0) {
-                await processFileWithOCR(result.scannedImages[0], 'image', 'image/jpeg');
+                if (result.scannedImages.length + filesRef.current.length > MAX_SCAN_FILES) {
+                    Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.file_limit_reached', { limit: MAX_SCAN_FILES }));
+                    return;
+                }
+
+                const payload = result.scannedImages.map((imageUri: string) => ({
+                    uri: imageUri,
+                    type: 'image' as const,
+                    mimeType: 'image/jpeg',
+                }));
+                await addFilesAndAnalyze(payload);
             }
         } catch (error) {
             console.error('Document scan failed:', error);
@@ -141,13 +213,22 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
             const result = await DocumentPicker.getDocumentAsync({
                 type: ['application/pdf'],
                 copyToCacheDirectory: true,
+                multiple: true,
             });
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
-                const asset = result.assets[0];
-                const mime = asset.mimeType || 'application/pdf';
+                const payload = result.assets.map(asset => ({
+                    uri: asset.uri,
+                    type: 'document' as const,
+                    mimeType: asset.mimeType || 'application/pdf',
+                    name: asset.name,
+                }));
+                if (payload.length + filesRef.current.length > MAX_SCAN_FILES) {
+                    Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.file_limit_reached', { limit: MAX_SCAN_FILES }));
+                    return;
+                }
 
-                await processFileWithOCR(asset.uri, 'document', mime, asset.name);
+                await addFilesAndAnalyze(payload);
             }
         } catch (error) {
             console.error('Document pick failed:', error);
@@ -157,13 +238,26 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
     };
 
     const resetScan = () => {
-        setFileUri(null);
-        setFileType('image');
-        setFileName(null);
-        setMimeType('image/jpeg');
-        setOcrConfidence(0);
+        setFiles([]);
         setIsAnalyzing(false);
+        setAnalyzingPreviewUri(null);
+        hasPopulatedFromOcrRef.current = false;
+        filesRef.current = [];
     };
+
+    const removeFile = (id: string) => {
+        setFiles(prev => {
+            const next = prev.filter(file => file.id !== id);
+            if (next.length === 0) {
+                hasPopulatedFromOcrRef.current = false;
+            }
+            filesRef.current = next;
+            return next;
+        });
+    };
+
+    const primaryFile = files[0] ?? null;
+    const latestFile = files[files.length - 1] ?? null;
 
     return {
         // Methods
@@ -172,13 +266,15 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
         scanDocument,
         pickDocument,
         resetScan,
+        removeFile,
 
         // State
-        fileUri,
-        fileType,
-        fileName,
-        mimeType,
-        ocrConfidence,
+        files,
+        primaryFile,
+        latestFile,
         isAnalyzing,
+        analyzingPreviewUri,
+        canAddMore: files.length < MAX_SCAN_FILES,
+        maxFiles: MAX_SCAN_FILES,
     };
 }

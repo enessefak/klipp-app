@@ -20,23 +20,27 @@ export class FolderSharingService {
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
         },
     ): CancelablePromise<{
-        id: string;
-        folderId: string;
-        folderName: string;
-        sharedBy: {
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
-            name: string;
-            email: string;
+            folderId: string;
+            folderName: string;
+            sharedBy: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            sharedWith: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            status: 'pending' | 'accepted' | 'rejected';
+            createdAt: string;
+            updatedAt: string;
         };
-        sharedWith: {
-            id: string;
-            name: string;
-            email: string;
-        };
-        permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        status: 'pending' | 'accepted' | 'rejected';
-        createdAt: string;
-        updatedAt: string;
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -65,24 +69,28 @@ export class FolderSharingService {
         limit?: number,
         search?: string,
     ): CancelablePromise<{
-        items: Array<{
-            id: string;
-            name: string;
-            icon: string | null;
-            color: string | null;
-            permission: string;
-            status: string;
-            owner: {
+        success: boolean;
+        message?: string;
+        data?: {
+            items: Array<{
                 id: string;
-                name: string | null;
-                email: string;
-            };
-            shareId: string;
-            attachmentCount: number;
-            createdAt: string;
-        }>;
-        hasMore: boolean;
-        nextCursor: string | null;
+                name: string;
+                icon: string | null;
+                color: string | null;
+                permission: string;
+                status: string;
+                owner: {
+                    id: string;
+                    name: string | null;
+                    email: string;
+                };
+                shareId: string;
+                attachmentCount: number;
+                createdAt: string;
+            }>;
+            hasMore: boolean;
+            nextCursor: string | null;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -109,27 +117,31 @@ export class FolderSharingService {
         limit?: number,
         search?: string,
     ): CancelablePromise<{
-        items: Array<{
-            id: string;
-            folderId: string;
-            folderName: string;
-            sharedBy: {
+        success: boolean;
+        message?: string;
+        data?: {
+            items: Array<{
                 id: string;
-                name: string | null;
-                email: string;
-            };
-            sharedWith: {
-                id: string;
-                name: string | null;
-                email: string;
-            };
-            permission: string;
-            status: string;
-            createdAt: string;
-            updatedAt: string;
-        }>;
-        hasMore: boolean;
-        nextCursor: string | null;
+                folderId: string;
+                folderName: string;
+                sharedBy: {
+                    id: string;
+                    name: string | null;
+                    email: string;
+                };
+                sharedWith: {
+                    id: string;
+                    name: string | null;
+                    email: string;
+                };
+                permission: string;
+                status: string;
+                createdAt: string;
+                updatedAt: string;
+            }>;
+            hasMore: boolean;
+            nextCursor: string | null;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -148,7 +160,11 @@ export class FolderSharingService {
      * @throws ApiError
      */
     public static getFolderSharesPendingCount(): CancelablePromise<{
-        count: number;
+        success: boolean;
+        message?: string;
+        data?: {
+            count: number;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -164,25 +180,29 @@ export class FolderSharingService {
      */
     public static getFolderSharesFolder(
         folderId: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        folderId: string;
-        folderName: string;
-        sharedBy: {
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
             id: string;
-            name: string;
-            email: string;
-        };
-        sharedWith: {
-            id: string;
-            name: string;
-            email: string;
-        };
-        permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        status: 'pending' | 'accepted' | 'rejected';
-        createdAt: string;
-        updatedAt: string;
-    }>> {
+            folderId: string;
+            folderName: string;
+            sharedBy: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            sharedWith: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            status: 'pending' | 'accepted' | 'rejected';
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/folder-shares/folder/{folderId}',
@@ -208,23 +228,27 @@ export class FolderSharingService {
             status: 'accepted' | 'rejected';
         },
     ): CancelablePromise<{
-        id: string;
-        folderId: string;
-        folderName: string;
-        sharedBy: {
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
-            name: string;
-            email: string;
+            folderId: string;
+            folderName: string;
+            sharedBy: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            sharedWith: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            status: 'pending' | 'accepted' | 'rejected';
+            createdAt: string;
+            updatedAt: string;
         };
-        sharedWith: {
-            id: string;
-            name: string;
-            email: string;
-        };
-        permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        status: 'pending' | 'accepted' | 'rejected';
-        createdAt: string;
-        updatedAt: string;
     }> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -255,23 +279,27 @@ export class FolderSharingService {
             status?: 'pending' | 'accepted' | 'rejected';
         },
     ): CancelablePromise<{
-        id: string;
-        folderId: string;
-        folderName: string;
-        sharedBy: {
+        success: boolean;
+        message?: string;
+        data?: {
             id: string;
-            name: string;
-            email: string;
+            folderId: string;
+            folderName: string;
+            sharedBy: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            sharedWith: {
+                id: string;
+                name: string;
+                email: string;
+            };
+            permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            status: 'pending' | 'accepted' | 'rejected';
+            createdAt: string;
+            updatedAt: string;
         };
-        sharedWith: {
-            id: string;
-            name: string;
-            email: string;
-        };
-        permission: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
-        status: 'pending' | 'accepted' | 'rejected';
-        createdAt: string;
-        updatedAt: string;
     }> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -296,7 +324,11 @@ export class FolderSharingService {
     public static deleteFolderShares(
         shareId: string,
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            message: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',

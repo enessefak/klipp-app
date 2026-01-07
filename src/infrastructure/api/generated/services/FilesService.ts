@@ -19,8 +19,12 @@ export class FilesService {
             contentType: string;
         },
     ): CancelablePromise<{
-        uploadUrl: string;
-        key: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            uploadUrl: string;
+            key: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -45,11 +49,15 @@ export class FilesService {
             key: string;
         },
     ): CancelablePromise<{
-        id: string;
-        attachmentId: string;
-        key: string;
-        viewUrl: string;
-        createdAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            attachmentId: string;
+            key: string;
+            viewUrl: string;
+            createdAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -72,14 +80,18 @@ export class FilesService {
      */
     public static getFilesAttachment(
         attachmentId: string,
-    ): CancelablePromise<Array<{
-        id: string;
-        attachmentId: string;
-        viewUrl: string;
-        filename: string;
-        contentType?: string;
-        createdAt: string;
-    }>> {
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
+            id: string;
+            attachmentId: string;
+            viewUrl: string;
+            filename: string;
+            contentType?: string;
+            createdAt: string;
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/files/attachment/{attachmentId}',
@@ -145,7 +157,11 @@ export class FilesService {
     public static deleteFiles(
         fileId: string,
     ): CancelablePromise<{
-        message: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            message: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'DELETE',

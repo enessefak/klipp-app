@@ -18,8 +18,8 @@ export const RevenueCatProvider = ({ children }: { children: React.ReactNode }) 
 
     useEffect(() => {
         const init = async () => {
-            Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-            
+            Purchases.setLogLevel(LOG_LEVEL.WARN);
+
             // Configure with the same key for both platforms as requested, 
             // or usually you'd have different keys for iOS/Android.
             // The user provided one key, assuming it's for the current platform or a universal one if that existed (it doesn't usually).

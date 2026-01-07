@@ -5,36 +5,35 @@
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class SubscriptionService {
+export class DevService {
     /**
-     * Doğrulama ve abonelik güncelleme
+     * Get development token
+     * Generates a JWT token for testing purposes. Only available in non-production environments.
      * @param requestBody
      * @returns any Default Response
      * @throws ApiError
      */
-    public static postSubscriptionVerify(
-        requestBody?: {
-            forceSync?: boolean;
+    public static postDevToken(
+        requestBody: {
+            email: string;
         },
     ): CancelablePromise<{
         success: boolean;
         message?: string;
         data?: {
-            isValid: boolean;
-            status: string;
-            planId: string | null;
-            provider: string | null;
-            subscriptionEndDate: string | null;
+            token: string;
+            user: {
+                id: string;
+                email: string;
+                name: string | null;
+            };
         };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/subscription/verify',
+            url: '/dev/token',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Default Response`,
-            },
         });
     }
 }

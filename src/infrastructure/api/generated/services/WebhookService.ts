@@ -79,4 +79,30 @@ export class WebhookService {
             },
         });
     }
+    /**
+     * Handle inbound email from Cloudflare
+     * Receives email sender and R2 attachment paths to create attachments in user Inbox.
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postInboundEmail(
+        requestBody?: {
+            sender?: string;
+            subject?: string;
+            files?: Array<{
+                key?: string;
+                filename?: string;
+                contentType?: string;
+                size?: number;
+            }>;
+        },
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/inbound-email/',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
 }

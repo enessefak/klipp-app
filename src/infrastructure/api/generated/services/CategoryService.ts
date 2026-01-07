@@ -11,14 +11,18 @@ export class CategoryService {
      * @returns any Default Response
      * @throws ApiError
      */
-    public static getCategories(): CancelablePromise<Array<{
-        id: string;
-        name: string;
-        accountCode?: string | null;
-        userId: string;
-        createdAt: string;
-        updatedAt: string;
-    }>> {
+    public static getCategories(): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
+            id: string;
+            name: string;
+            accountCode?: string | null;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/categories/',
@@ -32,16 +36,26 @@ export class CategoryService {
      */
     public static postCategories(
         requestBody: {
+            /**
+             * Kategori adı
+             */
             name: string;
+            /**
+             * Muhasebe hesap kodu (örn: 770.01.001)
+             */
             accountCode?: string;
         },
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        accountCode?: string | null;
-        userId: string;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            accountCode?: string | null;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -62,18 +76,25 @@ export class CategoryService {
     public static getCategories1(
         id: string,
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        accountCode?: string | null;
-        userId: string;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            accountCode?: string | null;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/categories/{id}',
             path: {
                 'id': id,
+            },
+            errors: {
+                404: `Default Response`,
             },
         });
     }
@@ -87,16 +108,26 @@ export class CategoryService {
     public static putCategories(
         id: string,
         requestBody?: {
+            /**
+             * Kategori adı
+             */
             name?: string;
+            /**
+             * Muhasebe hesap kodu (örn: 770.01.001)
+             */
             accountCode?: string;
         },
     ): CancelablePromise<{
-        id: string;
-        name: string;
-        accountCode?: string | null;
-        userId: string;
-        createdAt: string;
-        updatedAt: string;
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            accountCode?: string | null;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'PUT',
@@ -114,17 +145,24 @@ export class CategoryService {
     /**
      * Delete category
      * @param id
-     * @returns void
+     * @returns any Default Response
      * @throws ApiError
      */
     public static deleteCategories(
         id: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: null;
+    }> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/categories/{id}',
             path: {
                 'id': id,
+            },
+            errors: {
+                404: `Default Response`,
             },
         });
     }
