@@ -14,6 +14,13 @@ export interface Attachment {
     rejectionReason?: string | null;
     isOwner?: boolean;
     permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+    permissions?: {
+        canEdit: boolean;
+        canDelete: boolean;
+        canApprove: boolean;
+        canRequestApproval: boolean;
+    };
+
     createdAt: string; // ISO 8601 date-time
     updatedAt: string; // ISO 8601 date-time
 }

@@ -3,6 +3,48 @@ export const tr = {
         empty: 'Henüz belge yok',
         emptyDesc: 'İlk belgenizi eklemek için tarama butonuna dokunun.',
     },
+    manualRecord: {
+        title: 'Manuel Kayıt',
+        folder: 'Klasör',
+        selectFolder: 'Klasör Seçin',
+        documentName: 'Belge Adı',
+        documentNamePlaceholder: 'Örn: Fatura, Sözleşme...',
+        documentDate: 'Belge Tarihi',
+        documentType: 'Belge Türü',
+        selectType: 'Belge Türü Seçin',
+        titleRequired: 'Belge adı gereklidir',
+        folderRequired: 'Klasör seçimi gereklidir',
+        typeRequired: 'Belge türü seçimi gereklidir',
+        created: 'Belge başarıyla oluşturuldu',
+        basicInfo: 'Temel Bilgiler',
+    },
+    addMenu: {
+        title: 'Yeni Ekle',
+        scanUpload: 'Tara / Yükle',
+        scanUploadDesc: 'Belge tarayın veya galeriden yükleyin',
+        manualRecord: 'Manuel Kayıt',
+        manualRecordDesc: 'Fiziksel belge için kayıt oluşturun',
+        createInvoice: 'Fatura Oluştur',
+        createInvoiceDesc: 'Yeni e-fatura oluşturun',
+        import: 'İçe Aktar',
+        importDesc: 'E-Fatura dosyası içe aktarın (XML, PDF)',
+    },
+    eInvoice: {
+        import: {
+            title: 'E-Fatura İçe Aktar',
+            description: 'Fatura dosyanızı yükleyin. Otomatik format algılama veya manuel seçim yapabilirsiniz.',
+            folder: 'Klasör',
+            selectFolder: 'Klasör Seçin',
+            selectFolderAndFile: 'Lütfen klasör ve dosya seçin',
+            autoDetect: 'Otomatik Format Tespiti',
+            selectFormat: 'Format Seçin',
+            file: 'Dosya',
+            dropFile: 'Dosya seçmek için dokunun',
+            action: 'İçe Aktar',
+            success: 'E-Fatura başarıyla içe aktarıldı',
+            error: 'E-Fatura içe aktarılırken hata oluştu',
+        },
+    },
     validation: {
         required: 'Bu alan zorunludur',
         invalidEmail: 'Geçersiz e-posta adresi',
@@ -48,6 +90,8 @@ export const tr = {
     common: {
         appName: 'Klipp',
         search: "Ara",
+        fullName: 'Ad Soyad',
+        errorOccurred: 'Bir hata oluştu',
         success: 'Başarılı',
         actions: {
             cancel: 'İptal',
@@ -55,6 +99,7 @@ export const tr = {
             delete: 'Sil',
             edit: 'Düzenle',
             back: 'Geri',
+            next: 'İleri',
             ok: 'Tamam',
             success: 'Başarılı',
             saved: 'Başarıyla kaydedildi',
@@ -64,6 +109,9 @@ export const tr = {
             grant_permission: 'İzin Ver',
             select_date: 'Tarih Seç',
             download: 'İndir',
+            create: 'Oluştur',
+            add: 'Ekle',
+            tapToView: 'Görüntülemek için dokunun',
         },
         units: {
             day: 'Gün',
@@ -85,6 +133,22 @@ export const tr = {
             december: 'Aralık',
         },
         error: 'Hata',
+        missing: 'Eksik',
+        export_missing_company_info_desc: "Bu formatta dışa aktarmak için aşağıdaki profil bilgilerini tamamlamanız gerekmektedir:",
+        export_company_info: {
+            title: 'Fatura Bilgisi Gerekli',
+            use_profile_title: 'Profil Bilgisi Kullanılsın mı?',
+            use_profile_message: 'Seçtiğiniz formatta (E-Fatura/UBL) belge oluşturabilmek için fatura bilgileri gereklidir. Bu klasörde bilgi bulunamadı, profilinizdeki bilgiler kullanılsın mı?',
+            missing_title: 'Fatura Bilgileri Eksik',
+            missing_message: 'Seçtiğiniz formatta (E-Fatura/UBL) belge oluşturabilmek için Vergi No ve Adres bilgileri zorunludur. Lütfen bu bilgileri ekleyerek tekrar deneyin.',
+            add_to_folder: 'Klasöre Tanımla',
+            use_profile: 'Profilimi Kullan',
+            use_folder: 'Klasör Bilgisini Kullan',
+            multiple_sources_title: 'Fatura Bilgisi Seçimi',
+            multiple_sources_message: 'Hem klasör ayarlarında hem de profilinizde fatura bilgisi bulundu. Bu fatura için hangisini kullanmak istersiniz?',
+            cancel: 'İptal',
+            go_to_profile: 'Profilime Ekle',
+        },
     },
     receipts: {
         home: {
@@ -179,6 +243,7 @@ export const tr = {
                 camera: 'Kamera',
                 gallery: 'Galeri',
                 document: 'Dosyalar',
+                file: 'Dosya',
             },
             analyzing: {
                 title: 'Belge analiz ediliyor...',
@@ -248,18 +313,33 @@ export const tr = {
                 hint: '{{remaining}} hak kaldı'
             }
         },
-        card: {
-            date: 'Tarih: %{date}',
-        }
     },
     folders: {
-        title: 'Klasörler',
+        titles: {
+            create: 'Yeni Klasör',
+            edit: 'Klasörü Düzenle'
+        },
+        title: 'Alt Klasörler',
         subtitle: 'Fişlerinizi klasörler içinde düzenleyin.',
         create: 'Yeni Klasör Oluştur',
+        createFolder: 'Klasör Oluştur',
+        createPersonnelFile: 'Personel Dosyası Oluştur',
+        createPersonnelFileDesc: 'Bu, personel kayıtları için standart bir klasör yapısı oluşturacaktır (Kimlik, Sağlık, Eğitim vb.).',
+        personnelFileCreated: 'Personel dosyası başarıyla oluşturuldu',
+        add: 'Ekle',
         empty: 'Henüz klasör yok',
+        emptyState: {
+            title: 'Klasörler ile Düzenlemeye Başlayın',
+            description: 'Klasörler, belgelerinizi organize etmenin temel taşıdır. Hiyerarşik yapılar oluşturabilir, çalışma arkadaşlarınızla paylaşım yapabilir, gizlilik ayarlarını yönetebilir ve belgelerinizi kategorize edebilirsiniz. İlk klasörünüzü oluşturarak düzenli bir yapıya adım atın.',
+            action: 'İlk Klasörü Oluştur'
+        },
         namePlaceholder: 'Klasör Adı',
         save: 'Oluştur',
         cancel: 'İptal',
+        fab: {
+            create_subfolder: 'Alt Klasör Oluştur',
+            scan_document: 'Belge Tara',
+        },
         picker: {
             placeholder: 'Klasör Seçin',
             modal_title: 'Klasör Seç',
@@ -299,6 +379,7 @@ export const tr = {
             person_count_one: 'kişi',
             pending_count: 'bekliyor',
             empty: 'Henüz kimseyle paylaşılmadı',
+            shared_with_me_empty: 'Sizinle paylaşılan klasör yok',
             add_person: 'Kişi Ekle',
             shared_with_you: 'Sizinle Paylaşılanlar',
             tabs: {
@@ -340,6 +421,32 @@ export const tr = {
             edit: 'Düzenle',
             delete: 'Sil',
         },
+        settings: {
+            title: 'Klasör Ayarları',
+            doc_types_title: 'Belge Türlerini Kısıtla',
+            doc_types_desc: 'Bu klasöre sadece seçili belge türleri eklenebilir.',
+            transaction_types: 'İşlem Türleri',
+            requires_approval: 'Onay Gerektir',
+            requires_approval_desc: 'Bu klasöre yüklenen belgeler onay gerektirsin.',
+            is_confidential: 'Gizli Klasör',
+            is_confidential_desc: 'Bu klasördeki dosyaları yalnızca oluşturan kişi ve yöneticiler görebilir.',
+            type_restriction: 'Tür Kısıtlaması',
+            select_icon: 'İkon Seç',
+            select_color: 'Renk Seç',
+            restrictions: 'Kısıtlamalar',
+        },
+        fields: {
+            nameLabel: 'Klasör Adı',
+            namePlaceholder: 'Klasör adı girin',
+        },
+        efatura: {
+            title: 'Fatura Bilgileri',
+            tab_title: 'Fatura Bilgileri',
+            settings_tab_title: 'Ayarlar',
+            not_created_warning: 'Fatura ayarlarını yapmak için önce klasörü oluşturmalısınız.',
+            save_warning: 'Fatura bilgileri klasör kaydedildiğinde güncellenecektir.',
+            active: 'E-Fatura Aktif'
+        }
     },
     sharing: {
         modal: {
@@ -395,10 +502,24 @@ export const tr = {
         years_left: '{{count}} yıl kaldı',
     },
     attachments: {
+        addFile: 'Dosya Ekle',
+        list_title: 'Belgeler',
         actions: {
             move_to_folder: 'Klasöre Taşı',
             edit: 'Düzenle',
             delete: 'Sil',
+        },
+        items: {
+            title: 'Harcama/İşlem Listesi',
+            description: 'Açıklama',
+            quantity: 'Adet',
+            unitPrice: 'Birim Fiyat',
+            totalAmount: 'Tutar',
+            vat: 'KDV',
+            vatAmount: 'KDV Tutarı',
+            totalAmountInc: 'KDV Dahil Toplam',
+            unitCode: 'Birim',
+            discountAmount: 'İskonto',
         },
     },
     notification: {
@@ -429,6 +550,7 @@ export const tr = {
     },
     profile: {
         title: 'Profil',
+        updateSuccess: 'Profil başarıyla güncellendi!',
         name: 'Kullanıcı',
         email: 'user@example.com',
         settings: {
@@ -487,8 +609,12 @@ export const tr = {
                 taxOffice: 'Vergi Dairesi',
                 address: 'Adres',
                 city: 'İl',
+                country: 'Ülke',
                 subdivision: 'İlçe',
                 phone: 'Telefon',
+                pkLabel: 'PK Etiketi',
+                invoicePrefix: 'Fatura Öneki',
+                lastInvoiceNumber: 'Son Fatura No',
             },
             placeholders: {
                 name: 'Örnek A.Ş.',
@@ -496,12 +622,27 @@ export const tr = {
                 taxOffice: 'Maslak VD',
                 address: 'Cadde, sokak, bina...',
                 city: 'İstanbul',
+                country: 'Ülke',
                 subdivision: 'Beşiktaş',
                 phone: '+90 5XX XXX XX XX',
             },
             save: 'Bilgileri Kaydet',
             success: 'Fatura bilgileri güncellendi.',
             error: 'Bilgiler güncellenemedi.',
+        },
+        dashboard: {
+            title: 'Özet',
+            stats: {
+                folders: 'Klasörler',
+                foldersDesc: '{{shared}} paylaşılan',
+                attachments: 'Belgeler',
+                attachmentsDesc: 'Toplam belge',
+                pending: 'Bekleyen',
+                pendingDesc: 'Onay bekleyen',
+                shares: 'Paylaşımlar',
+                sharesDesc: 'Aktif paylaşım',
+            },
+            recentActivity: 'Son Hareketler',
         }
     },
     scan_qr: {
@@ -586,6 +727,12 @@ export const tr = {
         comments: 'Yorumlar',
         activity: 'Geçmiş',
         export: 'Dışa Aktar',
+        // Navigation tabs
+        folders: 'Klasörler',
+        categories: 'Kategoriler',
+        documents: 'Belgeler',
+        profile: 'Profil',
+        home: 'Ana Sayfa',
     },
     writeComment: 'Yorum yaz...',
     viewAllComments: 'Tüm yorumları gör',
@@ -595,7 +742,7 @@ export const tr = {
     addTag: 'Etiket Ekle',
     folderTabs: {
         myFolders: 'Klasörlerim',
-        shared: 'Paylaşılanlar',
+        shared: 'Paylaşımlar',
         inbox: 'Gelen Kutusu',
     },
     inbox: {
@@ -611,4 +758,89 @@ export const tr = {
         empty_title: 'Gelen kutusu boş',
         empty_subtitle: 'Belgeleri inbox@klipphq.com adresine gönderin',
     },
+    groups: {
+        title: 'Gruplar',
+        subtitle: 'Gruplarınızı yönetin ve üyeler ekleyin',
+        empty: 'Henüz grubunuz yok',
+        create: 'Grup Oluştur',
+        createTitle: 'Grup Oluştur',
+        namePlaceholder: 'Grup Adı',
+        name_placeholder: 'Grup Adı', // Keep for backward compatibility if needed
+        createPlaceholder: 'Örn. Muhasebe Ekibi',
+        members: 'Üyeler',
+        member_count: '{{count}} üye',
+        add_member: 'Üye Ekle',
+        add_member_title: 'Üye Ekle',
+        delete_title: 'Grubu Sil',
+        delete_message: 'Bu grubu silmek istediğinize emin misiniz?',
+        delete_success: 'Grup silindi',
+        member_email_placeholder: 'Üye E-posta',
+        add_member_error: 'Üye eklenemedi',
+        remove_member_confirm: 'Üyeyi Çıkar',
+        remove_member_message: 'Bu üyeyi gruptan çıkarmak istediğinize emin misiniz?',
+        save: 'Kaydet',
+        cancel: 'İptal',
+        error_load: 'Gruplar yüklenirken bir hata oluştu',
+        error_create: 'Grup oluşturulamadı',
+    },
+    folder_settings: {
+        requires_approval: 'Onay Gerektirsin',
+        is_confidential: 'Gizli Klasör',
+        allowed_transaction_types: 'İzin Verilen İşlemler',
+        transaction_types: {
+            income: 'Gelir',
+            expense: 'Gider'
+        },
+        settings: 'Ayarlar'
+    },
+    approval: {
+        request_button: 'Onaya Gönder',
+        approve_button: 'Onayla',
+        reject_button: 'Reddet',
+        request_modal_title: 'Onaya Gönder',
+        reviewer_email: 'Yöneticinin E-posta Adresi',
+        reviewer_placeholder: 'yonetici@sirket.com',
+        send: 'Gönder',
+        success_request: 'Onay isteği gönderildi',
+        error_request: 'Onay isteği gönderilemedi',
+        success_approve: 'Belge onaylandı',
+        success_reject: 'Belge reddedildi',
+        reject_modal_title: 'Reddetme Sebebi',
+        reject_placeholder: 'Sebebi açıklayın...',
+        status_approved: 'Onaylandı',
+        status_rejected: 'Reddedildi',
+        status_pending: 'Onay Bekliyor',
+        confirm_approve_title: 'Onayla',
+        confirm_approve_message: 'Bu belgeyi onaylamak istiyor musunuz?',
+        error_email: 'Geçerli bir e-posta adresi giriniz',
+        error_reject_reason: 'Lütfen reddetme sebebi giriniz',
+        error_approve: 'Belge onaylanırken bir hata oluştu',
+        error_reject: 'Belge reddedilirken bir hata oluştu',
+    },
+    categories: {
+        title: 'Kategoriler',
+        create_title: 'Yeni Kategori',
+        edit_title: 'Kategori Düzenle',
+        empty: 'Henüz kategori yok',
+        fields: {
+            name: 'Kategori Adı',
+            account_code: 'Hesap Kodu (Opsiyonel)',
+        },
+        placeholders: {
+            name: 'Örn: Ofis Giderleri',
+            account_code: 'Örn: 770.01.001',
+        },
+        messages: {
+            create_success: 'Kategori başarıyla oluşturuldu.',
+            create_error: 'Kategori oluşturulamadı.',
+            update_success: 'Kategori güncellendi.',
+            update_error: 'Kategori güncellenemedi.',
+            delete_confirm_title: 'Kategoriyi Sil',
+            delete_confirm_message: 'Bu kategoriyi silmek istediğinize emin misiniz?',
+            delete_success: 'Kategori silindi.',
+            delete_error: 'Kategori silinemedi.',
+            load_error: 'Kategori yüklenemedi.',
+        }
+    }
 };
+

@@ -10,9 +10,11 @@ import i18n from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
+import { ImportEInvoiceModal } from '@/src/features/e-invoices/presentation/components/ImportEInvoiceModal';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { AttachmentRepository } from '../../data/AttachmentRepository';
 import { Attachment, AttachmentFilters } from '../../domain/Attachment';
+import { AddMenuSheet } from '../components/AddMenuSheet';
 import { AttachmentCard } from '../components/AttachmentCard';
 import { FilterBottomSheet } from '../components/FilterBottomSheet';
 
@@ -33,6 +35,8 @@ export function HomeScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filters, setFilters] = useState<AttachmentFilters>({});
     const [showFilterSheet, setShowFilterSheet] = useState(false);
+    const [showAddMenu, setShowAddMenu] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Count active filters (excluding search)
     const activeFilterCount = useMemo(() => {
@@ -125,6 +129,22 @@ export function HomeScreen() {
         loadingMore: {
             paddingVertical: 16,
             alignItems: 'center',
+        },
+        fab: {
+            position: 'absolute',
+            bottom: 100,
+            right: 24,
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: colors.primary,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.4,
+            shadowRadius: 8,
+            elevation: 5,
         },
     }), [colors]);
 
@@ -260,29 +280,9 @@ export function HomeScreen() {
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
                 <View style={styles.headerTop}>
-                    <TouchableOpacity
-                        style={styles.profileCard}
-                        onPress={() => router.push({ pathname: '/(tabs)/profile', params: { from: 'home' } })}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.avatarContainer}>
-                            <IconSymbol name="person.fill" size={24} color={colors.white} />
-                        </View>
-                        <View style={styles.profileInfo}>
-                            <ThemedText style={styles.welcomeText}>
-                                {i18n.t('receipts.home.myProfile')}
-                            </ThemedText>
-                            <ThemedText type="subtitle" style={styles.userName} numberOfLines={1}>
-                                {user?.name || user?.email?.split('@')[0] || 'User'}
-                            </ThemedText>
-                        </View>
-                        <IconSymbol name="chevron.right" size={20} color={colors.textLight} style={{ marginLeft: 8 }} />
-                    </TouchableOpacity>
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/scan')}>
-                            <IconSymbol name="plus.circle.fill" size={30} color={colors.accent} />
-                        </TouchableOpacity>
-                    </View>
+                    <ThemedText type="title" style={{ color: colors.primary }}>
+                        {i18n.t('receipts.home.title')}
+                    </ThemedText>
                 </View>
 
                 <View style={styles.searchContainer}>
@@ -329,6 +329,26 @@ export function HomeScreen() {
                 onApply={handleApplyFilters}
                 onReset={handleResetFilters}
                 onPickerOpen={handleFilterSheetPickerOpen}
+            />
+
+            {/* FAB for adding documents */}
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => setShowAddMenu(true)}
+            >
+                <IconSymbol name="plus" size={32} color={colors.white} />
+            </TouchableOpacity>
+
+            <AddMenuSheet
+                visible={showAddMenu}
+                onClose={() => setShowAddMenu(false)}
+                onImportPress={() => setShowImportModal(true)}
+            />
+
+            <ImportEInvoiceModal
+                visible={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onSuccess={() => fetchAttachments(true)}
             />
         </SafeAreaView>
     );

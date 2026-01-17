@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    FlatList,
     RefreshControl,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
@@ -16,8 +16,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { FileDownloadService } from '@/src/features/attachments/application/FileDownloadService';
 import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
-import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
+import { useGroups } from '@/src/features/groups/presentation/hooks/useGroups';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharingService } from '@/src/features/sharing/data/SharingService';
 import { FolderShare } from '@/src/features/sharing/domain/FolderShare';
@@ -28,7 +28,6 @@ import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
 import { BreadcrumbNavigation, buildBreadcrumbPath } from '../components/BreadcrumbNavigation';
-import { CreateFolderModal } from '../components/CreateFolderModal';
 import { ExportFolderModal } from '../components/ExportFolderModal';
 import { FolderEvents } from '../FolderEvents';
 import { useFolders } from '../useFolders';
@@ -43,16 +42,23 @@ export function FolderDetailScreen() {
     const folderId = params.id;
     const isSharedFolder = params.shared === 'true';
 
-    const { folders, attachments, loading, refresh, createFolder, deleteFolder } = useFolders(folderId, { isSharedFolder });
+    const { folders, attachments, loading, refresh, createFolder, updateFolder, deleteFolder } = useFolders(folderId, { isSharedFolder });
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
     const [folderShares, setFolderShares] = useState<FolderShare[]>([]);
     const [sharesLoading, setSharingLoading] = useState(false);
-    const [isModalVisible, setIsModalVisible] = useState(false);
     const [isExportModalVisible, setIsExportModalVisible] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [showShareDetails, setShowShareDetails] = useState(false);
     const [selectedShare, setSelectedShare] = useState<FolderShare | null>(null);
     const [allFolders, setAllFolders] = useState<Folder[]>([]);
+    const [activeTab, setActiveTab] = useState<'belgeler' | 'efatura'>('belgeler');
+    const [sharingTab, setSharingTab] = useState<'persons' | 'groups'>('persons');
+
+    // FAB states
+    const [isFabExpanded, setIsFabExpanded] = useState(false);
+
+    // Groups
+    const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups();
 
     const handleUpdateShare = async (shareId: string, permission: FolderShare['permission']) => {
         await SharingService.updateSharePermission(shareId, permission);
@@ -64,16 +70,6 @@ export function FolderDetailScreen() {
         loadFolderShares();
     };
 
-    // Load current folder info
-    useEffect(() => {
-        if (folderId) {
-            loadFolderInfo();
-            // Only load shares if this is NOT a shared folder (we own it)
-            if (!isSharedFolder) {
-                loadFolderShares();
-            }
-        }
-    }, [folderId, isSharedFolder, loadFolderShares]);
 
     // Load all folders for breadcrumb navigation
     useEffect(() => {
@@ -115,11 +111,22 @@ export function FolderDetailScreen() {
             if (err.status === 404 || err.body?.message === 'Folder not found') {
                 return;
             }
-            console.error(`Failed to load folder shares for folderId ${folderId}:`, JSON.stringify(err, null, 2), err);
+            console.error(`Failed to load folder shares for folderId ${folderId}: `, JSON.stringify(err, null, 2), err);
         } finally {
             setSharingLoading(false);
         }
     }, [folderId]);
+
+    // Load current folder info
+    useEffect(() => {
+        if (folderId) {
+            loadFolderInfo();
+            // Only load shares if this is NOT a shared folder (we own it)
+            if (!isSharedFolder) {
+                loadFolderShares();
+            }
+        }
+    }, [folderId, isSharedFolder, loadFolderShares]);
 
     useFocusEffect(
         useCallback(() => {
@@ -130,16 +137,13 @@ export function FolderDetailScreen() {
         }, [folderId, isSharedFolder, loadFolderShares])
     );
 
-    const handleCreate = async (dto: any) => {
-        await createFolder(dto);
-    };
 
     const handleExport = async (templateId?: string) => {
         if (!folderId) return;
         try {
             const baseUrl = OpenAPI.BASE;
-            const url = `${baseUrl}/folders/${folderId}/export?format=excel${templateId ? `&templateId=${templateId}` : ''}`;
-            const filename = `${currentFolder?.name || 'folder'}_export.xlsx`;
+            const url = `${baseUrl} /folders/${folderId}/export?format=excel${templateId ? `&templateId=${templateId}` : ''}`;
+            const filename = `${currentFolder?.name || 'folder'} _export.xlsx`;
 
             const success = await FileDownloadService.downloadAndShare(url, filename);
             if (!success) {
@@ -154,7 +158,7 @@ export function FolderDetailScreen() {
     const handleDelete = () => {
         Alert.alert(
             'Klasörü Sil',
-            `"${currentFolder?.name}" klasörünü ve içeriğini silmek istediğinize emin misiniz?`,
+            `"${currentFolder?.name}" klasörünü ve içeriğini silmek istediğinize emin misiniz ? `,
             [
                 { text: 'Vazgeç', style: 'cancel' },
                 {
@@ -248,10 +252,6 @@ export function FolderDetailScreen() {
     const acceptedShares = folderShares.filter(s => s.status === 'accepted');
     const pendingShares = folderShares.filter(s => s.status === 'pending');
 
-    const combinedData = [
-        ...(folders?.map?.(f => ({ type: 'folder' as const, data: f })) || []),
-        ...(attachments?.map?.(a => ({ type: 'attachment' as const, data: a })) || [])
-    ];
 
     const styles = useMemo(() => StyleSheet.create({
         container: {
@@ -446,6 +446,56 @@ export function FolderDetailScreen() {
             fontWeight: '600',
             fontSize: 14,
         },
+        sharingTabsContainer: {
+            flexDirection: 'row',
+            gap: 8,
+            marginBottom: 12,
+        },
+        sharingTabButton: {
+            flex: 1,
+            paddingVertical: 8,
+            alignItems: 'center',
+            borderRadius: 8,
+            backgroundColor: colors.inputBackground,
+        },
+        sharingTabButtonActive: {
+            backgroundColor: colors.primary,
+        },
+        sharingTabText: {
+            fontSize: 13,
+            color: colors.text,
+        },
+        sharingTabTextActive: {
+            color: colors.white,
+            fontWeight: '600',
+        },
+        groupItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 10,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+        },
+        groupAvatar: {
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.success,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+        },
+        groupInfo: {
+            flex: 1,
+        },
+        groupName: {
+            fontSize: 15,
+            color: colors.text,
+        },
+        groupMemberCount: {
+            fontSize: 12,
+            color: colors.gray,
+        },
         contentTitleRow: {
             paddingHorizontal: 16,
             paddingTop: 16,
@@ -511,18 +561,60 @@ export function FolderDetailScreen() {
             position: 'absolute',
             bottom: 100,
             right: 24,
-            width: 64,
-            height: 64,
-            borderRadius: 32,
-            backgroundColor: colors.accent,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: colors.primary,
             justifyContent: 'center',
             alignItems: 'center',
-            shadowColor: colors.accent,
+            shadowColor: colors.primary,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.4,
             shadowRadius: 8,
             elevation: 5,
             zIndex: 100,
+        },
+        fabOverlay: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 99,
+        },
+        fabMenu: {
+            position: 'absolute',
+            bottom: 170,
+            right: 24,
+            zIndex: 101,
+            gap: 12,
+        },
+        fabMenuItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            backgroundColor: colors.card,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 3,
+        },
+        fabMenuItemIcon: {
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        fabMenuItemText: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: colors.text,
         },
         sharedIndicator: {
             flexDirection: 'row',
@@ -540,248 +632,316 @@ export function FolderDetailScreen() {
         },
     }), [colors]);
 
-    const renderItem = ({ item }: { item: { type: 'folder' | 'attachment', data: any } }) => {
-        if (item.type === 'folder') {
-            const folder = item.data as Folder;
-            const folderColor = folder.color || '#3B82F6'; // Default blue color
-            return (
-                <TouchableOpacity
-                    style={styles.folderItem}
-                    onPress={() => handlePressFolder(folder)}
-                    activeOpacity={0.7}
-                >
-                    <View style={[styles.iconContainer, { backgroundColor: folderColor + '20' }]}>
-                        <IconSymbol name={(folder.icon || 'folder.fill') as any} size={28} color={folderColor} />
-                    </View>
-                    <View style={styles.folderItemInfo}>
-                        <ThemedText type="defaultSemiBold" style={styles.folderItemName}>
-                            {folder.name}
-                        </ThemedText>
-                        <ThemedText style={styles.folderDate}>
-                            {new Date(folder.createdAt).toLocaleDateString()}
-                        </ThemedText>
-                    </View>
-                    <IconSymbol name="chevron.right" size={20} color={colors.gray} />
-                </TouchableOpacity>
-            );
-        } else {
-            const attachment = item.data as Attachment;
-            return (
-                <View style={{ marginBottom: 8, marginHorizontal: 16 }}>
-                    <AttachmentCard
-                        attachment={attachment}
-                        onPress={() => handlePressAttachment(attachment)}
-                        onMoveToFolder={handleMoveAttachment}
-                        onEdit={handleEditAttachment}
-                        onDelete={handleDeleteAttachment}
-                    />
-                </View>
-            );
-        }
-    };
 
     const FolderHeader = () => {
-        const rawName = currentFolder?.name || i18n.t('folders.default_name');
+        const rawName = currentFolder?.name || i18n.t('folders.default_name') || 'Klasör';
         const MAX_FOLDER_NAME = 28;
         const isLongName = rawName.length > MAX_FOLDER_NAME;
         const displayName = isLongName ? `${rawName.slice(0, MAX_FOLDER_NAME - 1).trim()}…` : rawName;
 
         return (
             <View style={styles.headerSection}>
-            {/* Folder Info */}
-            <View style={styles.folderInfoCard}>
-                <View style={[
-                    styles.folderIcon,
-                    { backgroundColor: (currentFolder?.color || colors.primary) + '20' }
-                ]}>
-                    <IconSymbol
-                        name={(currentFolder?.icon as any) || 'folder.fill'}
-                        size={40}
-                        color={currentFolder?.color || colors.primary}
-                    />
-                </View>
-                <View style={styles.folderDetails}>
-                    <ThemedText
-                        type="title"
-                        style={styles.folderName}
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                    >
-                        {displayName}
-                    </ThemedText>
-                    {isLongName && (
+                {/* Folder Info */}
+                <View style={styles.folderInfoCard}>
+                    <View style={[
+                        styles.folderIcon,
+                        { backgroundColor: (currentFolder?.color || colors.primary) + '20' }
+                    ]}>
+                        <IconSymbol
+                            name={(currentFolder?.icon as any) || 'folder.fill'}
+                            size={40}
+                            color={currentFolder?.color || colors.primary}
+                        />
+                    </View>
+                    <View style={styles.folderDetails}>
                         <ThemedText
-                            style={styles.folderNameHint}
-                            numberOfLines={1}
-                            ellipsizeMode="middle"
+                            type="title"
+                            style={styles.folderName}
+                            numberOfLines={2}
+                            ellipsizeMode="tail"
                         >
-                            {rawName}
+                            {displayName}
                         </ThemedText>
-                    )}
-                    <View style={styles.statsRow}>
-                        <View style={styles.stat}>
-                            <IconSymbol name="folder.fill" size={14} color={colors.gray} />
-                            <ThemedText style={styles.statText}>{folders.length} {i18n.t('folders.stats.subfolder')}</ThemedText>
-                        </View>
-                        <View style={styles.stat}>
-                            <IconSymbol name="doc.fill" size={14} color={colors.gray} />
-                            <ThemedText style={styles.statText}>{attachments.length} {i18n.t('folders.stats.document')}</ThemedText>
+                        {isLongName && (
+                            <ThemedText
+                                style={styles.folderNameHint}
+                                numberOfLines={1}
+                                ellipsizeMode="middle"
+                            >
+                                {rawName}
+                            </ThemedText>
+                        )}
+                        <View style={styles.statsRow}>
+                            <View style={styles.stat}>
+                                <IconSymbol name="folder.fill" size={14} color={colors.gray} />
+                                <ThemedText style={styles.statText}>{folders.length} {i18n.t('folders.stats.subfolder')}</ThemedText>
+                            </View>
+                            <View style={styles.stat}>
+                                <IconSymbol name="doc.fill" size={14} color={colors.gray} />
+                                <ThemedText style={styles.statText}>{attachments.length} {i18n.t('folders.stats.document')}</ThemedText>
+                            </View>
                         </View>
                     </View>
-                </View>
-                {/* Only show share button if user is the owner */}
-                {/* Only show share and delete buttons if user is the owner */}
-                {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
-                    <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <TouchableOpacity
-                            style={styles.shareIconButton}
-                            onPress={() => setShareModalVisible(true)}
-                        >
-                            <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.shareIconButton}
-                            onPress={() => setIsExportModalVisible(true)}
-                        >
-                            <IconSymbol name="square.and.arrow.up" size={24} color={colors.primary} />
-                        </TouchableOpacity>
-                        {!currentFolder?.isSystem && (
+                    {/* Only show share button if user is the owner */}
+                    {/* Only show share and delete buttons if user is the owner */}
+                    {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
                             <TouchableOpacity
-                                style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
-                                onPress={handleDelete}
+                                style={styles.shareIconButton}
+                                onPress={() => router.push(`/folders/edit/${currentFolder?.id}`)}
                             >
-                                <IconSymbol name="trash.fill" size={24} color={colors.error} />
+                                <IconSymbol name="pencil" size={24} color={colors.primary} />
                             </TouchableOpacity>
-                        )}
+                            <TouchableOpacity
+                                style={styles.shareIconButton}
+                                onPress={() => setShareModalVisible(true)}
+                            >
+                                <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.shareIconButton}
+                                onPress={() => setIsExportModalVisible(true)}
+                            >
+                                <IconSymbol name="square.and.arrow.up" size={24} color={colors.primary} />
+                            </TouchableOpacity>
+                            {!currentFolder?.isSystem && (
+                                <TouchableOpacity
+                                    style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
+                                    onPress={handleDelete}
+                                >
+                                    <IconSymbol name="trash.fill" size={24} color={colors.error} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+                </View>
+
+                {/* Sharing Section - Only for owned folders */}
+                {
+                    currentFolder?.owner?.id === user?.id && (
+                        <TouchableOpacity
+                            style={styles.sharingSection}
+                            onPress={() => setShowShareDetails(!showShareDetails)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.sharingHeader}>
+                                <View style={styles.sharingTitleRow}>
+                                    <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
+                                    <ThemedText type="defaultSemiBold" style={styles.sharingTitle}>
+                                        {i18n.t('folders.sharing.title')}
+                                    </ThemedText>
+                                </View>
+                                <View style={styles.sharingBadges}>
+                                    {acceptedShares.length > 0 && (
+                                        <View style={styles.shareBadge}>
+                                            <ThemedText style={styles.shareBadgeText}>
+                                                {acceptedShares.length} {i18n.t('folders.sharing.person_count')}
+                                            </ThemedText>
+                                        </View>
+                                    )}
+                                    {pendingShares.length > 0 && (
+                                        <View style={[styles.shareBadge, styles.pendingBadge]}>
+                                            <ThemedText style={[styles.shareBadgeText, styles.pendingText]}>
+                                                {pendingShares.length} {i18n.t('folders.sharing.pending_count')}
+                                            </ThemedText>
+                                        </View>
+                                    )}
+                                    <IconSymbol
+                                        name={showShareDetails ? 'chevron.up' : 'chevron.down'}
+                                        size={16}
+                                        color={colors.gray}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Share Details */}
+                            {showShareDetails && (
+                                <View style={styles.shareDetailsList}>
+                                    {/* Tabs for Persons / Groups */}
+                                    <View style={styles.sharingTabsContainer}>
+                                        <TouchableOpacity
+                                            style={[styles.sharingTabButton, sharingTab === 'persons' && styles.sharingTabButtonActive]}
+                                            onPress={() => setSharingTab('persons')}
+                                        >
+                                            <ThemedText style={[styles.sharingTabText, sharingTab === 'persons' && styles.sharingTabTextActive]}>
+                                                👤 Kişiler ({folderShares.length})
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.sharingTabButton, sharingTab === 'groups' && styles.sharingTabButtonActive]}
+                                            onPress={() => setSharingTab('groups')}
+                                        >
+                                            <ThemedText style={[styles.sharingTabText, sharingTab === 'groups' && styles.sharingTabTextActive]}>
+                                                👥 Gruplar ({groups.length})
+                                            </ThemedText>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {/* Persons Tab Content */}
+                                    {sharingTab === 'persons' && (
+                                        <>
+                                            {sharesLoading ? (
+                                                <ActivityIndicator size="small" color={colors.primary} />
+                                            ) : folderShares.length === 0 ? (
+                                                <ThemedText style={styles.noSharesText}>
+                                                    {i18n.t('folders.sharing.empty')}
+                                                </ThemedText>
+                                            ) : (
+                                                folderShares.map((share) => (
+                                                    <TouchableOpacity
+                                                        key={share.id}
+                                                        style={styles.shareItem}
+                                                        onPress={() => setSelectedShare(share)}
+                                                    >
+                                                        <View style={styles.shareAvatar}>
+                                                            <ThemedText style={styles.shareAvatarText}>
+                                                                {share.sharedWith.name.charAt(0).toUpperCase()}
+                                                            </ThemedText>
+                                                        </View>
+                                                        <View style={styles.shareInfo}>
+                                                            <ThemedText type="defaultSemiBold" style={styles.shareName}>
+                                                                {share.sharedWith.name}
+                                                            </ThemedText>
+                                                            <ThemedText style={styles.shareEmail}>
+                                                                {share.sharedWith.email}
+                                                            </ThemedText>
+                                                        </View>
+                                                        <View style={styles.shareStatus}>
+                                                            <View style={[
+                                                                styles.permissionBadge,
+                                                                { backgroundColor: share.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
+                                                            ]}>
+                                                                <ThemedText style={[
+                                                                    styles.permissionText,
+                                                                    { color: share.permission === 'EDIT' ? colors.success : colors.primary }
+                                                                ]}>
+                                                                    {share.permission === 'VIEW' ? i18n.t('folders.sharing.roles.viewer') :
+                                                                        share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') : share.permission}
+                                                                </ThemedText>
+                                                            </View>
+                                                            {share.status === 'pending' && (
+                                                                <View style={styles.statusPending}>
+                                                                    <ThemedText style={styles.statusPendingText}>{i18n.t('folders.sharing.status.pending')}</ThemedText>
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                ))
+                                            )}
+                                            <TouchableOpacity
+                                                style={styles.addShareButton}
+                                                onPress={() => setShareModalVisible(true)}
+                                            >
+                                                <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
+                                                <ThemedText style={styles.addShareText}>{i18n.t('folders.sharing.add_person')}</ThemedText>
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
+
+                                    {/* Groups Tab Content */}
+                                    {sharingTab === 'groups' && (
+                                        <>
+                                            {groupsLoading ? (
+                                                <ActivityIndicator size="small" color={colors.primary} />
+                                            ) : groups.length === 0 ? (
+                                                <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+                                                    <ThemedText style={styles.noSharesText}>
+                                                        Henüz grup oluşturmadınız
+                                                    </ThemedText>
+                                                    <TouchableOpacity
+                                                        style={[styles.addShareButton, { marginTop: 8 }]}
+                                                        onPress={() => router.push('/groups')}
+                                                    >
+                                                        <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
+                                                        <ThemedText style={styles.addShareText}>Grup Oluştur</ThemedText>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            ) : (
+                                                <>
+                                                    {groups.map((group) => (
+                                                        <TouchableOpacity
+                                                            key={group.id}
+                                                            style={styles.groupItem}
+                                                            onPress={() => router.push(`/groups/${group.id}`)}
+                                                        >
+                                                            <View style={styles.groupAvatar}>
+                                                                <IconSymbol name="person.3.fill" size={16} color={colors.white} />
+                                                            </View>
+                                                            <View style={styles.groupInfo}>
+                                                                <ThemedText type="defaultSemiBold" style={styles.groupName}>
+                                                                    {group.name}
+                                                                </ThemedText>
+                                                                <ThemedText style={styles.groupMemberCount}>
+                                                                    {group.memberCount} üye
+                                                                </ThemedText>
+                                                            </View>
+                                                            <IconSymbol name="chevron.right" size={16} color={colors.gray} />
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                    <TouchableOpacity
+                                                        style={styles.addShareButton}
+                                                        onPress={() => router.push('/groups')}
+                                                    >
+                                                        <IconSymbol name="gearshape.fill" size={20} color={colors.primary} />
+                                                        <ThemedText style={styles.addShareText}>Grupları Yönet</ThemedText>
+                                                    </TouchableOpacity>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    )
+                }
+
+                {/* Shared folder indicator */}
+                {
+                    isSharedFolder && (
+                        <View style={styles.sharedIndicator}>
+                            <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
+                            <ThemedText style={styles.sharedIndicatorText}>
+                                {i18n.t('folders.sharing.shared_with_you')}
+                            </ThemedText>
+                        </View>
+                    )
+                }
+
+                {/* Subfolders List */}
+                {folders && folders.length > 0 && (
+                    <View style={{ marginBottom: 16 }}>
+                        <View style={styles.contentTitleRow}>
+                            <ThemedText type="defaultSemiBold" style={styles.contentTitle}>
+                                {i18n.t('folders.title')}
+                            </ThemedText>
+                        </View>
+                        {folders.map((folder) => {
+                            const folderColor = folder.color || '#3B82F6';
+                            return (
+                                <TouchableOpacity
+                                    key={folder.id}
+                                    style={styles.folderItem}
+                                    onPress={() => handlePressFolder(folder)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.iconContainer, { backgroundColor: folderColor + '20' }]}>
+                                        <IconSymbol name={(folder.icon || 'folder.fill') as any} size={28} color={folderColor} />
+                                    </View>
+                                    <View style={styles.folderItemInfo}>
+                                        <ThemedText type="defaultSemiBold" style={styles.folderItemName}>
+                                            {folder.name}
+                                        </ThemedText>
+                                        <ThemedText style={styles.folderDate}>
+                                            {new Date(folder.createdAt).toLocaleDateString()}
+                                        </ThemedText>
+                                    </View>
+                                    <IconSymbol name="chevron.right" size={20} color={colors.gray} />
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 )}
-            </View>
 
-            {/* Sharing Section - Only for owned folders */}
-            {
-                currentFolder?.owner?.id === user?.id && (
-                    <TouchableOpacity
-                        style={styles.sharingSection}
-                        onPress={() => setShowShareDetails(!showShareDetails)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.sharingHeader}>
-                            <View style={styles.sharingTitleRow}>
-                                <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
-                                <ThemedText type="defaultSemiBold" style={styles.sharingTitle}>
-                                    {i18n.t('folders.sharing.title')}
-                                </ThemedText>
-                            </View>
-                            <View style={styles.sharingBadges}>
-                                {acceptedShares.length > 0 && (
-                                    <View style={styles.shareBadge}>
-                                        <ThemedText style={styles.shareBadgeText}>
-                                            {acceptedShares.length} {i18n.t('folders.sharing.person_count')}
-                                        </ThemedText>
-                                    </View>
-                                )}
-                                {pendingShares.length > 0 && (
-                                    <View style={[styles.shareBadge, styles.pendingBadge]}>
-                                        <ThemedText style={[styles.shareBadgeText, styles.pendingText]}>
-                                            {pendingShares.length} {i18n.t('folders.sharing.pending_count')}
-                                        </ThemedText>
-                                    </View>
-                                )}
-                                <IconSymbol
-                                    name={showShareDetails ? 'chevron.up' : 'chevron.down'}
-                                    size={16}
-                                    color={colors.gray}
-                                />
-                            </View>
-                        </View>
-
-                        {/* Share Details */}
-                        {showShareDetails && (
-                            <View style={styles.shareDetailsList}>
-                                {sharesLoading ? (
-                                    <ActivityIndicator size="small" color={colors.primary} />
-                                ) : folderShares.length === 0 ? (
-                                    <ThemedText style={styles.noSharesText}>
-                                        {i18n.t('folders.sharing.empty')}
-                                    </ThemedText>
-                                ) : (
-                                    folderShares.map((share) => (
-                                        <TouchableOpacity
-                                            key={share.id}
-                                            style={styles.shareItem}
-                                            onPress={() => setSelectedShare(share)}
-                                        >
-                                            <View style={styles.shareAvatar}>
-                                                <ThemedText style={styles.shareAvatarText}>
-                                                    {share.sharedWith.name.charAt(0).toUpperCase()}
-                                                </ThemedText>
-                                            </View>
-                                            <View style={styles.shareInfo}>
-                                                <ThemedText type="defaultSemiBold" style={styles.shareName}>
-                                                    {share.sharedWith.name}
-                                                </ThemedText>
-                                                <ThemedText style={styles.shareEmail}>
-                                                    {share.sharedWith.email}
-                                                </ThemedText>
-                                            </View>
-                                            <View style={styles.shareStatus}>
-                                                <View style={[
-                                                    styles.permissionBadge,
-                                                    { backgroundColor: share.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
-                                                ]}>
-                                                    <ThemedText style={[
-                                                        styles.permissionText,
-                                                        { color: share.permission === 'EDIT' ? colors.success : colors.primary }
-                                                    ]}>
-                                                        {share.permission === 'VIEW' ? i18n.t('folders.sharing.roles.viewer') :
-                                                            share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') : share.permission}
-                                                    </ThemedText>
-                                                </View>
-                                                {share.status === 'pending' && (
-                                                    <View style={styles.statusPending}>
-                                                        <ThemedText style={styles.statusPendingText}>{i18n.t('folders.sharing.status.pending')}</ThemedText>
-                                                    </View>
-                                                )}
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))
-                                )}
-
-                                <TouchableOpacity
-                                    style={styles.addShareButton}
-                                    onPress={() => setShareModalVisible(true)}
-                                >
-                                    <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
-                                    <ThemedText style={styles.addShareText}>{i18n.t('folders.sharing.add_person')}</ThemedText>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                )
-            }
-
-            {/* Shared folder indicator */}
-            {
-                isSharedFolder && (
-                    <View style={styles.sharedIndicator}>
-                        <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
-                        <ThemedText style={styles.sharedIndicatorText}>
-                            {i18n.t('folders.sharing.shared_with_you')}
-                        </ThemedText>
-                    </View>
-                )
-            }
-
-            {/* Content Section Title */}
-            {
-                combinedData.length > 0 && (
-                    <View style={styles.contentTitleRow}>
-                        <ThemedText type="defaultSemiBold" style={styles.contentTitle}>
-                            {i18n.t('folders.section.contents')}
-                        </ThemedText>
-                    </View>
-                )
-            }
             </View>
         );
     };
@@ -806,34 +966,48 @@ export function FolderDetailScreen() {
                 onNavigate={handleBreadcrumbNavigate}
             />
 
+
             {loading && !currentFolder ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : (
-                <FlatList
-                    data={combinedData}
-                    renderItem={renderItem}
-                    keyExtractor={item => item.data.id}
+                <ScrollView
                     contentContainerStyle={styles.listContent}
-                    ListHeaderComponent={FolderHeader}
-                    ListEmptyComponent={EmptyState}
-                    refreshControl={
-                        <RefreshControl refreshing={loading} onRefresh={handleRefresh} />
-                    }
-                />
+                    refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} />}
+                >
+                    <FolderHeader />
+
+                    {/* Navigation Buttons */}
+                    <View style={styles.contentTitleRow}>
+                        <ThemedText type="defaultSemiBold" style={styles.contentTitle}>
+                            {i18n.t('folders.section.contents')}
+                        </ThemedText>
+                    </View>
+                    <View>
+
+                        <TouchableOpacity
+                            style={[styles.folderItem, { backgroundColor: colors.card, marginBottom: 12 }]}
+                            onPress={() => router.push(`/folders/${folderId}/documents`)}
+                        >
+                            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
+                                <IconSymbol name="doc.fill" size={24} color={colors.primary} />
+                            </View>
+                            <View style={styles.folderItemInfo}>
+                                <ThemedText type="defaultSemiBold" style={styles.folderItemName}>
+                                    Belgeler
+                                </ThemedText>
+                                <ThemedText style={styles.folderDate}>
+                                    {attachments.length} belge
+                                </ThemedText>
+                            </View>
+                            <IconSymbol name="chevron.right" size={20} color={colors.gray} />
+                        </TouchableOpacity>
+
+
+                    </View>
+                </ScrollView>
             )}
-
-            <TouchableOpacity style={styles.fab} onPress={() => setIsModalVisible(true)}>
-                <IconSymbol name="plus" size={32} color={colors.white} />
-            </TouchableOpacity>
-
-            <CreateFolderModal
-                visible={isModalVisible}
-                onClose={() => setIsModalVisible(false)}
-                onSubmit={handleCreate}
-                parentId={folderId || null}
-            />
 
             <ExportFolderModal
                 visible={isExportModalVisible}
@@ -860,6 +1034,56 @@ export function FolderDetailScreen() {
                 onUpdate={handleUpdateShare}
                 onRemove={handleRemoveShare}
             />
+
+            {/* FAB Menu Overlay */}
+            {isFabExpanded && (
+                <TouchableOpacity
+                    style={styles.fabOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsFabExpanded(false)}
+                />
+            )}
+
+            {/* FAB Menu Items */}
+            {isFabExpanded && (
+                <View style={styles.fabMenu}>
+                    <TouchableOpacity
+                        style={styles.fabMenuItem}
+                        onPress={() => {
+                            setIsFabExpanded(false);
+                            router.push({ pathname: '/folders/create', params: { parentId: folderId } });
+                        }}
+                    >
+                        <View style={[styles.fabMenuItemIcon, { backgroundColor: colors.primary + '20' }]}>
+                            <IconSymbol name="folder.badge.plus" size={20} color={colors.primary} />
+                        </View>
+                        <ThemedText style={styles.fabMenuItemText}>{i18n.t('folders.fab.create_subfolder')}</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.fabMenuItem}
+                        onPress={() => {
+                            setIsFabExpanded(false);
+                            router.push({ pathname: '/scan', params: { folderId } });
+                        }}
+                    >
+                        <View style={[styles.fabMenuItemIcon, { backgroundColor: colors.success + '20' }]}>
+                            <IconSymbol name="doc.viewfinder" size={20} color={colors.success} />
+                        </View>
+                        <ThemedText style={styles.fabMenuItemText}>{i18n.t('folders.fab.scan_document')}</ThemedText>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* FAB Button */}
+            {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
+                <TouchableOpacity
+                    style={[styles.fab, isFabExpanded && { transform: [{ rotate: '45deg' }] }]}
+                    onPress={() => setIsFabExpanded(!isFabExpanded)}
+                    activeOpacity={0.8}
+                >
+                    <IconSymbol name="plus" size={28} color={colors.white} />
+                </TouchableOpacity>
+            )}
         </SafeAreaView>
     );
 

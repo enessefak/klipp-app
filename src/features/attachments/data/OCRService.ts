@@ -24,7 +24,7 @@ export class OCRService {
     /**
      * Main entry point: scans image or PDF using AI Backend
      */
-    static async scanDocument(files: OCRScanFileInput[]): Promise<OCRResult> {
+    static async scanDocument(files: OCRScanFileInput[], folderId?: string): Promise<OCRResult> {
         try {
             if (!files || files.length === 0) {
                 throw new Error('No files provided for OCR scan');
@@ -53,6 +53,7 @@ export class OCRService {
 
             const requestPayload: Record<string, any> = {
                 mimeType: apiMimeType,
+                folderId
             };
 
             if (base64Files.length === 1) {

@@ -1,41 +1,25 @@
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
-import React, { useState } from 'react';
+import i18n from '@/src/infrastructure/localization/i18n';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-interface LineItem {
-    description?: string;
-    quantity?: number;
-    unitPrice?: number;
-    vatRate?: number;
-    totalAmount?: number;
-    total?: number; // legacy/alternative key
-}
-
 interface LineItemsTableProps {
-    items: LineItem[];
-    label: string;
+    items: any[];
+    label?: string;
     currency?: string;
-    variant?: 'default' | 'editable'; // Future proofing
+    itemsConfig?: any[]; // Dynamic column configuration
+    variant?: 'default' | 'editable';
     onEdit?: () => void;
+    onItemPress?: (item: any, index: number) => void;
 }
 
-export const LineItemsTable = ({ items, label, currency = 'TRY', variant = 'default', onEdit }: LineItemsTableProps) => {
+export const LineItemsTable = ({ items, label, currency = 'TRY', itemsConfig, variant = 'default', onEdit, onItemPress }: LineItemsTableProps) => {
     const { colors } = useSettings();
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
 
-    if (!items || items.length === 0) return null;
-
-    const formatCurrency = (value: number, curr: string) => {
-        try {
-            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: curr }).format(value);
-        } catch (e) {
-            return `${value} ${curr}`;
-        }
-    };
-
-    const styles = StyleSheet.create({
+    const styles = useMemo(() => StyleSheet.create({
         container: {
             marginTop: 8,
             width: '100%',
@@ -74,27 +58,46 @@ export const LineItemsTable = ({ items, label, currency = 'TRY', variant = 'defa
             borderColor: colors.border,
             borderRadius: 12,
             overflow: 'hidden',
-        },
-        tableHeader: {
-            flexDirection: 'row',
             backgroundColor: colors.card,
-            padding: 10,
+        },
+        itemContainer: {
+            padding: 12,
             borderBottomWidth: 1,
             borderBottomColor: colors.border,
+            gap: 8,
         },
-        tableHeaderText: {
-            fontSize: 12,
-            fontWeight: '600',
-            color: colors.textLight,
-        },
-        tableRow: {
+        descriptionRow: {
+            marginBottom: 4,
             flexDirection: 'row',
-            padding: 10,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-            backgroundColor: colors.surface,
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
         },
-        tableCell: {
+        descriptionLabel: {
+            fontSize: 10,
+            color: colors.textLight,
+            textTransform: 'uppercase',
+            marginBottom: 2,
+        },
+        descriptionValue: {
+            fontSize: 13,
+            color: colors.text,
+            fontWeight: '500',
+        },
+        metricsGrid: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 12,
+        },
+        metricItem: {
+            minWidth: '30%', // Ensure roughly 3 items per row
+            flex: 1,
+        },
+        metricLabel: {
+            fontSize: 10,
+            color: colors.textLight,
+            marginBottom: 2,
+        },
+        metricValue: {
             fontSize: 13,
             color: colors.text,
         },
@@ -106,7 +109,36 @@ export const LineItemsTable = ({ items, label, currency = 'TRY', variant = 'defa
             borderTopColor: colors.border,
             backgroundColor: colors.card,
         }
-    });
+    }), [colors]);
+
+    if (!items || items.length === 0) return null;
+
+    // Default configuration (backward compatibility) matching Web
+    const defaultColumns = [
+        { key: 'description', label: 'attachments.items.description', type: 'text' },
+        { key: 'quantity', label: 'attachments.items.quantity', type: 'number' },
+        { key: 'unitCode', label: 'attachments.items.unitCode', type: 'text' },
+        { key: 'unitPrice', label: 'attachments.items.unitPrice', type: 'number' },
+        { key: 'discountAmount', label: 'attachments.items.discountAmount', type: 'number' },
+        { key: 'totalAmount', label: 'attachments.items.totalAmount', type: 'number' },
+        { key: 'vatRate', label: 'attachments.items.vat', type: 'number', suffix: '%' },
+        { key: 'vatAmount', label: 'attachments.items.vatAmount', type: 'number' },
+        { key: 'totalAmountInc', label: 'attachments.items.totalAmountInc', type: 'number' }
+    ];
+
+    // Use itemsConfig if available, otherwise defaults
+    const columns = itemsConfig && Array.isArray(itemsConfig) ? itemsConfig : defaultColumns;
+
+    const formatCurrency = (amount: number) => {
+        try {
+            return new Intl.NumberFormat(i18n.locale === 'tr' ? 'tr-TR' : 'en-US', {
+                style: 'currency',
+                currency: currency,
+            }).format(amount);
+        } catch (e) {
+            return `${amount} ${currency}`;
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -116,7 +148,7 @@ export const LineItemsTable = ({ items, label, currency = 'TRY', variant = 'defa
                 activeOpacity={0.7}
             >
                 <View style={styles.headerLeft}>
-                    <ThemedText style={styles.label}>{label}</ThemedText>
+                    {label && <ThemedText style={styles.label}>{label}</ThemedText>}
                     <View style={styles.badge}>
                         <ThemedText style={styles.badgeText}>{items.length}</ThemedText>
                     </View>
@@ -126,44 +158,78 @@ export const LineItemsTable = ({ items, label, currency = 'TRY', variant = 'defa
 
             {isExpanded && (
                 <View style={styles.content}>
-                    {/* Header Row */}
-                    <View style={styles.tableHeader}>
-                        <ThemedText style={[styles.tableHeaderText, { flex: 3 }]}>Açıklama</ThemedText>
-                        <ThemedText style={[styles.tableHeaderText, { flex: 1, textAlign: 'right' }]}>Adet</ThemedText>
-                        <ThemedText style={[styles.tableHeaderText, { flex: 1.5, textAlign: 'right' }]}>Tutar</ThemedText>
-                    </View>
+                    {items.map((item, index) => {
+                        // Separate description from other columns
+                        const descCol = columns.find((c: any) => c.key === 'description');
+                        const otherCols = columns.filter((c: any) => c.key !== 'description');
+                        const descVal = descCol ? item[descCol.key] : null; // Define descVal here
+                        const RowComponent = (variant === 'editable' && onItemPress) ? TouchableOpacity : View;
 
-                    {/* Rows */}
-                    {items.map((item, idx) => (
-                        <View key={idx} style={[styles.tableRow, idx === items.length - 1 && { borderBottomWidth: 0 }]}>
-                            <View style={{ flex: 3, gap: 2 }}>
-                                <ThemedText style={[styles.tableCell, { fontWeight: '500' }]}>{item.description || '-'}</ThemedText>
-                                <View style={{ flexDirection: 'row', gap: 6 }}>
-                                    {(item.vatRate ?? 0) > 0 && (
-                                        <ThemedText style={{ fontSize: 11, color: colors.textLight }}>KDV: %{item.vatRate}</ThemedText>
-                                    )}
-                                    {(item.unitPrice ?? 0) > 0 && (
-                                        <ThemedText style={{ fontSize: 11, color: colors.textLight }}>
-                                            Birim: {formatCurrency(item.unitPrice!, currency)}
-                                        </ThemedText>
-                                    )}
+                        return (
+                            <RowComponent
+                                key={index}
+                                style={[styles.itemContainer, index === items.length - 1 && { borderBottomWidth: 0 }]}
+                                onPress={() => onItemPress && onItemPress(item, index)}
+                                activeOpacity={0.7}
+                            >
+                                {/* Description Row with Edit Icon */}
+                                {descVal && (
+                                    <View style={styles.descriptionRow}>
+                                        <View style={{ flex: 1 }}>
+                                            <ThemedText style={styles.descriptionLabel}>
+                                                {i18n.t(descCol.label as any, { defaultValue: descCol.label })}
+                                            </ThemedText>
+                                            <ThemedText style={styles.descriptionValue}>{descVal}</ThemedText>
+                                        </View>
+                                        {variant === 'editable' && (
+                                            <IconSymbol name="pencil" size={16} color={colors.primary} />
+                                        )}
+                                    </View>
+                                )}
+
+                                {/* Metrics Grid */}
+                                <View style={styles.metricsGrid}>
+                                    {otherCols.map((col: any) => {
+                                        let val = item[col.key];
+
+                                        // Fallbacks
+                                        if ((val === undefined || val === null) && col.fallbackKeys) {
+                                            for (const k of col.fallbackKeys) {
+                                                if (item[k] !== undefined && item[k] !== null) {
+                                                    val = item[k];
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        let displayVal = val;
+                                        if (val === null || val === undefined || val === '') {
+                                            displayVal = '-';
+                                        } else if (col.type === 'number') {
+                                            if (['unitPrice', 'totalAmount', 'discountAmount', 'vatAmount', 'totalAmountInc', 'total', 'amount'].includes(col.key)) {
+                                                displayVal = formatCurrency(Number(val));
+                                            } else {
+                                                displayVal = col.suffix ? `${val}${col.suffix}` : String(val);
+                                            }
+                                        }
+
+                                        return (
+                                            <View key={col.key} style={styles.metricItem}>
+                                                <ThemedText style={styles.metricLabel} numberOfLines={1}>
+                                                    {i18n.t(col.label as any, { defaultValue: col.label })}
+                                                </ThemedText>
+                                                <ThemedText style={[styles.metricValue, col.type === 'number' && { fontWeight: '500' }]}>
+                                                    {displayVal}
+                                                </ThemedText>
+                                            </View>
+                                        );
+                                    })}
                                 </View>
-                            </View>
-                            <ThemedText style={[styles.tableCell, { flex: 1, textAlign: 'right' }]}>{item.quantity}</ThemedText>
-                            <ThemedText style={[styles.tableCell, { flex: 1.5, textAlign: 'right', fontWeight: '600' }]}>
-                                {formatCurrency(item.totalAmount || item.total || 0, currency)}
-                            </ThemedText>
-                        </View>
-                    ))}
+                            </RowComponent>
+                        );
+                    })}
 
                     {/* Edit Action (if editable) */}
-                    {variant === 'editable' && onEdit && (
-                        <View style={styles.actionsRow}>
-                            <TouchableOpacity onPress={onEdit}>
-                                <ThemedText style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Düzenle</ThemedText>
-                            </TouchableOpacity>
-                        </View>
-                    )}
                 </View>
             )}
         </View>

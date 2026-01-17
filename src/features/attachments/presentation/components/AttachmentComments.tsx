@@ -169,6 +169,7 @@ export const AttachmentComments: React.FC<AttachmentCommentsProps> = ({ attachme
 const styles = StyleSheet.create({
     container: {
         marginTop: 16,
+        paddingHorizontal: 16,
     },
     inputContainer: {
         flexDirection: 'row',

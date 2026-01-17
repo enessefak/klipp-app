@@ -1,11 +1,12 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
+import { SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+// Extended mapping type to support both SF Symbols and lucide icon names
+type IconMapping = Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 
 /**
  * Add your SF Symbols to Material Icons mappings here.
@@ -59,14 +60,42 @@ const MAPPING = {
   'camera.fill': 'camera-alt',
   'trash': 'delete',
   'chevron.left': 'chevron-left',
+  // Additional folder icons
+  'briefcase.fill': 'work',
+  'briefcase': 'work',
+  'tag.fill': 'local-offer',
+  'tag': 'local-offer',
+  'tray.fill': 'inbox',
+  'tray': 'inbox',
+  'heart.fill': 'favorite',
+  'graduationcap.fill': 'school',
+  'graduationcap': 'school',
+  'person.text.rectangle.fill': 'badge',
+  'person.text.rectangle': 'badge',
+  'circle': 'radio-button-unchecked',
+  'checkmark.circle.fill': 'check-circle',
+  'checkmark': 'check',
+  'plus': 'add',
+  'sparkles': 'auto-awesome',
+  'doc.badge.plus': 'note-add',
+  'chevron.up': 'expand-less',
+  'chevron.down': 'expand-more',
+  'folder.fill.badge.person.crop': 'folder-shared',
+  // Lucide icon names from backend templates
+  'folder-user': 'folder-shared',
+  'id-card': 'badge',
+  'file-text': 'description',
+  'graduation-cap': 'school',
+  'heart-pulse': 'favorite',
 } as IconMapping;
 
-export type IconSymbolName = keyof typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING | string;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
  * This ensures a consistent look across platforms, and optimal resource usage.
  * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
+ * Falls back to 'folder' icon if mapping not found.
  */
 export function IconSymbol({
   name,
@@ -80,5 +109,6 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const mappedIcon = MAPPING[name as keyof typeof MAPPING] || 'folder';
+  return <MaterialIcons color={color} size={size} name={mappedIcon} style={style} />;
 }

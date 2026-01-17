@@ -37,4 +37,85 @@ export class SubscriptionService {
             },
         });
     }
+    /**
+     * Create Lemon Squeezy Checkout Session
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postSubscriptionCheckout(
+        requestBody: {
+            planId: 'individual_monthly' | 'individual_yearly' | 'team_monthly' | 'team_yearly';
+            redirectUrl: string;
+        },
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            url: string;
+            checkoutId: string;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/subscription/checkout',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
+            },
+        });
+    }
+    /**
+     * Get Subscription Plans
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getSubscriptionPlans(): CancelablePromise<{
+        success?: boolean;
+        data?: Array<{
+            id?: string;
+            name?: string;
+            price?: number;
+            interval?: string;
+            interval_count?: number;
+            formattedPrice?: string;
+            has_free_trial?: boolean;
+            trial_interval?: string;
+            trial_interval_count?: number;
+        }>;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/subscription/plans',
+        });
+    }
+    /**
+     * Cancel Active Subscription
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postSubscriptionCancel(): CancelablePromise<{
+        success?: boolean;
+        message?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/subscription/cancel',
+            errors: {
+                400: `Default Response`,
+            },
+        });
+    }
+    /**
+     * Lemon Squeezy Webhook
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postSubscriptionWebhook(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/subscription/webhook',
+        });
+    }
 }

@@ -1,5 +1,6 @@
 
-export type FieldType = 'text' | 'number' | 'date' | 'currency' | 'select' | 'textarea' | 'duration';
+
+export type FieldType = 'text' | 'number' | 'date' | 'currency' | 'select' | 'textarea' | 'duration' | 'array';
 
 export interface FieldConfig {
     key: string;
@@ -12,6 +13,7 @@ export interface FieldConfig {
     defaultValue?: any;
     filterable?: boolean;
     filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+    items?: any[]; // Configuration for array items (columns)
 }
 
 
@@ -23,4 +25,5 @@ export interface GridConfig {
 export interface FieldStyle {
     mobile?: GridConfig;
     desktop?: GridConfig;
+    items?: any[]; // Table configuration for items
 }

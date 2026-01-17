@@ -52,12 +52,9 @@ export const FormContainer = forwardRef<ScrollView, FormContainerProps>(({
         },
         scrollContent: {
             flexGrow: 1,
-            padding: 20,
-            paddingBottom: 40,
         },
         nonScrollContent: {
             flex: 1,
-            padding: 20,
         },
         innerContent: {
             flex: 1,

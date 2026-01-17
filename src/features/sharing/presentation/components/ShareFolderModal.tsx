@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -10,8 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { groupRepository } from '@/src/features/groups/data/GroupRepository';
+import { Group } from '@/src/features/groups/domain/Group';
+import { useGroups } from '@/src/features/groups/presentation/hooks/useGroups';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { SearchedUser, SharePermission } from '../../domain/FolderShare';
@@ -27,13 +31,29 @@ interface ShareFolderModalProps {
 export function ShareFolderModal({ visible, onClose, folderId, folderName }: ShareFolderModalProps) {
     const { colors } = useSettings();
     const { searchUsers, shareFolder, searchResults, loading } = useFolderSharing();
+    const { groups, refresh: refreshGroups } = useGroups();
+
+    // UI State
+    const [activeTab, setActiveTab] = useState<'person' | 'group'>('person');
+
+    // Person State
     const [email, setEmail] = useState('');
     const [selectedUser, setSelectedUser] = useState<SearchedUser | null>(null);
+
+    // Group State
+    const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
     const [permission, setPermission] = useState<SharePermission>('VIEW');
     const [sharing, setSharing] = useState(false);
     const [success, setSuccess] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [searched, setSearched] = useState(false);
+
+    useEffect(() => {
+        if (visible && activeTab === 'group' && groups.length === 0) {
+            refreshGroups();
+        }
+    }, [visible, activeTab]);
 
     const handleEmailChange = useCallback((text: string) => {
         setEmail(text);
@@ -57,36 +77,96 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
         setErrorMsg(null);
     };
 
+    const handleSelectGroup = async (group: Group) => {
+        setSelectedGroup(group);
+        setErrorMsg(null);
+    };
+
     const handleShare = async () => {
-        if (!selectedUser) {
+        if (activeTab === 'person' && !selectedUser) {
             setErrorMsg(i18n.t('sharing.modal.error_select_user'));
+            return;
+        }
+        if (activeTab === 'group' && !selectedGroup) {
+            setErrorMsg('Lütfen bir grup seçin');
             return;
         }
 
         setSharing(true);
         setErrorMsg(null);
 
-        const result = await shareFolder({
-            folderId,
-            targetUserId: selectedUser.id,
-            permission,
-        });
+        let successCount = 0;
+        let failCount = 0;
+
+        if (activeTab === 'person' && selectedUser) {
+            const result = await shareFolder({
+                folderId,
+                targetUserId: selectedUser.id,
+                permission,
+            });
+            if (result) successCount++;
+            else failCount++;
+        } else if (activeTab === 'group' && selectedGroup) {
+            // Need to fetch group members details first to get User IDs
+            // The list might only have partial info.
+            try {
+                const detailedGroup = await groupRepository.getGroupDetails(selectedGroup.id);
+                if (!detailedGroup.members || detailedGroup.members.length === 0) {
+                    setErrorMsg('Bu grupta üye yok.');
+                    setSharing(false);
+                    return;
+                }
+
+                // Share with each member
+                const promises = detailedGroup.members.map(async (member) => {
+                    if (!member.userId && !member.email) return false;
+
+                    // If we have userId, use it. If not, we might need to search or it's a limitation.
+                    // GroupMember has userId usually.
+                    // If userId is missing, we can't share via this endpoint easily unless we search by email.
+                    // Assuming userId is present or we skip.
+                    if (!member.userId) {
+                        // Fallback: search by email to get ID? Too expensive for loop.
+                        // For now check if userId exists.
+                        return false;
+                    }
+
+                    return await shareFolder({
+                        folderId,
+                        targetUserId: member.userId,
+                        permission,
+                    });
+                });
+
+                const results = await Promise.all(promises);
+                successCount = results.filter(r => !!r).length;
+                failCount = results.filter(r => !r).length;
+
+            } catch (error) {
+                console.error('Group detail fetch failed', error);
+                failCount++; // treat as general fail
+            }
+        }
 
         setSharing(false);
 
-        if (result) {
+        if (successCount > 0) {
             setSuccess(true);
             setTimeout(() => {
                 handleClose();
             }, 1500);
         } else {
-            setErrorMsg(i18n.t('sharing.modal.error_generic'));
+            setErrorMsg(activeTab === 'group'
+                ? `${failCount} kişi ile paylaşılamadı.`
+                : i18n.t('sharing.modal.error_generic')
+            );
         }
     };
 
     const handleClose = () => {
         setEmail('');
         setSelectedUser(null);
+        setSelectedGroup(null);
         setPermission('VIEW');
         setSuccess(false);
         setErrorMsg(null);
@@ -204,6 +284,11 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
             borderBottomColor: colors.border,
             gap: 12,
         },
+        groupItemSelected: {
+            backgroundColor: colors.primary + '10',
+            borderWidth: 1,
+            borderColor: colors.primary,
+        },
         avatar: {
             width: 40,
             height: 40,
@@ -247,8 +332,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
             gap: 12,
         },
         permissionOption: {
-            // flex: 1, // Remove flex: 1 to allow custom sizing
-            width: '48%', // Approx half with gap
+            width: '48%',
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
@@ -313,7 +397,142 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
             marginTop: 16,
             color: colors.success,
         },
+        tabContainer: {
+            paddingHorizontal: 16,
+            marginBottom: 16,
+        },
     }), [colors]);
+
+    const renderPersonSearch = () => (
+        <>
+            {/* Search Input */}
+            <View style={styles.searchContainer}>
+                <ThemedText type="defaultSemiBold" style={styles.label}>{i18n.t('sharing.modal.search_title')}</ThemedText>
+                <View style={styles.searchRow}>
+                    <View style={[styles.inputWrapper, { flex: 1 }]}>
+                        <IconSymbol name="magnifyingglass" size={20} color={colors.gray} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder={i18n.t('sharing.modal.search_placeholder')}
+                            placeholderTextColor={colors.gray}
+                            value={email}
+                            onChangeText={handleEmailChange}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            onSubmitEditing={handleSearch}
+                            returnKeyType="search"
+                        />
+                    </View>
+                    <TouchableOpacity
+                        style={styles.searchButton}
+                        onPress={handleSearch}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator size="small" color={colors.white} />
+                        ) : (
+                            <ThemedText style={styles.searchButtonText}>{i18n.t('sharing.modal.search_button')}</ThemedText>
+                        )}
+                    </TouchableOpacity>
+                </View>
+                <ThemedText style={styles.hint}>
+                    {i18n.t('sharing.modal.search_hint')}
+                </ThemedText>
+            </View>
+
+            {/* Search Results */}
+            {searched && !loading && searchResults.length === 0 && (
+                <View style={styles.noResultContainer}>
+                    <IconSymbol name="person.slash.fill" size={40} color={colors.gray} />
+                    <ThemedText style={styles.noResultText}>
+                        {i18n.t('sharing.modal.no_result')}
+                    </ThemedText>
+                </View>
+            )}
+
+            {!selectedUser && searchResults.length > 0 && (
+                <FlatList
+                    data={searchResults}
+                    keyExtractor={(item) => item.id}
+                    style={styles.resultsList}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={styles.userItem}
+                            onPress={() => handleSelectUser(item)}
+                        >
+                            <View style={styles.avatar}>
+                                <ThemedText style={styles.avatarText}>
+                                    {item.name.charAt(0).toUpperCase()}
+                                </ThemedText>
+                            </View>
+                            <View style={styles.userInfo}>
+                                <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                                <ThemedText style={styles.userEmail}>{item.email}</ThemedText>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                />
+            )}
+
+            {/* Selected User */}
+            {selectedUser && (
+                <View style={styles.selectedUserContainer}>
+                    <View style={styles.selectedUser}>
+                        <View style={styles.avatar}>
+                            <ThemedText style={styles.avatarText}>
+                                {selectedUser.name.charAt(0).toUpperCase()}
+                            </ThemedText>
+                        </View>
+                        <View style={styles.userInfo}>
+                            <ThemedText type="defaultSemiBold">{selectedUser.name}</ThemedText>
+                            <ThemedText style={styles.userEmail}>{selectedUser.email}</ThemedText>
+                        </View>
+                        <TouchableOpacity onPress={() => setSelectedUser(null)}>
+                            <IconSymbol name="xmark.circle.fill" size={24} color={colors.gray} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+        </>
+    );
+
+    const renderGroupSelect = () => (
+        <View style={{ flex: 1 }}>
+            <ThemedText type="defaultSemiBold" style={[styles.label, { paddingHorizontal: 16 }]}>Grup Seçin</ThemedText>
+            <FlatList
+                data={groups}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={[
+                            styles.userItem,
+                            { borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border },
+                            selectedGroup?.id === item.id && styles.groupItemSelected,
+                        ]}
+                        onPress={() => handleSelectGroup(item)}
+                    >
+                        <View style={[styles.avatar, { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }]}>
+                            <IconSymbol name="person.3.fill" size={20} color={colors.textLight} />
+                        </View>
+                        <View style={styles.userInfo}>
+                            <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                            <ThemedText style={styles.userEmail}>{item.memberCount} Üye</ThemedText>
+                        </View>
+                        {selectedGroup?.id === item.id && (
+                            <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                        )}
+                    </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                    <View style={styles.noResultContainer}>
+                        <ThemedText style={styles.noResultText}>Henüz hiç grubunuz yok.</ThemedText>
+                    </View>
+                }
+            />
+        </View>
+    );
 
     return (
         <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -342,183 +561,91 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                     </View>
                 ) : (
                     <>
-                        {/* Search Input */}
-                        <View style={styles.searchContainer}>
-                            <ThemedText type="defaultSemiBold" style={styles.label}>{i18n.t('sharing.modal.search_title')}</ThemedText>
-                            <View style={styles.searchRow}>
-                                <View style={[styles.inputWrapper, { flex: 1 }]}>
-                                    <IconSymbol name="magnifyingglass" size={20} color={colors.gray} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder={i18n.t('sharing.modal.search_placeholder')}
-                                        placeholderTextColor={colors.gray}
-                                        value={email}
-                                        onChangeText={handleEmailChange}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        autoCorrect={false}
-                                        onSubmitEditing={handleSearch}
-                                        returnKeyType="search"
-                                    />
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.searchButton}
-                                    onPress={handleSearch}
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <ActivityIndicator size="small" color={colors.white} />
-                                    ) : (
-                                        <ThemedText style={styles.searchButtonText}>{i18n.t('sharing.modal.search_button')}</ThemedText>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                            <ThemedText style={styles.hint}>
-                                {i18n.t('sharing.modal.search_hint')}
-                            </ThemedText>
+                        {/* Tab Selector */}
+                        <View style={styles.tabContainer}>
+                            <SegmentedControl
+                                segments={[
+                                    { key: 'person', label: 'Kişi' },
+                                    { key: 'group', label: 'Grup' }
+                                ]}
+                                selectedKey={activeTab}
+                                onSelect={(key) => setActiveTab(key as any)}
+                            />
                         </View>
 
-                        {/* Search Results */}
-                        {searched && !loading && searchResults.length === 0 && (
-                            <View style={styles.noResultContainer}>
-                                <IconSymbol name="person.slash.fill" size={40} color={colors.gray} />
-                                <ThemedText style={styles.noResultText}>
-                                    {i18n.t('sharing.modal.no_result')}
-                                </ThemedText>
-                            </View>
-                        )}
+                        <View style={{ flex: 1 }}>
+                            {activeTab === 'person' ? renderPersonSearch() : renderGroupSelect()}
+                        </View>
 
-                        {!selectedUser && searchResults.length > 0 && (
-                            <FlatList
-                                data={searchResults}
-                                keyExtractor={(item) => item.id}
-                                style={styles.resultsList}
-                                renderItem={({ item }) => (
+                        {/* Permission Selector - Common */}
+                        {((activeTab === 'person' && selectedUser) || (activeTab === 'group' && selectedGroup)) && (
+                            <View style={[styles.permissionContainer, { paddingHorizontal: 16, marginTop: 0 }]}>
+                                <ThemedText type="defaultSemiBold" style={styles.label}>{i18n.t('sharing.modal.permission_level')}</ThemedText>
+                                <View style={styles.permissionOptions}>
                                     <TouchableOpacity
-                                        style={styles.userItem}
-                                        onPress={() => handleSelectUser(item)}
+                                        style={[
+                                            styles.permissionOption,
+                                            permission === 'VIEW' && styles.permissionSelected
+                                        ]}
+                                        onPress={() => setPermission('VIEW')}
                                     >
-                                        <View style={styles.avatar}>
-                                            <ThemedText style={styles.avatarText}>
-                                                {item.name.charAt(0).toUpperCase()}
-                                            </ThemedText>
-                                        </View>
-                                        <View style={styles.userInfo}>
-                                            <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
-                                            <ThemedText style={styles.userEmail}>{item.email}</ThemedText>
-                                        </View>
-                                    </TouchableOpacity>
-                                )}
-                            />
-                        )}
-
-                        {/* Selected User */}
-                        {selectedUser && (
-                            <View style={styles.selectedUserContainer}>
-                                <View style={styles.selectedUser}>
-                                    <View style={styles.avatar}>
-                                        <ThemedText style={styles.avatarText}>
-                                            {selectedUser.name.charAt(0).toUpperCase()}
+                                        <IconSymbol
+                                            name="eye.fill"
+                                            size={20}
+                                            color={permission === 'VIEW' ? colors.white : colors.primary}
+                                        />
+                                        <ThemedText style={[styles.permissionText, permission === 'VIEW' && styles.permissionTextSelected]}>
+                                            {i18n.t('sharing.modal.roles.viewer')}
                                         </ThemedText>
-                                    </View>
-                                    <View style={styles.userInfo}>
-                                        <ThemedText type="defaultSemiBold">{selectedUser.name}</ThemedText>
-                                        <ThemedText style={styles.userEmail}>{selectedUser.email}</ThemedText>
-                                    </View>
-                                    <TouchableOpacity onPress={() => setSelectedUser(null)}>
-                                        <IconSymbol name="xmark.circle.fill" size={24} color={colors.gray} />
                                     </TouchableOpacity>
-                                </View>
-
-                                {/* Permission Selector */}
-                                <View style={styles.permissionContainer}>
-                                    <ThemedText type="defaultSemiBold" style={styles.label}>{i18n.t('sharing.modal.permission_level')}</ThemedText>
-                                    <View style={styles.permissionOptions}>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.permissionOption,
-                                                permission === 'VIEW' && styles.permissionSelected
-                                            ]}
-                                            onPress={() => setPermission('VIEW')}
-                                        >
-                                            <IconSymbol
-                                                name="eye.fill"
-                                                size={20}
-                                                color={permission === 'VIEW' ? colors.white : colors.primary}
-                                            />
-                                            <ThemedText
-                                                style={[
-                                                    styles.permissionText,
-                                                    permission === 'VIEW' && styles.permissionTextSelected
-                                                ]}
-                                            >
-                                                {i18n.t('sharing.modal.roles.viewer')}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.permissionOption,
-                                                permission === 'EDIT' && styles.permissionSelected
-                                            ]}
-                                            onPress={() => setPermission('EDIT')}
-                                        >
-                                            <IconSymbol
-                                                name="pencil"
-                                                size={20}
-                                                color={permission === 'EDIT' ? colors.white : colors.primary}
-                                            />
-                                            <ThemedText
-                                                style={[
-                                                    styles.permissionText,
-                                                    permission === 'EDIT' && styles.permissionTextSelected
-                                                ]}
-                                            >
-                                                {i18n.t('sharing.modal.roles.editor')}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.permissionOption,
-                                                permission === 'CREATE' && styles.permissionSelected
-                                            ]}
-                                            onPress={() => setPermission('CREATE')}
-                                        >
-                                            <IconSymbol
-                                                name="plus.circle.fill"
-                                                size={20}
-                                                color={permission === 'CREATE' ? colors.white : colors.primary}
-                                            />
-                                            <ThemedText
-                                                style={[
-                                                    styles.permissionText,
-                                                    permission === 'CREATE' && styles.permissionTextSelected
-                                                ]}
-                                            >
-                                                {i18n.t('sharing.modal.roles.create')}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.permissionOption,
-                                                permission === 'FULL' && styles.permissionSelected
-                                            ]}
-                                            onPress={() => setPermission('FULL')}
-                                        >
-                                            <IconSymbol
-                                                name="star.circle.fill"
-                                                size={20}
-                                                color={permission === 'FULL' ? colors.white : colors.primary}
-                                            />
-                                            <ThemedText
-                                                style={[
-                                                    styles.permissionText,
-                                                    permission === 'FULL' && styles.permissionTextSelected
-                                                ]}
-                                            >
-                                                {i18n.t('sharing.modal.roles.full')}
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                    </View>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.permissionOption,
+                                            permission === 'EDIT' && styles.permissionSelected
+                                        ]}
+                                        onPress={() => setPermission('EDIT')}
+                                    >
+                                        <IconSymbol
+                                            name="pencil"
+                                            size={20}
+                                            color={permission === 'EDIT' ? colors.white : colors.primary}
+                                        />
+                                        <ThemedText style={[styles.permissionText, permission === 'EDIT' && styles.permissionTextSelected]}>
+                                            {i18n.t('sharing.modal.roles.editor')}
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.permissionOption,
+                                            permission === 'CREATE' && styles.permissionSelected
+                                        ]}
+                                        onPress={() => setPermission('CREATE')}
+                                    >
+                                        <IconSymbol
+                                            name="plus.circle.fill"
+                                            size={20}
+                                            color={permission === 'CREATE' ? colors.white : colors.primary}
+                                        />
+                                        <ThemedText style={[styles.permissionText, permission === 'CREATE' && styles.permissionTextSelected]}>
+                                            {i18n.t('sharing.modal.roles.create')}
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.permissionOption,
+                                            permission === 'FULL' && styles.permissionSelected
+                                        ]}
+                                        onPress={() => setPermission('FULL')}
+                                    >
+                                        <IconSymbol
+                                            name="star.circle.fill"
+                                            size={20}
+                                            color={permission === 'FULL' ? colors.white : colors.primary}
+                                        />
+                                        <ThemedText style={[styles.permissionText, permission === 'FULL' && styles.permissionTextSelected]}>
+                                            {i18n.t('sharing.modal.roles.full')}
+                                        </ThemedText>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         )}
@@ -528,15 +655,18 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                             <ThemedText style={styles.errorText}>{errorMsg}</ThemedText>
                         )}
 
+                        {/* Spacer for Footer */}
+                        <View style={{ height: 100 }} />
+
                         {/* Share Button */}
                         <View style={styles.footer}>
                             <TouchableOpacity
                                 style={[
                                     styles.shareButton,
-                                    (!selectedUser || sharing) && styles.shareButtonDisabled
+                                    ((activeTab === 'person' && !selectedUser) || (activeTab === 'group' && !selectedGroup) || sharing) && styles.shareButtonDisabled
                                 ]}
                                 onPress={handleShare}
-                                disabled={!selectedUser || sharing}
+                                disabled={(activeTab === 'person' && !selectedUser) || (activeTab === 'group' && !selectedGroup) || sharing}
                             >
                                 {sharing ? (
                                     <ActivityIndicator color={colors.white} />
@@ -554,3 +684,4 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
         </Modal>
     );
 }
+

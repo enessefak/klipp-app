@@ -1,5 +1,6 @@
-import { HomeScreen } from '@/src/features/attachments/presentation/screens/HomeScreen';
+import { Redirect } from 'expo-router';
 
-export default function HomeRoute() {
-  return <HomeScreen />;
+export default function TabsIndex() {
+  // Redirect to folders tab as the default
+  return <Redirect href="/(tabs)/folders" />;
 }

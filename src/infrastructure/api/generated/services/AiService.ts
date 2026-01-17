@@ -72,7 +72,31 @@ export class AiService {
             suggestedDescription: string | null;
             suggestedDate: string | null;
             extractedDetails: Record<string, any>;
-            rawText: string | null;
+            fieldConfig?: Array<{
+                key: string;
+                label: string;
+                type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                required?: boolean;
+                placeholder?: string;
+                unit?: string;
+                options?: Array<(string | {
+                    key: string;
+                    label: string;
+                })>;
+                itemConfig?: any[];
+                filterable?: boolean;
+                filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+            }> | null;
+            fieldStyle?: {
+                mobile?: {
+                    gridTemplateAreas: Array<string>;
+                    gap?: string;
+                };
+                desktop?: {
+                    gridTemplateAreas: Array<string>;
+                    gap?: string;
+                };
+            } | null;
         };
     }> {
         return __request(OpenAPI, {

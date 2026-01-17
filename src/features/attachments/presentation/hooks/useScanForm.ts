@@ -179,6 +179,8 @@ export function useScanForm() {
         }
         if (ocrResult.extractedData.currency) {
             newDetails.currency = ocrResult.extractedData.currency;
+        } else if (!newDetails.currency) {
+            newDetails.currency = 'TRY';
         }
         setValue('details', newDetails);
 

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,18 +8,20 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Attachment, AttachmentFilters } from '@/src/features/attachments/domain/Attachment';
+import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
+import { ImportEInvoiceModal } from '@/src/features/e-invoices/presentation/components/ImportEInvoiceModal';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharedFolder } from '@/src/features/sharing/domain/FolderShare';
 import { ShareFolderModal } from '@/src/features/sharing/presentation/components/ShareFolderModal';
 import { useFolderSharing } from '@/src/features/sharing/presentation/useFolderSharing';
-import { CategoryService } from '@/src/infrastructure/api/generated/services/CategoryService';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderFilters } from '../../domain/FolderFilters';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
-import { CreateCategoryModal } from '../components/CreateCategoryModal';
-import { CreateFolderModal } from '../components/CreateFolderModal';
+
+import { CreatePersonnelFolderModal } from '../components/CreatePersonnelFolderModal';
+import { FolderAddMenuSheet } from '../components/FolderAddMenuSheet';
 import { FolderCard } from '../components/FolderCard';
 import { FolderFilterBottomSheet } from '../components/FolderFilterBottomSheet';
 import { InboxTab } from '../components/InboxTab';
@@ -48,10 +50,12 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         loadingMore,
         refresh,
         createFolder,
+        updateFolder,
         loadMore,
         hasMore,
         search: searchFolders
     } = useFolders(parentId, { fetchMode: parentId ? 'all' : 'rootOnly' });
+
 
     const {
         sharedWithMe,
@@ -59,19 +63,24 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         loadSharedWithMe,
         loadSharedByMe,
         sharedWithMeHasMore,
-        loadingMoreSharedWithMe
+        loadingMoreSharedWithMe,
+        acceptShare,
+        rejectShare
     } = useFolderSharing();
 
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
+
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Filter State
     const [isFilterVisible, setIsFilterVisible] = useState(false);
     const [filters, setFilters] = useState<AttachmentFilters>({});
     const [folderFilters, setFolderFilters] = useState<FolderFilters>({});
+
+    // Add menu sheet state
+    const [isAddMenuVisible, setIsAddMenuVisible] = useState(false);
+    const [isPersonnelModalVisible, setIsPersonnelModalVisible] = useState(false);
+    const [isImportModalVisible, setIsImportModalVisible] = useState(false);
 
     // Inbox state (placeholder - will need API integration)
     const [inboxAttachments, setInboxAttachments] = useState<Attachment[]>([]);
@@ -87,16 +96,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         setFolderFilters({});
     };
 
-    const handleCreateCategory = async (dto: { name: string; accountCode?: string }) => {
-        try {
-            await CategoryService.postCategories(dto);
-            Alert.alert(i18n.t('common.actions.success'), 'Kategori başarıyla oluşturuldu.');
-            setIsCategoryModalVisible(false);
-        } catch (error) {
-            console.error('Failed to create category', error);
-            Alert.alert(i18n.t('common.error'), 'Kategori oluşturulamadı.');
-        }
-    };
+
 
     const activeFilterCount = Object.keys(filters).length + Object.keys(folderFilters).length;
 
@@ -232,6 +232,56 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
             color: colors.textLight,
             textAlign: 'center',
         },
+        emptyStateContainer: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 32,
+            paddingVertical: 40,
+        },
+        emptyStateIconContainer: {
+            width: 64,
+            height: 64,
+            borderRadius: 18,
+            backgroundColor: colors.primary + '10',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+        },
+        emptyStateTitle: {
+            fontSize: 18,
+            fontWeight: '600',
+            textAlign: 'center',
+            marginBottom: 8,
+            color: colors.text,
+        },
+        emptyStateDescription: {
+            fontSize: 14,
+            color: colors.textLight,
+            textAlign: 'center',
+            lineHeight: 20,
+            marginBottom: 24,
+        },
+        emptyStateButton: {
+            paddingHorizontal: 24,
+        },
+        subTab: {
+            paddingVertical: 6,
+            paddingHorizontal: 14,
+            borderRadius: 16,
+            backgroundColor: colors.inputBackground,
+        },
+        subTabActive: {
+            backgroundColor: colors.primary,
+        },
+        subTabText: {
+            fontSize: 13,
+            color: colors.text,
+        },
+        subTabTextActive: {
+            color: '#FFFFFF',
+            fontWeight: '600',
+        },
     }), [colors]);
 
     // Load shared folders on mount (only for root level)
@@ -242,9 +292,6 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         }
     }, [parentId, loadSharedWithMe, loadSharedByMe]);
 
-    const handleCreate = async (dto: any) => {
-        await createFolder(dto);
-    };
 
     const handleSearch = (text: string) => {
         setSearchQuery(text);
@@ -286,8 +333,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
     };
 
     const handleEditFolder = (folder: Folder) => {
-        // TODO: Implement folder edit modal/screen
-        Alert.alert(i18n.t('common.info'), 'Edit folder: ' + folder.name);
+        router.push(`/folders/edit/${folder.id}`);
     };
 
     const handleDeleteFolder = (folder: Folder) => {
@@ -367,9 +413,25 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : filteredFolders.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <IconSymbol name="folder.fill" size={64} color={colors.border} style={styles.emptyIcon} />
-                    <ThemedText style={styles.emptyText}>{i18n.t('folders.empty')}</ThemedText>
+                <View style={styles.emptyStateContainer}>
+                    <View style={styles.emptyStateIconContainer}>
+                        <IconSymbol name="folder.fill" size={32} color={colors.primary} />
+                    </View>
+                    <ThemedText type="defaultSemiBold" style={styles.emptyStateTitle}>
+                        {i18n.t('folders.emptyState.title')}
+                    </ThemedText>
+                    <ThemedText style={styles.emptyStateDescription}>
+                        {i18n.t('folders.emptyState.description')}
+                    </ThemedText>
+                    <TouchableOpacity
+                        style={[styles.fab, { position: 'relative', bottom: 0, right: 0, width: 'auto', height: 48, borderRadius: 12, paddingHorizontal: 24, flexDirection: 'row', gap: 8 }]}
+                        onPress={() => router.push('/folders/create')}
+                    >
+                        <IconSymbol name="plus" size={20} color={colors.white} />
+                        <ThemedText style={{ color: colors.white, fontWeight: '600' }}>
+                            {i18n.t('folders.emptyState.action')}
+                        </ThemedText>
+                    </TouchableOpacity>
                 </View>
             ) : (
                 <>
@@ -400,82 +462,156 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                             />
                         ))}
                     </View>
+
+                    {/* Root Attachments */}
+                    {filteredAttachments.length > 0 && (
+                        <>
+                            <View style={styles.sectionHeader}>
+                                <View>
+                                    <ThemedText type="subtitle" style={styles.sectionTitle}>
+                                        {i18n.t('receipts.home.title')}
+                                    </ThemedText>
+                                </View>
+                            </View>
+                            <View style={{ paddingHorizontal: 16 }}>
+                                {filteredAttachments.map((attachment) => (
+                                    <AttachmentCard
+                                        key={attachment.id}
+                                        attachment={attachment}
+                                        onPress={() => handlePressAttachment(attachment)}
+                                    />
+                                ))}
+                            </View>
+                        </>
+                    )}
                 </>
             )}
         </ScrollView>
     );
 
-    // Render Shared Tab
+    // Render Shared Tab - with inner sub-tabs
+    const [sharedSubTab, setSharedSubTab] = useState<'all' | 'pending' | 'accepted'>('all');
+
+    const filteredSharedFolders = useMemo(() => {
+        if (sharedSubTab === 'all') return sharedWithMe;
+        return sharedWithMe.filter(folder => folder.status === sharedSubTab);
+    }, [sharedWithMe, sharedSubTab]);
+
+    const handleAcceptShare = useCallback(async (shareId: string) => {
+        await acceptShare(shareId);
+        loadSharedWithMe(sharedSubTab === 'all' ? undefined : sharedSubTab);
+    }, [acceptShare, loadSharedWithMe, sharedSubTab]);
+
+    const handleRejectShare = useCallback(async (shareId: string) => {
+        await rejectShare(shareId);
+        loadSharedWithMe(sharedSubTab === 'all' ? undefined : sharedSubTab);
+    }, [rejectShare, loadSharedWithMe, sharedSubTab]);
+
     const renderSharedTab = () => (
-        <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={
-                <RefreshControl
-                    refreshing={loadingMoreSharedWithMe}
-                    onRefresh={() => loadSharedWithMe('accepted')}
-                    tintColor={colors.primary}
-                />
-            }
-        >
-            {/* Section Header */}
-            <View style={styles.sectionHeader}>
-                <View>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>
-                        {i18n.t('folderTabs.shared')}
-                    </ThemedText>
-                    <ThemedText style={styles.sectionSubtitle}>
-                        {sharedWithMe.length === 0
-                            ? i18n.t('folders.sharing.empty')
-                            : `${sharedWithMe.length} ${i18n.t('folders.sharing.person_count')}`
-                        }
-                    </ThemedText>
-                </View>
+        <View style={{ flex: 1 }}>
+            {/* Inner Sub-Tabs */}
+            <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}>
+                {(['all', 'pending', 'accepted'] as const).map((tab) => (
+                    <TouchableOpacity
+                        key={tab}
+                        style={[
+                            styles.subTab,
+                            sharedSubTab === tab && styles.subTabActive
+                        ]}
+                        onPress={() => setSharedSubTab(tab)}
+                    >
+                        <ThemedText style={[
+                            styles.subTabText,
+                            sharedSubTab === tab && styles.subTabTextActive
+                        ]}>
+                            {tab === 'all' ? i18n.t('folders.sharing.tabs.all')
+                                : tab === 'pending' ? i18n.t('folders.sharing.tabs.pending')
+                                    : i18n.t('folders.sharing.tabs.accepted')}
+                        </ThemedText>
+                    </TouchableOpacity>
+                ))}
             </View>
 
-            {sharedWithMe.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <IconSymbol name="person.2.fill" size={64} color={colors.border} style={styles.emptyIcon} />
-                    <ThemedText style={styles.emptyText}>{i18n.t('folders.sharing.empty')}</ThemedText>
-                </View>
-            ) : (
-                sharedWithMe.map((folder) => (
-                    <TouchableOpacity
-                        key={folder.shareId || folder.id}
-                        style={styles.sharedFolderCard}
-                        onPress={() => handlePressSharedFolder(folder)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={[styles.sharedIconContainer, { backgroundColor: folder.color + '20' }]}>
-                            <IconSymbol name={(folder.icon as any) || 'folder.fill'} size={24} color={folder.color} />
-                        </View>
-                        <View style={styles.sharedFolderInfo}>
-                            <ThemedText type="defaultSemiBold" style={styles.sharedFolderName}>
-                                {folder.name}
-                            </ThemedText>
-                            <View style={styles.sharedOwnerRow}>
-                                <IconSymbol name="person.fill" size={12} color={colors.gray} />
-                                <ThemedText style={styles.sharedOwnerText}>{folder.owner.name}</ThemedText>
-                            </View>
-                        </View>
-                        <View style={[
-                            styles.permissionBadge,
-                            { backgroundColor: folder.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
-                        ]}>
-                            <ThemedText style={[
-                                styles.permissionText,
-                                { color: folder.permission === 'EDIT' ? colors.success : colors.primary }
-                            ]}>
-                                {folder.permission === 'EDIT'
-                                    ? i18n.t('folders.picker.permissions.edit')
-                                    : i18n.t('folders.picker.permissions.view')
-                                }
-                            </ThemedText>
-                        </View>
-                        <IconSymbol name="chevron.right" size={20} color={colors.gray} style={{ marginLeft: 8 }} />
-                    </TouchableOpacity>
-                ))
-            )}
-        </ScrollView>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loadingMoreSharedWithMe}
+                        onRefresh={() => loadSharedWithMe(sharedSubTab === 'all' ? undefined : sharedSubTab)}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
+                {filteredSharedFolders.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <IconSymbol name="person.2.fill" size={64} color={colors.border} style={styles.emptyIcon} />
+                        <ThemedText style={styles.emptyText}>
+                            {sharedSubTab === 'pending'
+                                ? 'Bekleyen paylaşım daveti yok'
+                                : i18n.t('folders.sharing.shared_with_me_empty')}
+                        </ThemedText>
+                    </View>
+                ) : (
+                    filteredSharedFolders.map((folder) => {
+                        const isPending = folder.status === 'pending';
+                        return (
+                            <TouchableOpacity
+                                key={folder.shareId || folder.id}
+                                style={styles.sharedFolderCard}
+                                onPress={() => !isPending && handlePressSharedFolder(folder)}
+                                activeOpacity={isPending ? 1 : 0.7}
+                                disabled={isPending}
+                            >
+                                <View style={[styles.sharedIconContainer, { backgroundColor: folder.color + '20' }]}>
+                                    <IconSymbol name={(folder.icon as any) || 'folder.fill'} size={24} color={folder.color} />
+                                </View>
+                                <View style={styles.sharedFolderInfo}>
+                                    <ThemedText type="defaultSemiBold" style={styles.sharedFolderName}>
+                                        {folder.name}
+                                    </ThemedText>
+                                    <View style={styles.sharedOwnerRow}>
+                                        <IconSymbol name="person.fill" size={12} color={colors.gray} />
+                                        <ThemedText style={styles.sharedOwnerText}>{folder.owner.name}</ThemedText>
+                                    </View>
+                                </View>
+                                <View style={[
+                                    styles.permissionBadge,
+                                    { backgroundColor: folder.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
+                                ]}>
+                                    <ThemedText style={[
+                                        styles.permissionText,
+                                        { color: folder.permission === 'EDIT' ? colors.success : colors.primary }
+                                    ]}>
+                                        {folder.permission === 'EDIT'
+                                            ? i18n.t('folders.picker.permissions.edit')
+                                            : i18n.t('folders.picker.permissions.view')
+                                        }
+                                    </ThemedText>
+                                </View>
+                                {isPending ? (
+                                    <View style={{ flexDirection: 'row', gap: 8, marginLeft: 8 }}>
+                                        <TouchableOpacity
+                                            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.success, justifyContent: 'center', alignItems: 'center' }}
+                                            onPress={() => handleAcceptShare(folder.shareId)}
+                                        >
+                                            <IconSymbol name="checkmark" size={16} color={colors.white} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.error, justifyContent: 'center', alignItems: 'center' }}
+                                            onPress={() => handleRejectShare(folder.shareId)}
+                                        >
+                                            <IconSymbol name="xmark" size={16} color={colors.white} />
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <IconSymbol name="chevron.right" size={20} color={colors.gray} style={{ marginLeft: 8 }} />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })
+                )}
+            </ScrollView>
+        </View>
     );
 
     // Render Inbox Tab
@@ -509,25 +645,13 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         <SafeAreaView style={styles.container} edges={parentId ? [] : ['top']}>
             <View style={styles.header}>
                 {!parentId && (
-                    <>
-                        <View style={styles.headerTitle}>
-                            <ThemedText type="title" style={{ color: colors.primary }}>
-                                {i18n.t('folders.title')}
-                            </ThemedText>
-                            <TouchableOpacity onPress={() => setIsCategoryModalVisible(true)} style={{ padding: 4 }}>
-                                <IconSymbol name="tag.fill" size={24} color={colors.primary} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Tab Segment Control */}
-                        <View style={styles.tabContainer}>
-                            <SegmentedControl
-                                segments={tabSegments}
-                                selectedKey={activeTab}
-                                onSelect={(key) => setActiveTab(key as TabKey)}
-                            />
-                        </View>
-                    </>
+                    <View style={styles.tabContainer}>
+                        <SegmentedControl
+                            segments={tabSegments}
+                            selectedKey={activeTab}
+                            onSelect={(key) => setActiveTab(key as TabKey)}
+                        />
+                    </View>
                 )}
 
                 <SearchBar
@@ -545,23 +669,40 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
 
             {/* FAB - Only show on My Folders tab */}
             {activeTab === 'myFolders' && (
-                <TouchableOpacity style={styles.fab} onPress={() => setIsModalVisible(true)}>
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => setIsAddMenuVisible(true)}
+                >
                     <IconSymbol name="plus" size={32} color={colors.white} />
                 </TouchableOpacity>
             )}
 
-            <CreateFolderModal
-                visible={isModalVisible}
-                onClose={() => setIsModalVisible(false)}
-                onSubmit={handleCreate}
-                parentId={parentId || null}
+            <FolderAddMenuSheet
+                visible={isAddMenuVisible}
+                onClose={() => setIsAddMenuVisible(false)}
+                onCreateFolder={() => router.push({ pathname: '/folders/create', params: parentId ? { parentId } : {} })}
+                onCreatePersonnelFile={() => setIsPersonnelModalVisible(true)}
+                onImportPress={() => setIsImportModalVisible(true)}
+                folderId={parentId}
             />
 
-            <CreateCategoryModal
-                visible={isCategoryModalVisible}
-                onClose={() => setIsCategoryModalVisible(false)}
-                onSubmit={handleCreateCategory}
+            <CreatePersonnelFolderModal
+                visible={isPersonnelModalVisible}
+                onClose={() => setIsPersonnelModalVisible(false)}
+                onSuccess={() => refresh()}
             />
+
+            <ImportEInvoiceModal
+                visible={isImportModalVisible}
+                onClose={() => setIsImportModalVisible(false)}
+                onSuccess={() => refresh()}
+                initialFolderId={parentId}
+            />
+
+
+
+
+
 
             <FolderFilterBottomSheet
                 visible={isFilterVisible}

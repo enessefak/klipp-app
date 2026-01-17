@@ -75,4 +75,13 @@ export class AttachmentRepository {
     ): Promise<PaginatedAttachments> {
         return await this.getAttachments({ folderId }, pagination);
     }
+
+    static async requestApproval(id: string, reviewerEmail: string): Promise<void> {
+        await AttachmentService.postAttachmentsRequestApproval(id, { reviewerEmail });
+    }
+
+    static async reviewAttachment(id: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string): Promise<void> {
+        await AttachmentService.patchAttachmentsStatus(id, { status, rejectionReason });
+    }
 }
+

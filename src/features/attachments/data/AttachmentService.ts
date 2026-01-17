@@ -35,7 +35,6 @@ export class AttachmentService {
             filters?.createdAtFrom,
             filters?.createdAtTo,
             filters?.includeShared ? 'true' : undefined,
-            filters?.detailsFilter,
             pagination?.cursor,
             undefined, // page
             undefined, // skip
@@ -182,9 +181,35 @@ export class AttachmentService {
     }
 
     /**
-     * Get files for an attachment
-     * Returns viewUrl for each file (backend serves file through authenticated endpoint)
+     * Delete a file from an attachment
      */
+    static async deleteFile(fileId: string): Promise<void> {
+        await GeneratedFilesService.deleteFiles(fileId);
+    }
+
+    /**
+     * Upload a single file to an existing attachment
+     */
+    static async uploadFileToAttachment(
+        attachmentId: string,
+        file: { fileUri: string; mimeType?: string }
+    ): Promise<{ id: string; viewUrl: string; filename: string; contentType?: string; createdAt: string }> {
+        const contentType = file.mimeType || 'image/jpeg';
+        const extension = this.getExtensionFromContentType(contentType);
+        const filename = `${attachmentId}_${Date.now()}.${extension}`;
+
+        // 1. Get Presigned URL
+        const { uploadUrl, key } = await this.getPresignedUrl(filename, contentType);
+
+        // 2. Upload File to R2
+        await this.uploadImageToR2(uploadUrl, file.fileUri, contentType);
+
+        // 3. Save file record
+        const savedFile = await this.saveFileToAttachment(attachmentId, key);
+
+        return savedFile;
+    }
+
     static async getAttachmentFiles(attachmentId: string): Promise<{ id: string; viewUrl: string; filename: string; contentType?: string; createdAt: string }[]> {
         const response = await GeneratedFilesService.getFilesAttachment(attachmentId);
         return (response as any).data || response;
@@ -211,4 +236,15 @@ export class AttachmentService {
     static async postAttachmentsRequestApproval(id: string, data: { reviewerEmail: string }): Promise<void> {
         await GeneratedAttachmentService.postAttachmentsRequestApproval(id, data);
     }
+
+    /**
+     * Review an attachment (Approve or Reject)
+     */
+    static async patchAttachmentsStatus(
+        id: string,
+        data: { status: 'APPROVED' | 'REJECTED'; rejectionReason?: string }
+    ): Promise<void> {
+        await GeneratedAttachmentService.patchAttachmentsStatus(id, data);
+    }
 }
+

@@ -140,18 +140,10 @@ type ProfileFormState = {
     city: string;
     subdivision: string;
     phone: string;
+    email: string;
 };
 
-type CompanyFieldKey = Exclude<keyof ProfileFormState, 'name'>;
-
-type CompanyFieldConfig = {
-    key: CompanyFieldKey;
-    label: string;
-    placeholder?: string;
-    keyboardType?: React.ComponentProps<typeof TextInput>['keyboardType'];
-    multiline?: boolean;
-    autoCapitalize?: React.ComponentProps<typeof TextInput>['autoCapitalize'];
-};
+type CompanyFieldKey = Exclude<keyof ProfileFormState, 'name' | 'email'>;
 
 export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
@@ -170,11 +162,12 @@ export function ProfileScreen() {
         city: targetUser?.city ?? '',
         subdivision: targetUser?.subdivision ?? '',
         phone: targetUser?.phone ?? '',
+        email: targetUser?.email ?? '',
     });
 
     const [profileForm, setProfileForm] = useState<ProfileFormState>(() => buildProfileFormState(user));
     const [isSavingProfile, setIsSavingProfile] = useState(false);
-    const [isCompanyModalVisible, setCompanyModalVisible] = useState(false);
+    const [isEditProfileModalVisible, setIsEditProfileModalVisible] = useState(false);
 
     const styles = useMemo(() => StyleSheet.create({
         container: {
@@ -251,59 +244,58 @@ export function ProfileScreen() {
             borderRadius: 10,
             minWidth: 20,
             height: 20,
-            paddingHorizontal: 6,
-            justifyContent: 'center',
             alignItems: 'center',
-            marginRight: 8,
+            justifyContent: 'center',
+            paddingHorizontal: 4,
         },
         badgeText: {
             color: colors.white,
             fontSize: 12,
-            fontWeight: '600',
+            fontWeight: 'bold',
         },
         versionContainer: {
+            padding: 24,
             alignItems: 'center',
-            paddingVertical: 32,
-            paddingBottom: 120,
         },
         versionText: {
+            color: colors.textLight,
             fontSize: 13,
-            color: colors.gray,
         },
         companyIntroCard: {
             padding: 16,
+            alignItems: 'center',
         },
         companyIntroText: {
-            fontSize: 14,
-            color: colors.textLight,
+            textAlign: 'center',
             marginBottom: 16,
+            color: colors.textLight,
         },
         companyCtaButton: {
-            alignSelf: 'flex-start',
+            width: '100%',
         },
         companyForm: {
-            padding: 16,
+            gap: 16,
         },
         sectionHelper: {
-            fontSize: 13,
+            fontSize: 14,
             color: colors.textLight,
-            marginBottom: 12,
+            marginBottom: 8,
         },
         inputWrapper: {
-            marginBottom: 16,
+            gap: 8,
         },
         inputLabel: {
             fontSize: 14,
-            fontWeight: '600',
+            fontWeight: '500',
             color: colors.text,
-            marginBottom: 6,
         },
         multilineInput: {
-            minHeight: 100,
+            height: 80,
             textAlignVertical: 'top',
+            paddingTop: 12,
         },
         profileSaveButton: {
-            marginTop: 8,
+            marginTop: 16,
         },
         modalContainer: {
             flex: 1,
@@ -314,21 +306,24 @@ export function ProfileScreen() {
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderBottomWidth: StyleSheet.hairlineWidth,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
             borderBottomColor: colors.border,
         },
         modalTitle: {
             fontSize: 18,
             fontWeight: '600',
-            color: colors.text,
         },
         modalCloseButton: {
-            padding: 8,
-            marginRight: -8,
+            width: 32,
+            height: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 16,
+            backgroundColor: colors.card,
         },
         modalScrollContent: {
-            paddingBottom: 32,
+            padding: 20,
         },
     }), [colors]);
 
@@ -341,64 +336,22 @@ export function ProfileScreen() {
         setProfileForm(buildProfileFormState(user));
     }, [user]);
 
-    const companyFieldConfigs: CompanyFieldConfig[] = [
-        {
-            key: 'taxNumber',
-            label: i18n.t('profile.company.fields.taxNumber'),
-            placeholder: i18n.t('profile.company.placeholders.taxNumber'),
-            keyboardType: 'number-pad',
-            autoCapitalize: 'none',
-        },
-        {
-            key: 'taxOffice',
-            label: i18n.t('profile.company.fields.taxOffice'),
-            placeholder: i18n.t('profile.company.placeholders.taxOffice'),
-            autoCapitalize: 'words',
-        },
-        {
-            key: 'city',
-            label: i18n.t('profile.company.fields.city'),
-            placeholder: i18n.t('profile.company.placeholders.city'),
-            autoCapitalize: 'words',
-        },
-        {
-            key: 'subdivision',
-            label: i18n.t('profile.company.fields.subdivision'),
-            placeholder: i18n.t('profile.company.placeholders.subdivision'),
-            autoCapitalize: 'words',
-        },
-        {
-            key: 'address',
-            label: i18n.t('profile.company.fields.address'),
-            placeholder: i18n.t('profile.company.placeholders.address'),
-            multiline: true,
-            autoCapitalize: 'sentences',
-        },
-        {
-            key: 'phone',
-            label: i18n.t('profile.company.fields.phone'),
-            placeholder: i18n.t('profile.company.placeholders.phone'),
-            keyboardType: 'phone-pad',
-            autoCapitalize: 'none',
-        },
-    ];
-
     const companyKeys: CompanyFieldKey[] = ['taxNumber', 'taxOffice', 'city', 'subdivision', 'address', 'phone'];
 
-    const handleOpenCompanyModal = () => {
+    const handleEditProfile = () => {
         setProfileForm(buildProfileFormState(user));
-        setCompanyModalVisible(true);
+        setIsEditProfileModalVisible(true);
     };
 
-    const handleCloseCompanyModal = () => {
-        setCompanyModalVisible(false);
+    const handleCloseEditProfileModal = () => {
+        setIsEditProfileModalVisible(false);
     };
 
-    const handleCompanyFieldChange = (field: keyof ProfileFormState, value: string) => {
+    const handleProfileFieldChange = (field: keyof ProfileFormState, value: string) => {
         setProfileForm(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSaveCompanyInfo = async () => {
+    const handleSaveProfile = async () => {
         setIsSavingProfile(true);
         try {
             const payload: UpdateUserProfileInput = {};
@@ -409,6 +362,8 @@ export function ProfileScreen() {
 
             const ensureField = (field: CompanyFieldKey) => {
                 const trimmedValue = profileForm[field].trim();
+                // If user entered something, include it.
+                // If user cleared it (and it was previously set), send empty string to clear it.
                 if (trimmedValue.length > 0) {
                     payload[field] = trimmedValue;
                 } else if (user?.[field]) {
@@ -419,11 +374,11 @@ export function ProfileScreen() {
             companyKeys.forEach(ensureField);
 
             await updateProfile(payload);
-            Alert.alert(i18n.t('common.success'), i18n.t('profile.company.success'));
-            setCompanyModalVisible(false);
+            setIsEditProfileModalVisible(false);
+            Alert.alert(i18n.t('common.success'), 'Profil bilgileriniz güncellendi.');
         } catch (error) {
-            console.error('Company info update failed:', error);
-            Alert.alert(i18n.t('common.error'), i18n.t('profile.company.error'));
+            console.error('Save profile error:', error);
+            Alert.alert(i18n.t('common.error'), 'Profil bilgileri güncellenemedi.');
         } finally {
             setIsSavingProfile(false);
         }
@@ -526,40 +481,7 @@ export function ProfileScreen() {
     };
 
     const handleUpdateProfile = () => {
-        if (Platform.OS === 'ios') {
-            Alert.prompt(
-                'Profil Düzenle',
-                'Yeni isminizi girin:',
-                [
-                    {
-                        text: 'İptal',
-                        style: 'cancel',
-                    },
-                    {
-                        text: 'Kaydet',
-                        onPress: (text?: string) => {
-                            const name = text;
-                            if (name && name.length >= 2) {
-                                // Execute async logic without returning promise to Alert
-                                (async () => {
-                                    try {
-                                        await updateProfile({ name });
-                                        Alert.alert('Başarılı', 'Profil güncellendi');
-                                    } catch (error) {
-                                        Alert.alert('Hata', 'Profil güncellenemedi');
-                                    }
-                                })();
-                            }
-                        },
-                    },
-                ],
-                'plain-text',
-                user?.name
-            );
-        } else {
-            // Android fallback - could be a modal, strictly for MVP alerting simplicity
-            Alert.alert('Bilgi', 'Bu özellik şu an sadece iOS cihazlarda kullanılabilir.');
-        }
+        handleEditProfile();
     };
 
     const handleDeleteAccount = () => {
@@ -646,17 +568,6 @@ export function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Company / Tax Details */}
-                <SettingSection title={i18n.t('profile.company.title')}>
-                    <View style={styles.companyIntroCard}>
-                        <ThemedText style={styles.companyIntroText}>{i18n.t('profile.company.description')}</ThemedText>
-                        <Button
-                            title={i18n.t('profile.company.openButton')}
-                            onPress={handleOpenCompanyModal}
-                            style={styles.companyCtaButton}
-                        />
-                    </View>
-                </SettingSection>
 
                 {/* Subscription Section */}
                 <SettingSection title={i18n.t('subscription.title')}>
@@ -721,20 +632,6 @@ export function ProfileScreen() {
                             unreadCount > 0 ? (
                                 <View style={styles.badge}>
                                     <ThemedText style={styles.badgeText}>{unreadCount}</ThemedText>
-                                </View>
-                            ) : undefined
-                        }
-                    />
-                    <SettingItem
-                        icon="person.2.fill"
-                        iconColor="#34C759"
-                        title={i18n.t('profile.settings.sharedWithMe')}
-                        subtitle={pendingCount > 0 ? i18n.t('profile.settings.sharedPending', { count: pendingCount }) : i18n.t('profile.settings.sharedSubtitle')}
-                        onPress={() => router.push('/shared')}
-                        rightElement={
-                            pendingCount > 0 ? (
-                                <View style={styles.badge}>
-                                    <ThemedText style={styles.badgeText}>{pendingCount}</ThemedText>
                                 </View>
                             ) : undefined
                         }
@@ -831,53 +728,115 @@ export function ProfileScreen() {
             </ScrollView>
 
             <Modal
-                visible={isCompanyModalVisible}
+                visible={isEditProfileModalVisible}
                 animationType="slide"
                 presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
-                onRequestClose={handleCloseCompanyModal}
+                onRequestClose={handleCloseEditProfileModal}
             >
                 <SafeAreaView style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={handleCloseCompanyModal} style={styles.modalCloseButton}>
+                        <TouchableOpacity onPress={handleCloseEditProfileModal} style={styles.modalCloseButton}>
                             <IconSymbol name="xmark" size={20} color={colors.text} />
                         </TouchableOpacity>
-                        <ThemedText style={styles.modalTitle}>{i18n.t('profile.company.title')}</ThemedText>
+                        <ThemedText style={styles.modalTitle}>Profil Düzenle</ThemedText>
                         <View style={{ width: 32 }} />
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScrollContent}>
                         <View style={styles.companyForm}>
-                            <ThemedText style={styles.sectionHelper}>{i18n.t('profile.company.description')}</ThemedText>
+                            <ThemedText style={styles.sectionHelper}>
+                                Bu bilgiler faturalarınızda ve paylaşımlarınızda görünecektir.
+                            </ThemedText>
 
+                            {/* Row 1: Name & Email */}
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                                    <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.name')}</ThemedText>
+                                    <TextInput
+                                        value={profileForm.name}
+                                        onChangeText={(text) => handleProfileFieldChange('name', text)}
+                                        placeholder={i18n.t('profile.company.placeholders.name')}
+                                        autoCapitalize="words"
+                                    />
+                                </View>
+                                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                                    <ThemedText style={styles.inputLabel}>E-posta</ThemedText>
+                                    <TextInput
+                                        value={profileForm.email}
+                                        editable={false}
+                                        style={{ backgroundColor: colors.background, opacity: 0.7 }}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Row 2: Tax Number & Office */}
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                                    <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.taxNumber')}</ThemedText>
+                                    <TextInput
+                                        value={profileForm.taxNumber}
+                                        onChangeText={(text) => handleProfileFieldChange('taxNumber', text)}
+                                        placeholder={i18n.t('profile.company.placeholders.taxNumber')}
+                                        keyboardType="number-pad"
+                                    />
+                                </View>
+                                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                                    <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.taxOffice')}</ThemedText>
+                                    <TextInput
+                                        value={profileForm.taxOffice}
+                                        onChangeText={(text) => handleProfileFieldChange('taxOffice', text)}
+                                        placeholder={i18n.t('profile.company.placeholders.taxOffice')}
+                                        autoCapitalize="words"
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Row 3: Address */}
                             <View style={styles.inputWrapper}>
-                                <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.name')}</ThemedText>
+                                <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.address')}</ThemedText>
                                 <TextInput
-                                    value={profileForm.name}
-                                    onChangeText={(text) => handleCompanyFieldChange('name', text)}
-                                    placeholder={i18n.t('profile.company.placeholders.name')}
-                                    autoCapitalize="words"
+                                    value={profileForm.address}
+                                    onChangeText={(text) => handleProfileFieldChange('address', text)}
+                                    placeholder={i18n.t('profile.company.placeholders.address')}
+                                    multiline
+                                    numberOfLines={3}
+                                    style={styles.multilineInput}
                                 />
                             </View>
 
-                            {companyFieldConfigs.map((field) => (
-                                <View key={field.key} style={styles.inputWrapper}>
-                                    <ThemedText style={styles.inputLabel}>{field.label}</ThemedText>
+                            {/* Row 4: City, Subdivision, Phone */}
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                                    <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.city')}</ThemedText>
                                     <TextInput
-                                        value={profileForm[field.key]}
-                                        onChangeText={(text) => handleCompanyFieldChange(field.key, text)}
-                                        placeholder={field.placeholder}
-                                        keyboardType={field.keyboardType}
-                                        multiline={field.multiline}
-                                        numberOfLines={field.multiline ? 3 : 1}
-                                        autoCapitalize={field.autoCapitalize}
-                                        style={field.multiline ? styles.multilineInput : undefined}
+                                        value={profileForm.city}
+                                        onChangeText={(text) => handleProfileFieldChange('city', text)}
+                                        placeholder={i18n.t('profile.company.placeholders.city')}
                                     />
                                 </View>
-                            ))}
+                                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                                    <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.subdivision')}</ThemedText>
+                                    <TextInput
+                                        value={profileForm.subdivision}
+                                        onChangeText={(text) => handleProfileFieldChange('subdivision', text)}
+                                        placeholder={i18n.t('profile.company.placeholders.subdivision')}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.inputWrapper}>
+                                <ThemedText style={styles.inputLabel}>{i18n.t('profile.company.fields.phone')}</ThemedText>
+                                <TextInput
+                                    value={profileForm.phone}
+                                    onChangeText={(text) => handleProfileFieldChange('phone', text)}
+                                    placeholder={i18n.t('profile.company.placeholders.phone')}
+                                    keyboardType="phone-pad"
+                                />
+                            </View>
 
                             <Button
                                 title={i18n.t('profile.company.save')}
-                                onPress={handleSaveCompanyInfo}
+                                onPress={handleSaveProfile}
                                 loading={isSavingProfile}
                                 style={styles.profileSaveButton}
                             />

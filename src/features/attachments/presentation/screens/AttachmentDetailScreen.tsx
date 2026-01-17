@@ -42,6 +42,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 
 
+
 import { AttachmentActivity } from '../components/AttachmentActivity';
 import { AttachmentComments } from '../components/AttachmentComments';
 import { AttachmentExport } from '../components/AttachmentExport';
@@ -55,7 +56,8 @@ export function AttachmentDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const [attachment, setAttachment] = useState<Attachment | null>(null);
     const [attachmentTypeName, setAttachmentTypeName] = useState<string | null>(null);
-    const [files, setFiles] = useState<{ url: string; contentType?: string; filename: string }[]>([]);
+    const [files, setFiles] = useState<{ id?: string; url: string; contentType?: string; filename: string }[]>([]);
+    const [currentFileIndex, setCurrentFileIndex] = useState(0);
     const [authToken, setAuthToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
@@ -100,6 +102,11 @@ export function AttachmentDetailScreen() {
             const data = await AttachmentService.getAttachmentById(id!);
             setAttachment(data);
 
+            // Log for debugging items
+            if (data.details && data.details.items) {
+                console.log('[Detail] Attachment has items:', data.details.items);
+            }
+
             // Resolve current user to check ownership reliably
             let currentUser = user;
             if (!currentUser) {
@@ -130,7 +137,6 @@ export function AttachmentDetailScreen() {
                             // Only update if permission is different to avoid infinite loop
                             if ((data as any).permission !== folderPerm) {
                                 (data as any).permission = folderPerm;
-                                setAttachment({ ...data });
                             }
                         }
                     }
@@ -139,18 +145,41 @@ export function AttachmentDetailScreen() {
                 }
             }
 
+
             // Fetch attachment types to get configuration
             try {
                 const typesResponse = await AttachmentTypeService.getAttachmentTypes();
+                console.log('[Detail] typesResponse:', typesResponse);
                 const types = (typesResponse as any).data || typesResponse;
                 // Verify types is an array
                 const typesArray = Array.isArray(types) ? types : (types as any).items || [];
+                console.log('[Detail] typesArray:', typesArray);
 
                 const attachmentType = typesArray.find((t: any) => t.id === data.attachmentTypeId);
+                console.log('[Detail] attachmentType:', attachmentType);
+                console.log('[Detail] attachment.details:', data.details);
                 if (attachmentType) {
                     setAttachmentTypeName(attachmentType.name);
-                    if (attachmentType.fieldConfig) {
-                        setDynamicFields(attachmentType.fieldConfig);
+
+                    let fields = attachmentType.fieldConfig || [];
+
+                    // If we have items data but no items field config, add it synthetically
+                    // Web-style: Check category specific data for items
+                    const category = attachmentType.category?.toLowerCase();
+                    const categoryData = category ? (data as any)[category] : null;
+
+                    if (categoryData && categoryData.items && !fields.find((f: any) => f.key === 'items')) {
+                        console.log('[Detail] Adding synthetic items field config from category:', category);
+                        fields = [...fields, {
+                            key: 'items',
+                            label: i18n.t('attachments.items.title') || 'Items',
+                            type: 'array'
+                        }];
+                    }
+
+                    if (fields) {
+                        console.log('[Detail] Setting dynamicFields:', fields);
+                        setDynamicFields(fields);
                     }
                     if (attachmentType.fieldStyle) {
                         setFieldStyle(attachmentType.fieldStyle);
@@ -168,6 +197,7 @@ export function AttachmentDetailScreen() {
             setAuthToken(token || null);
 
             const filesWithFullUrl = fileData.map(file => ({
+                id: file.id,
                 url: `${OpenAPI.BASE}${file.viewUrl}`,
                 contentType: file.contentType,
                 filename: file.filename,
@@ -213,8 +243,11 @@ export function AttachmentDetailScreen() {
     const handleDownload = async () => {
         setShowActionMenu(false);
         if (files.length > 0) {
-            for (const file of files) {
-                await FileDownloadService.downloadAndShare(file.url, file.filename);
+            if (files.length > 0) {
+                const file = files[currentFileIndex];
+                if (file) {
+                    await FileDownloadService.downloadAndShare(file.url, file.filename);
+                }
             }
         }
     };
@@ -277,9 +310,14 @@ export function AttachmentDetailScreen() {
         }
     };
 
+    const [rejectionModalVisible, setRejectionModalVisible] = useState(false);
+
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [processingReview, setProcessingReview] = useState(false);
+
     const handleRequestApproval = async () => {
         if (!reviewerEmail || !reviewerEmail.includes('@')) {
-            Alert.alert('Hata', 'Geçerli bir e-posta adresi giriniz.');
+            Alert.alert(i18n.t('common.error'), i18n.t('approval.error_email'));
             return;
         }
 
@@ -287,14 +325,50 @@ export function AttachmentDetailScreen() {
             setRequestingApproval(true);
             await AttachmentService.postAttachmentsRequestApproval(id!, { reviewerEmail });
             setApprovalModalVisible(false);
-            Alert.alert('Başarılı', 'Onay isteği gönderildi.');
+            Alert.alert(i18n.t('common.success'), i18n.t('approval.success_request'));
             // Refresh attachment
             const updated = await AttachmentService.getAttachmentById(id!);
             setAttachment(updated);
         } catch (err) {
-            Alert.alert('Hata', 'Onay isteği gönderilemedi.');
+            Alert.alert(i18n.t('common.error'), i18n.t('approval.error_request'));
         } finally {
             setRequestingApproval(false);
+        }
+    };
+
+    const handleApprove = async () => {
+        try {
+            setProcessingReview(true);
+            await AttachmentService.patchAttachmentsStatus(id!, { status: 'APPROVED' });
+            Alert.alert(i18n.t('common.success'), i18n.t('approval.success_approve'));
+            const updated = await AttachmentService.getAttachmentById(id!);
+            setAttachment(updated);
+        } catch (err) {
+            console.error(err);
+            Alert.alert(i18n.t('common.error'), i18n.t('approval.error_approve'));
+        } finally {
+            setProcessingReview(false);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!rejectionReason.trim()) {
+            Alert.alert(i18n.t('common.error'), i18n.t('approval.error_reject_reason'));
+            return;
+        }
+
+        try {
+            setProcessingReview(true);
+            await AttachmentService.patchAttachmentsStatus(id!, { status: 'REJECTED', rejectionReason });
+            setRejectionModalVisible(false);
+            Alert.alert(i18n.t('common.success'), i18n.t('approval.success_reject'));
+            const updated = await AttachmentService.getAttachmentById(id!);
+            setAttachment(updated);
+        } catch (err) {
+            console.error(err);
+            Alert.alert(i18n.t('common.error'), i18n.t('approval.error_reject'));
+        } finally {
+            setProcessingReview(false);
         }
     };
 
@@ -319,7 +393,7 @@ export function AttachmentDetailScreen() {
     const [showPdfViewer, setShowPdfViewer] = useState(false);
     const [selectedFile, setSelectedFile] = useState<{ url: string; contentType?: string; filename: string } | null>(null);
 
-    const handleOpenFile = async (file: { url: string; contentType?: string; filename: string }) => {
+    const handleOpenFile = async (file: { id?: string; url: string; contentType?: string; filename: string }) => {
         try {
             setSelectedFile(file);
             if (isImageFile(file.contentType)) {
@@ -334,6 +408,117 @@ export function AttachmentDetailScreen() {
             console.error('Failed to open file:', err);
             Alert.alert(i18n.t('receipts.detail.actions.error_opening_file'));
         }
+    };
+
+    const handleAddFile = async () => {
+        const options = [
+            i18n.t('common.actions.cancel'),
+            i18n.t('receipts.scan.methods.camera'),
+            i18n.t('receipts.scan.methods.gallery'),
+            i18n.t('receipts.scan.methods.file')
+        ];
+
+        const processFile = async (uri: string, mimeType: string = 'image/jpeg') => {
+            try {
+                setLoading(true);
+                const result = await AttachmentService.uploadFileToAttachment(id!, { fileUri: uri, mimeType });
+
+                // Refresh files
+                const fileData = await AttachmentService.getAttachmentFiles(id!);
+                const filesWithFullUrl = fileData.map(file => ({
+                    id: file.id,
+                    url: `${OpenAPI.BASE}${file.viewUrl}`,
+                    contentType: file.contentType,
+                    filename: file.filename,
+                }));
+                // Set index to the newly added file (last one)
+                setFiles(filesWithFullUrl);
+                setCurrentFileIndex(filesWithFullUrl.length - 1);
+                Alert.alert(i18n.t('common.success'), i18n.t('receipts.scan.save_success.message'));
+            } catch (e) {
+                console.error('Upload failed', e);
+                Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.save_error.message'));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const handlePickImage = async (source: 'camera' | 'library') => {
+            const { launchCameraAsync, launchImageLibraryAsync, MediaTypeOptions } = await import('expo-image-picker');
+            const result = source === 'camera'
+                ? await launchCameraAsync({ mediaTypes: MediaTypeOptions.Images, quality: 0.8 })
+                : await launchImageLibraryAsync({ mediaTypes: MediaTypeOptions.Images, quality: 0.8 });
+
+            if (!result.canceled && result.assets[0]) {
+                await processFile(result.assets[0].uri, result.assets[0].mimeType);
+            }
+        };
+
+        const handlePickDoc = async () => {
+            const { getDocumentAsync } = await import('expo-document-picker');
+            const result = await getDocumentAsync({ type: '*/*' });
+            if (!result.canceled && result.assets && result.assets[0]) {
+                await processFile(result.assets[0].uri, result.assets[0].mimeType);
+            }
+        };
+
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions({
+                options,
+                cancelButtonIndex: 0
+            }, (buttonIndex) => {
+                if (buttonIndex === 1) handlePickImage('camera');
+                if (buttonIndex === 2) handlePickImage('library');
+                if (buttonIndex === 3) handlePickDoc();
+            });
+        } else {
+            Alert.alert(
+                i18n.t('attachments.addFile'),
+                undefined,
+                [
+                    { text: i18n.t('receipts.scan.methods.camera'), onPress: () => handlePickImage('camera') },
+                    { text: i18n.t('receipts.scan.methods.gallery'), onPress: () => handlePickImage('library') },
+                    { text: i18n.t('receipts.scan.methods.file'), onPress: handlePickDoc },
+                    { text: i18n.t('common.actions.cancel'), style: 'cancel' },
+                ]
+            );
+        }
+    };
+
+    const handleDeleteFile = async () => {
+        const file = files[currentFileIndex];
+        if (!file || !file.id) return;
+
+        Alert.alert(
+            i18n.t('receipts.detail.actions.delete_title'),
+            i18n.t('attachments.deleteConfirmation') || 'Are you sure you want to delete this file?',
+            [
+                { text: i18n.t('common.actions.cancel'), style: 'cancel' },
+                {
+                    text: i18n.t('common.actions.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await AttachmentService.deleteFile(file.id!);
+
+                            const newFiles = files.filter(f => f.id !== file.id);
+                            setFiles(newFiles);
+                            if (currentFileIndex >= newFiles.length) {
+                                setCurrentFileIndex(Math.max(0, newFiles.length - 1));
+                            }
+
+                            Alert.alert(i18n.t('common.success'), 'Dosya silindi.');
+                        } catch (e) {
+                            console.error('Delete file failed', e);
+                            Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.error_delete'));
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const styles = useMemo(() => StyleSheet.create({
@@ -867,10 +1052,23 @@ export function AttachmentDetailScreen() {
         if (!attachment) return null;
 
         // Helper to get value securely
+        // Helper to get value securely, handling category-specific paths (Web-style)
         const getValue = (key: string) => {
-            // Check details first
+            // 1. Check direct details
             let val = attachment.details?.[key];
-            // If not in details, check root (e.g. amount, currency)
+
+            // 2. Check category specific object (e.g. financial, personnel) if not found
+            // Cast to any because attachmentType might not be fully typed in the base interface but is populated
+            const att = attachment as any;
+            if (val === undefined && att.attachmentType?.category) {
+                const category = att.attachmentType.category.toLowerCase();
+                const categoryData = att[category];
+                if (categoryData) {
+                    val = categoryData[key];
+                }
+            }
+
+            // 3. Fallback to root (e.g. amount, currency)
             if (val === undefined && key in attachment) {
                 val = (attachment as any)[key];
             }
@@ -885,9 +1083,16 @@ export function AttachmentDetailScreen() {
 
             // Handle Line Items (Array of Objects)
             if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+                // Get config directly from fieldStyle (like web) or current field config
+                const itemsConfig = fieldStyle?.items || field?.items;
                 return (
                     <View key={key} style={{ width: '100%', marginTop: 8 }}>
-                        <LineItemsTable items={val} label={finalLabel} currency={attachment?.details?.currency || 'TRY'} />
+                        <LineItemsTable
+                            items={val}
+                            label={finalLabel}
+                            currency={attachment?.details?.currency || 'TRY'}
+                            itemsConfig={itemsConfig}
+                        />
                     </View>
                 );
             }
@@ -985,9 +1190,14 @@ export function AttachmentDetailScreen() {
                     <IconSymbol name="chevron.left" size={24} color={colors.text} />
                 </TouchableOpacity>
                 <ThemedText type="subtitle" style={styles.headerTitle}>{i18n.t('receipts.detail.title')}</ThemedText>
-                <TouchableOpacity style={styles.menuButton} onPress={showMoreOptions}>
-                    <IconSymbol name="ellipsis" size={24} color={colors.text} />
-                </TouchableOpacity>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+
+                    <TouchableOpacity style={styles.menuButton} onPress={showMoreOptions}>
+                        <IconSymbol name="ellipsis" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Tab Bar */}
@@ -1016,28 +1226,114 @@ export function AttachmentDetailScreen() {
                 {activeTab === 'details' && (
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                         {/* File Gallery */}
+                        {/* File Gallery */}
                         {files.length > 0 ? (
-                            <View style={styles.imageContainer}>
-                                {renderFilePreview(files[0], true)}
-                                {files.length > 1 && (
-                                    <View style={styles.thumbnailRow}>
-                                        {files.slice(1, 4).map((file, index) => (
-                                            <View key={index}>
-                                                {renderFilePreview(file, false)}
+                            <View style={{ position: 'relative', marginBottom: 12 }}>
+                                <TouchableOpacity
+                                    onPress={() => handleOpenFile(files[currentFileIndex])}
+                                    testID="attachment-preview"
+                                    activeOpacity={0.9}
+                                >
+                                    {isImageFile(files[currentFileIndex].contentType) ? (
+                                        <View style={styles.imageContainer}>
+                                            <Image
+                                                source={{
+                                                    uri: files[currentFileIndex].url,
+                                                    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
+                                                }}
+                                                style={styles.mainImage}
+                                                contentFit="contain"
+                                                transition={200}
+                                            />
+                                        </View>
+                                    ) : (
+                                        <View style={styles.noImageContainer}>
+                                            <View style={[styles.mainDocumentContainer, { height: 300, backgroundColor: colors.background }]}>
+                                                <IconSymbol
+                                                    name={getFileIcon(files[currentFileIndex].contentType) as any}
+                                                    size={64}
+                                                    color={colors.primary}
+                                                />
+                                                <ThemedText style={styles.documentFilename} numberOfLines={1}>{files[currentFileIndex].filename}</ThemedText>
+                                                <ThemedText style={styles.documentHint}>{i18n.t('common.actions.tapToView')}</ThemedText>
                                             </View>
-                                        ))}
-                                        {files.length > 4 && (
-                                            <View style={styles.moreThumbnail}>
-                                                <ThemedText style={styles.moreText}>+{files.length - 4}</ThemedText>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+
+                                {/* File Navigation & Actions Overlay */}
+                                <View style={{
+                                    flexDirection: 'row',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    paddingHorizontal: 16,
+                                    paddingVertical: 12,
+                                    backgroundColor: colors.card,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: colors.border,
+                                    borderTopWidth: 1,
+                                    borderTopColor: colors.border,
+                                    marginTop: -12
+                                }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                                        {files.length > 1 && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                                <TouchableOpacity
+                                                    onPress={() => setCurrentFileIndex(prev => Math.max(0, prev - 1))}
+                                                    disabled={currentFileIndex === 0}
+                                                    style={{ opacity: currentFileIndex === 0 ? 0.3 : 1, padding: 8 }}
+                                                >
+                                                    <IconSymbol name="chevron.left" size={24} color={colors.text} />
+                                                </TouchableOpacity>
+                                                <ThemedText style={{ fontSize: 14, fontWeight: '500', minWidth: 40, textAlign: 'center' }}>
+                                                    {currentFileIndex + 1} / {files.length}
+                                                </ThemedText>
+                                                <TouchableOpacity
+                                                    onPress={() => setCurrentFileIndex(prev => Math.min(files.length - 1, prev + 1))}
+                                                    disabled={currentFileIndex === files.length - 1}
+                                                    style={{ opacity: currentFileIndex === files.length - 1 ? 0.3 : 1, padding: 8 }}
+                                                >
+                                                    <IconSymbol name="chevron.right" size={24} color={colors.text} />
+                                                </TouchableOpacity>
                                             </View>
                                         )}
                                     </View>
-                                )}
+
+                                    <View style={{ flexDirection: 'row', gap: 16 }}>
+                                        {(!isShared || attachment?.permission !== 'VIEW') && (
+                                            <>
+                                                <TouchableOpacity
+                                                    onPress={handleDeleteFile}
+                                                    style={{ padding: 8, backgroundColor: colors.error + '15', borderRadius: 8 }}
+                                                >
+                                                    <IconSymbol name="trash" size={20} color={colors.error} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    onPress={handleAddFile}
+                                                    style={{ padding: 8, backgroundColor: colors.primary + '15', borderRadius: 8 }}
+                                                >
+                                                    <IconSymbol name="plus" size={20} color={colors.primary} />
+                                                </TouchableOpacity>
+                                            </>
+                                        )}
+                                    </View>
+                                </View>
                             </View>
                         ) : (
                             <View style={styles.noImageContainer}>
                                 <IconSymbol name="photo" size={48} color={colors.textLight} />
-                                <ThemedText style={styles.noImageText}>{i18n.t('receipts.detail.actions.no_file')}</ThemedText>
+                                <ThemedText style={styles.noImageText}>{i18n.t('receipts.detail.actions.no_file') || 'Dosya yok'}</ThemedText>
+                                {(!isShared || attachment?.permission !== 'VIEW') && (
+                                    <TouchableOpacity
+                                        onPress={handleAddFile}
+                                        style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: colors.primary + '15', borderRadius: 8 }}
+                                    >
+                                        <IconSymbol name="plus" size={16} color={colors.primary} />
+                                        <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>
+                                            {i18n.t('attachments.addFile') || 'Dosya Ekle'}
+                                        </ThemedText>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         )}
 
@@ -1179,13 +1475,48 @@ export function AttachmentDetailScreen() {
                                 <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
                             </TouchableOpacity>
 
-                            <TouchableOpacity
-                                style={styles.actionButton}
-                                onPress={() => setApprovalModalVisible(true)}
-                            >
-                                <IconSymbol name="paperplane.fill" size={20} color={colors.primary} />
-                                <ThemedText style={styles.actionText}>Onaya Gönder</ThemedText>
-                            </TouchableOpacity>
+                            {attachment.permissions?.canRequestApproval && (
+                                <TouchableOpacity
+                                    style={styles.actionButton}
+                                    onPress={() => setApprovalModalVisible(true)}
+                                >
+                                    <IconSymbol name="paperplane.fill" size={20} color={colors.primary} />
+                                    <ThemedText style={styles.actionText}>{i18n.t('approval.request_button')}</ThemedText>
+                                </TouchableOpacity>
+                            )}
+
+                            {attachment.permissions?.canApprove && (
+                                <>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, { borderColor: colors.success, backgroundColor: colors.success + '10' }]}
+                                        onPress={() => Alert.alert(
+                                            i18n.t('approval.confirm_approve_title'),
+                                            i18n.t('approval.confirm_approve_message'),
+                                            [
+                                                { text: i18n.t('common.actions.cancel'), style: 'cancel' },
+                                                { text: i18n.t('approval.approve_button'), onPress: handleApprove, style: 'default' }
+                                            ]
+                                        )}
+                                        disabled={processingReview}
+                                    >
+                                        {processingReview ? (
+                                            <ActivityIndicator size="small" color={colors.success} />
+                                        ) : (
+                                            <IconSymbol name="checkmark.circle.fill" size={20} color={colors.success} />
+                                        )}
+                                        <ThemedText style={[styles.actionText, { color: colors.success }]}>{i18n.t('approval.approve_button')}</ThemedText>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, { borderColor: colors.error, backgroundColor: colors.error + '10' }]}
+                                        onPress={() => setRejectionModalVisible(true)}
+                                        disabled={processingReview}
+                                    >
+                                        <IconSymbol name="xmark.circle.fill" size={20} color={colors.error} />
+                                        <ThemedText style={[styles.actionText, { color: colors.error }]}>{i18n.t('approval.reject_button')}</ThemedText>
+                                    </TouchableOpacity>
+                                </>
+                            )}
 
                             <TouchableOpacity
                                 style={[
@@ -1303,8 +1634,8 @@ export function AttachmentDetailScreen() {
             >
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 12, width: '80%' }}>
-                        <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Onaya Gönder</ThemedText>
-                        <ThemedText style={{ marginBottom: 8 }}>Yöneticinin E-posta Adresi:</ThemedText>
+                        <ThemedText type="subtitle" style={{ marginBottom: 12 }}>{i18n.t('approval.request_modal_title')}</ThemedText>
+                        <ThemedText style={{ marginBottom: 8 }}>{i18n.t('approval.reviewer_email')}:</ThemedText>
                         <TextInput
                             style={{
                                 borderWidth: 1,
@@ -1317,26 +1648,71 @@ export function AttachmentDetailScreen() {
                             }}
                             value={reviewerEmail}
                             onChangeText={setReviewerEmail}
-                            placeholder="yonetici@sirket.com"
+                            placeholder={i18n.t('approval.reviewer_placeholder')}
                             placeholderTextColor={colors.subtext}
                             autoCapitalize="none"
                             keyboardType="email-address"
                         />
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
                             <TouchableOpacity onPress={() => setApprovalModalVisible(false)}>
-                                <ThemedText style={{ color: colors.subtext }}>İptal</ThemedText>
+                                <ThemedText style={{ color: colors.subtext }}>{i18n.t('common.actions.cancel')}</ThemedText>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleRequestApproval} disabled={requestingApproval}>
                                 {requestingApproval ? (
                                     <ActivityIndicator size="small" color={colors.primary} />
                                 ) : (
-                                    <ThemedText style={{ color: colors.primary, fontWeight: 'bold' }}>Gönder</ThemedText>
+                                    <ThemedText style={{ color: colors.primary, fontWeight: 'bold' }}>{i18n.t('approval.send')}</ThemedText>
                                 )}
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView >
+
+            <Modal
+                visible={rejectionModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setRejectionModalVisible(false)}
+            >
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <View style={{ backgroundColor: colors.card, padding: 20, borderRadius: 12, width: '80%' }}>
+                        <ThemedText type="subtitle" style={{ marginBottom: 12 }}>{i18n.t('approval.reject_modal_title')}</ThemedText>
+                        <TextInput
+                            style={{
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                borderRadius: 8,
+                                padding: 10,
+                                marginBottom: 16,
+                                color: colors.text,
+                                backgroundColor: colors.background,
+                                minHeight: 80,
+                                textAlignVertical: 'top'
+                            }}
+                            value={rejectionReason}
+                            onChangeText={setRejectionReason}
+                            placeholder={i18n.t('approval.reject_placeholder')}
+                            placeholderTextColor={colors.subtext}
+                            multiline
+                        />
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                            <TouchableOpacity onPress={() => setRejectionModalVisible(false)}>
+                                <ThemedText style={{ color: colors.subtext }}>{i18n.t('common.actions.cancel')}</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleReject} disabled={processingReview}>
+                                {processingReview ? (
+                                    <ActivityIndicator size="small" color={colors.error} />
+                                ) : (
+                                    <ThemedText style={{ color: colors.error, fontWeight: 'bold' }}>{i18n.t('approval.reject_button')}</ThemedText>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+
+        </SafeAreaView>
     );
 }

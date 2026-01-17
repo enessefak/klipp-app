@@ -37,7 +37,7 @@ export function SegmentedControl({
         segment: {
             flex: 1,
             paddingVertical: 10,
-            paddingHorizontal: 12,
+            paddingHorizontal: 6,
             borderRadius: 10,
             alignItems: 'center',
             justifyContent: 'center',
@@ -80,6 +80,9 @@ export function SegmentedControl({
                                 styles.segmentText,
                                 isSelected && styles.selectedSegmentText,
                             ]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.8}
                         >
                             {segment.label}
                         </ThemedText>

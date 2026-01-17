@@ -1,7 +1,6 @@
 import { Button } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { PRODUCT_IDS } from '@/src/features/subscription/domain/SubscriptionProduct';
 import { useSubscription } from '@/src/features/subscription/presentation/SubscriptionContext';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,14 +16,15 @@ export function PaywallScreen() {
     const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
 
     useEffect(() => {
-        // Auto select
+        // Auto select first product when loaded
         if (products.length > 0 && !selectedProduct) {
-            const yearly = products.find(p => p.productId === PRODUCT_IDS.PREMIUM_YEARLY);
-            if (yearly) {
-                setSelectedProduct(yearly.productId);
-            } else {
-                setSelectedProduct(products[0].productId);
-            }
+            // Prefer yearly plan if available (usually better value)
+            const yearlyPlan = products.find(p =>
+                p.title.toLowerCase().includes('yearly') ||
+                p.title.toLowerCase().includes('yıllık') ||
+                p.productId.includes('yearly')
+            );
+            setSelectedProduct(yearlyPlan?.productId || products[0].productId);
         }
     }, [products]);
 

@@ -8,24 +8,41 @@ import { request as __request } from '../core/request';
 export class CategoryService {
     /**
      * List categories
+     * List categories with filtering and pagination
+     * @param cursor
+     * @param limit
+     * @param search
      * @returns any Default Response
      * @throws ApiError
      */
-    public static getCategories(): CancelablePromise<{
+    public static getCategories(
+        cursor?: string,
+        limit?: number,
+        search?: string,
+    ): CancelablePromise<{
         success: boolean;
         message?: string;
-        data?: Array<{
-            id: string;
-            name: string;
-            accountCode?: string | null;
-            userId: string;
-            createdAt: string;
-            updatedAt: string;
-        }>;
+        data?: {
+            items: Array<{
+                id: string;
+                name: string;
+                accountCode?: string | null;
+                userId: string;
+                createdAt: string;
+                updatedAt: string;
+            }>;
+            hasMore: boolean;
+            nextCursor: string | null;
+        };
     }> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/categories/',
+            query: {
+                'cursor': cursor,
+                'limit': limit,
+                'search': search,
+            },
         });
     }
     /**

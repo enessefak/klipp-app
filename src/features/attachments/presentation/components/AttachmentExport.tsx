@@ -1,28 +1,41 @@
-
 import { FileDownloadService } from '@/src/features/attachments/application/FileDownloadService';
+import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
+import { EInvoiceSettingsRepository } from '@/src/features/e-invoices/data/EInvoiceSettingsRepository';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
+import { ExportService } from '@/src/infrastructure/api/generated/services/ExportService';
+import { UserService } from '@/src/infrastructure/api/generated/services/UserService';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Ionicons } from '@expo/vector-icons';
+import { Href, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 import { FieldConfig } from '../../domain/AttachmentTypeFields';
+import { MissingCompanyInfoModal } from './MissingCompanyInfoModal';
 
 interface AttachmentExportProps {
     attachmentId: string;
     fieldConfig?: FieldConfig[];
 }
 
+interface ExportFormat {
+    code: string;
+    name: string;
+    description?: string;
+    icon?: string;
+}
+
 export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId, fieldConfig = [] }) => {
-    const [formats, setFormats] = useState<string[]>([]);
+    const router = useRouter(); // Keeping router if needed else remove
+    const [formats, setFormats] = useState<ExportFormat[]>([]);
     const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set(['base', 'metadata']));
+    const [showMissingModal, setShowMissingModal] = useState(false);
+    const [missingFields, setMissingFields] = useState<string[]>([]);
+    const [missingInfoMessage, setMissingInfoMessage] = useState<string | undefined>(undefined);
     const [loadingFormats, setLoadingFormats] = useState(true);
     const [exporting, setExporting] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
-
-    // Advanced options state - simple field selection for now
-
 
     const { colors } = useSettings();
 
@@ -32,39 +45,205 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
 
     const loadFormats = async () => {
         try {
-            // Hardcoded formats if API doesn't return list, or fetch from API
-            // const response = await ExportService.getExportFormats();
-            // setFormats(response.data);
-            setFormats(['PDF', 'JSON', 'XML', 'CSV', 'EXCEL']); // Fallback/Default
+            // Try fetching from API first
+            const response = await ExportService.getExportFormats();
+            if (response.success && response.data && response.data.length > 0) {
+                // Map API response to our UI format if valid
+                const mapped = response.data.map(f => ({
+                    code: f.code,
+                    name: f.name,
+                    description: f.extension // using extension as description for now
+                }));
+                setFormats(mapped);
+            } else {
+                throw new Error("No formats from API");
+            }
         } catch (error) {
-            console.error('Failed to load formats', error);
-            setFormats(['PDF', 'JSON']);
+            console.log('Using fallback formats', error);
+            // Fallback to match Web UI exactly
+            setFormats([
+                { code: 'UBL', name: 'Global - UBL 2.1 (OASIS)', icon: 'document-text' },
+                { code: 'PEPPOL_BIS', name: 'Global - Peppol BIS Billing 3.0', icon: 'document-text' },
+                { code: 'TR_UBL', name: 'Turkey - E-Invoice (UBL-TR)', icon: 'document-text' },
+                { code: 'DE_ZUGFERD', name: 'Germany - E-Rechnung (ZUGFeRD)', icon: 'document-text' },
+                { code: 'DE_XRECHNUNG', name: 'Germany - XRechnung', icon: 'document-text' },
+                { code: 'FR_FACTURX', name: 'France - Factur-X', icon: 'document-text' },
+                { code: 'IT_FATTURAPA', name: 'Italy - FatturaPA', icon: 'document-text' },
+                { code: 'EU_UBL', name: 'Europe - UBL (EN16931)', icon: 'code-slash' },
+                { code: 'EU_CII', name: 'Europe - CII (EN16931)', icon: 'document-text' },
+                { code: 'TR_EXCEL', name: 'Turkey - Accounting (Excel)', icon: 'grid' },
+                { code: 'DE_DATEV', name: 'Germany - Accounting (DATEV CSV)', icon: 'grid' },
+                { code: 'JSON', name: 'JSON Export', icon: 'code-slash' },
+                { code: 'PDF', name: 'PDF', icon: 'document' },
+                { code: 'XML', name: 'XML', icon: 'code' },
+                { code: 'CSV', name: 'CSV', icon: 'grid' },
+                { code: 'EXCEL', name: 'EXCEL', icon: 'grid' }
+            ]);
         } finally {
             setLoadingFormats(false);
         }
     };
 
+    // ... existing code ...
+
+    // Check for company info before export
+    // Check for company info before export
+    const checkCompanyInfo = async (format: string): Promise<{ proceed: boolean; source?: 'folder' | 'profile' }> => {
+        // Only check for formats that typically require tax info (e.g. UBL, TR_UBL, etc)
+        const officialFormats = ['TR_UBL', 'UBL', 'PEPPOL_BIS', 'DE_ZUGFERD', 'TR_EXCEL'];
+        if (!officialFormats.includes(format)) return { proceed: true, source: 'folder' };
+
+        try {
+            // 1. Get Attachment to find Folder ID
+            const attachment = await AttachmentService.getAttachmentById(attachmentId);
+            if (!attachment) return { proceed: true, source: 'folder' }; // Can't check, proceed
+            const folderId = attachment.folderId;
+
+            // 2. Check Folder E-Invoice Settings
+            let folderSettings = null;
+            try {
+                folderSettings = await EInvoiceSettingsRepository.getSettings(folderId);
+            } catch (e) { }
+
+            // Check if folder has valid info (Tax ID is the main indicator)
+            const hasFolderInfo = !!(folderSettings?.taxNumber && folderSettings?.companyName);
+
+            // 3. Check Profile
+            const userRes = await UserService.getUsersMe();
+            const profile = userRes.data;
+            const hasProfileInfo = !!(profile?.taxNumber && profile?.name);
+
+            return new Promise((resolve) => {
+                if (hasFolderInfo && hasProfileInfo) {
+                    // Scenario: Both exist - Ask User
+                    Alert.alert(
+                        i18n.t('common.export_company_info.multiple_sources_title') || 'Multiple Company Info Found',
+                        i18n.t('common.export_company_info.multiple_sources_message') || 'Both Folder settings and your Profile contain company information. Which one would you like to use for this invoice?',
+                        [
+                            {
+                                text: i18n.t('common.export_company_info.use_folder') || 'Use Folder Info',
+                                style: 'default',
+                                onPress: () => resolve({ proceed: true, source: 'folder' })
+                            },
+                            {
+                                text: i18n.t('common.export_company_info.use_profile') || 'Use Profile Info',
+                                style: 'default',
+                                onPress: () => resolve({ proceed: true, source: 'profile' })
+                            },
+                            {
+                                text: i18n.t('common.actions.cancel'),
+                                style: 'cancel',
+                                onPress: () => resolve({ proceed: false })
+                            }
+                        ]
+                    );
+                } else if (hasFolderInfo) {
+                    // Only Folder info exists
+                    resolve({ proceed: true, source: 'folder' });
+                } else if (hasProfileInfo) {
+                    // Only Profile info exists
+                    Alert.alert(
+                        i18n.t('common.export_company_info.use_profile_title'),
+                        i18n.t('common.export_company_info.use_profile_message'),
+                        [
+                            {
+                                text: i18n.t('common.export_company_info.add_to_folder'),
+                                style: 'default',
+                                onPress: () => {
+                                    router.push({
+                                        pathname: `/folders/edit/${folderId}`,
+                                        params: { initialTab: 'efatura' }
+                                    } as Href);
+                                    resolve({ proceed: false });
+                                }
+                            },
+                            {
+                                text: i18n.t('common.export_company_info.use_profile'),
+                                style: 'default',
+                                onPress: () => resolve({ proceed: true, source: 'profile' })
+                            },
+                            {
+                                text: i18n.t('common.actions.cancel'),
+                                style: 'cancel',
+                                onPress: () => resolve({ proceed: false })
+                            }
+                        ]
+                    );
+                } else {
+                    // Scenario: Both empty
+                    Alert.alert(
+                        i18n.t('common.export_company_info.missing_title'),
+                        i18n.t('common.export_company_info.missing_message'),
+                        [
+                            {
+                                text: i18n.t('common.export_company_info.add_to_folder'),
+                                style: 'default',
+                                onPress: () => {
+                                    router.push({
+                                        pathname: `/folders/edit/${folderId}`,
+                                        params: { initialTab: 'efatura' }
+                                    } as Href);
+                                    resolve({ proceed: false });
+                                }
+                            },
+                            {
+                                text: i18n.t('common.export_company_info.go_to_profile'),
+                                onPress: () => {
+                                    setShowMissingModal(true);
+                                    resolve({ proceed: false });
+                                }
+                            },
+                            {
+                                text: i18n.t('common.actions.cancel'),
+                                style: 'cancel',
+                                onPress: () => resolve({ proceed: false })
+                            }
+                        ]
+                    );
+                }
+            });
+
+        } catch (error) {
+            console.error('Check info failed', error);
+            // Default safe fallback if check fails
+            return { proceed: true, source: 'folder' };
+        }
+    };
+
     const handleExport = async (format: string) => {
+        // Pre-check
+        const checkResult = await checkCompanyInfo(format);
+        if (!checkResult.proceed) return;
+
+        const sourceParam = checkResult.source ? `&source=${checkResult.source}` : '';
+
         setExporting(true);
         try {
-            // Construct mapping/fields based on selected options
+            // ... export logic ...
             const fieldsParam = Array.from(selectedFields).join(',');
-
-            // We need to handle file download properly. 
-            // Since OpenAPI generated client might return blob or text, we might need a custom download handler
-            // For now, I'll assume we can use the direct URL with token logic similar to main screen.
 
             const token = typeof OpenAPI.TOKEN === 'function' ? await OpenAPI.TOKEN({} as any) : OpenAPI.TOKEN;
             const baseUrl = OpenAPI.BASE;
 
             // Construct download URL
-            const downloadUrl = `${baseUrl}/export/attachment/${attachmentId}?format=${format}&selectedFields=${fieldsParam}`;
+            const downloadUrl = `${baseUrl}/export/attachment/${attachmentId}?format=${format}&selectedFields=${fieldsParam}${sourceParam}`;
 
-            await FileDownloadService.downloadAndShare(downloadUrl, `export_${attachmentId}.${format.toLowerCase()}`);
+            await FileDownloadService.downloadAndShare(downloadUrl, `export_${attachmentId}.${format.toLowerCase().includes('json') ? 'json' : format.toLowerCase().includes('xml') ? 'xml' : format.toLowerCase()}`);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Export failed', error);
-            Alert.alert('Error', i18n.t('exportFailed') || 'Export failed. Please try again.');
+            const errBody = error.body || error;
+
+            // Handle missing company info
+            // Backend returns: { error: 'export_missing_company_info', ... }
+            if (errBody?.code === 'export_missing_company_info' || errBody?.error === 'export_missing_company_info') {
+                setMissingFields(errBody.meta?.missingFields || errBody.missingFields || []);
+                setMissingInfoMessage(errBody.message); // Set message from backend
+                setShowMissingModal(true);
+            } else {
+                const message = error.message || i18n.t('exportFailed') || 'Export failed. Please try again.';
+                Alert.alert(i18n.t('common.error') || 'Error', message);
+            }
         } finally {
             setExporting(false);
         }
@@ -76,22 +255,32 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
 
     return (
         <ScrollView style={styles.container}>
+            <MissingCompanyInfoModal
+                visible={showMissingModal}
+                onClose={() => setShowMissingModal(false)}
+                missingFields={missingFields}
+                description={missingInfoMessage} // Pass message
+                onSuccess={() => {
+                    // Optional: automatically retry or just let user click again
+                }}
+            />
             <Text style={[styles.title, { color: colors.text }]}>{i18n.t('selectFormat') || 'Select Export Format'}</Text>
 
             <View style={styles.grid}>
                 {formats.map(format => (
                     <TouchableOpacity
-                        key={format}
+                        key={format.code}
                         style={[styles.formatCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                        onPress={() => handleExport(format)}
+                        onPress={() => handleExport(format.code)}
                         disabled={exporting}
                     >
                         <Ionicons
-                            name={format === 'PDF' ? 'document-text' : 'code-slash' as any}
-                            size={32}
+                            name={(format.icon as any) || 'document-text'}
+                            size={24}
                             color={colors.primary}
+                            style={{ marginBottom: 8 }}
                         />
-                        <Text style={[styles.formatText, { color: colors.text }]}>{format}</Text>
+                        <Text style={[styles.formatText, { color: colors.text }]}>{format.name}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -162,6 +351,7 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
 const styles = StyleSheet.create({
     container: {
         marginTop: 16,
+        paddingHorizontal: 16,
     },
     title: {
         fontSize: 16,
@@ -175,19 +365,22 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     formatCard: {
-        width: '48%', // 2 per row
-        height: 60,
+        width: '31%', // 3 per row roughly, or stick to 2? With long names 2 is safer. Let's do 48% like before but adjust content.
+        // Actually web screenshot shows 3 per row (some have 4). On mobile 2 per row is better for space.
+        // Let's keep 48% but enable vertical layout for icon + text
+        minHeight: 100, // Taller for vertical layout
         borderRadius: 12,
         borderWidth: 1,
-        flexDirection: 'row', // Horizontal layout
+        flexDirection: 'column', // Vertical layout
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
+        padding: 12,
+        marginBottom: 10,
     },
     formatText: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '500',
+        textAlign: 'center',
     },
     loadingOverlay: {
         position: 'absolute',

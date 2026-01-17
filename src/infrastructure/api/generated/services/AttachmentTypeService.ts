@@ -34,17 +34,25 @@ export class AttachmentTypeService {
                  */
                 label: string;
             };
+            /**
+             * Document category for sub-table assignment
+             */
+            category: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
             fieldConfig?: Array<{
                 key: string;
                 label: string;
-                type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration';
+                type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
                 required?: boolean;
                 placeholder?: string;
                 unit?: string;
-                options?: Array<string>;
+                options?: Array<(string | {
+                    key: string;
+                    label: string;
+                })>;
                 defaultValue?: any;
                 filterable?: boolean;
                 filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                itemConfig?: Array<any>;
             }> | null;
             defaultDetails?: Record<string, any> | null;
             fieldStyle?: {

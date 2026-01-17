@@ -31,9 +31,11 @@ export class NotificationService {
      * If no IDs provided, marks all as read
      */
     static async markAsRead(notificationIds?: string[]): Promise<void> {
-        await NotificationsService.postNotificationsMarkRead({
-            notificationIds,
-        });
+        if (notificationIds && notificationIds.length > 0) {
+            await Promise.all(notificationIds.map(id => NotificationsService.patchNotificationsRead(id)));
+        } else {
+            await NotificationsService.postNotificationsMarkRead();
+        }
     }
 
     /**

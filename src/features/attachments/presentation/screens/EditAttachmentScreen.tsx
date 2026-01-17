@@ -23,6 +23,7 @@ import { useSettings } from '@/src/features/settings/presentation/SettingsContex
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { OCRService } from '../../data/OCRService';
+import { CustomFieldsList } from '../components/scan/CustomFieldsList';
 import { DynamicFieldsSection } from '../components/scan/DynamicFieldsSection';
 
 // Conditionally import DocumentScanner (only works in dev builds, not Expo Go)
@@ -68,9 +69,12 @@ export default function EditAttachmentScreen() {
     const [dynamicFields, setDynamicFields] = useState<FieldConfig[]>([]);
 
     // File state
-    const [newFileUri, setNewFileUri] = useState<string | null>(null);
-    const [existingFileUri, setExistingFileUri] = useState<string | null>(null);
-    const [fileType, setFileType] = useState<'image' | 'document'>('image');
+    const [existingFiles, setExistingFiles] = useState<{ id: string; url: string; contentType?: string; filename: string }[]>([]);
+    const [newFiles, setNewFiles] = useState<{ uri: string; type: 'image' | 'document'; mime: string }[]>([]);
+    const [deletedFileIds, setDeletedFileIds] = useState<string[]>([]);
+
+    // Preview state
+    const [currentFileIndex, setCurrentFileIndex] = useState(0);
 
     // OCR state
     const [step, setStep] = useState<Step>('form'); // Start in form mode for edit
@@ -102,6 +106,25 @@ export default function EditAttachmentScreen() {
 
     // Scroll ref for auto-scrolling to errors
     const scrollViewRef = useRef<ScrollView>(null);
+
+    // Track previous new files length to detect additions
+    const prevNewFilesLength = useRef(0);
+
+    // Effect to handle file additions and index bounds
+    useEffect(() => {
+        const activeExisting = existingFiles.filter(f => !deletedFileIds.includes(f.id!));
+        const totalCount = activeExisting.length + newFiles.length;
+
+        if (newFiles.length > prevNewFilesLength.current) {
+            // File added: switch to the last item
+            setCurrentFileIndex(Math.max(0, totalCount - 1));
+        } else if (currentFileIndex >= totalCount && totalCount > 0) {
+            // Out of bounds (deleted): clamp to last item
+            setCurrentFileIndex(totalCount - 1);
+        }
+
+        prevNewFilesLength.current = newFiles.length;
+    }, [newFiles.length, deletedFileIds.length, existingFiles.length]);
 
     const onError = (errors: any) => {
         let scrollY = 0;
@@ -139,18 +162,37 @@ export default function EditAttachmentScreen() {
             setOriginalAttachment(data);
 
             // Fetch files
+            // Fetch files
             try {
                 const files = await AttachmentService.getAttachmentFiles(id!);
-                if (files.length > 0) {
-                    // Construct full URL
-                    const fullUrl = `${OpenAPI.BASE}${files[0].viewUrl}`;
-                    setExistingFileUri(fullUrl);
-                }
+                const mappedFiles = files.map(f => ({
+                    id: f.id,
+                    url: `${OpenAPI.BASE}${f.viewUrl}`,
+                    contentType: f.contentType,
+                    filename: f.filename
+                }));
+                setExistingFiles(mappedFiles);
             } catch (e) {
                 console.error('Failed to load files', e);
             }
 
             let details = data.details || {};
+
+            // Merge category-specific data into details for the form
+            // This ensures dynamic fields (including items) are populated
+            const attachmentData = data as any;
+            if (attachmentData.attachmentType?.category) {
+                const categoryKey = attachmentData.attachmentType.category.toLowerCase();
+                const categoryData = attachmentData[categoryKey];
+                if (categoryData) {
+                    details = { ...categoryData, ...details };
+                }
+            }
+
+            // Ensure currency has a default value for the dynamic field
+            if (!details.currency) {
+                details.currency = 'TRY';
+            }
 
             reset({
                 title: data.title,
@@ -210,17 +252,15 @@ export default function EditAttachmentScreen() {
 
     // File Processing (from ScanScreen)
     const processFileWithOCR = async (uri: string, type: 'image' | 'document', mime: string) => {
-        setNewFileUri(uri);
-        setFileType(type);
+        // Add to new files list
+        setNewFiles(prev => [...prev, { uri, type, mime }]);
         setStep('analyzing');
 
         try {
+            // Only run OCR if it's the first file or explicitly requested?
+            // For now, let's run OCR on the new file to potentially update fields
             const ocrResult = await OCRService.scanDocument([{ uri, mimeType: mime }]);
 
-            // Auto-fill form fields (only empty ones or overwrite all? usually specific update)
-            // For logic consistency: let's overwrite for now or ask user?
-            // "Updated from new file"
-            // Update details instead of top-level
             const currentDetails = watch('details') || {};
             const newDetails = { ...currentDetails };
 
@@ -230,8 +270,6 @@ export default function EditAttachmentScreen() {
             if (ocrResult.extractedData.date) setValue('documentDate', new Date(ocrResult.extractedData.date));
 
             setValue('details', newDetails);
-            // Type detection logic... (omitted for brevity, can copy if needed)
-
             setStep('form');
         } catch (error) {
             console.error('OCR failed:', error);
@@ -279,35 +317,28 @@ export default function EditAttachmentScreen() {
                 if (cf.key.trim() && cf.value.trim()) mergedDetails[cf.key.trim()] = cf.value.trim();
             });
 
-            // 1. Check if file is changed
-            if (newFileUri && id) {
-                // DELETE old one first
-                await AttachmentService.deleteAttachment(id);
+            // 1. Update Metadata
+            const updatedAttachment = await AttachmentService.updateAttachment(id!, {
+                title: data.title,
+                documentDate: data.documentDate.toISOString(),
+                attachmentTypeId: data.attachmentTypeId,
+                folderId: data.folderId,
+                description: data.description,
+                details: mergedDetails,
+            });
 
-                // CREATE new one
-                await AttachmentService.createAttachmentWithFile({
-                    title: data.title,
-                    // amount: data.amount ? parseFloat(data.amount) : undefined,
-                    // currency: data.amount ? data.currency : undefined,
-                    documentDate: data.documentDate.toISOString(),
-                    attachmentTypeId: data.attachmentTypeId,
-                    folderId: data.folderId,
-                    description: data.description, // Can be hidden in UI but passed if needed (e.g. from OCR)
-                    details: mergedDetails,
-                }, newFileUri, fileType === 'image' ? 'image/jpeg' : 'application/pdf');
-                // Note: simplified mime type for now
-            } else {
-                // UPDATE Metadata only
-                await AttachmentService.updateAttachment(id!, {
-                    title: data.title,
-                    // amount: data.amount ? parseFloat(data.amount) : undefined,
-                    // currency: data.amount ? data.currency : undefined,
-                    documentDate: data.documentDate.toISOString(),
-                    attachmentTypeId: data.attachmentTypeId,
-                    folderId: data.folderId,
-                    description: data.description,
-                    details: mergedDetails,
-                });
+            // 2. Upload New Files
+            if (newFiles.length > 0) {
+                for (const file of newFiles) {
+                    await AttachmentService.uploadFileToAttachment(id!, { fileUri: file.uri, mimeType: file.mime });
+                }
+            }
+
+            // 3. Delete Removed Files
+            if (deletedFileIds.length > 0) {
+                for (const fileId of deletedFileIds) {
+                    await AttachmentService.deleteFile(fileId);
+                }
             }
 
             Alert.alert(i18n.t('common.actions.success'), i18n.t('common.actions.saved'), [
@@ -335,19 +366,19 @@ export default function EditAttachmentScreen() {
     };
 
     const styles = useMemo(() => StyleSheet.create({
-        container: { flex: 1, backgroundColor: colors.background },
+        container: { flex: 1 },
         header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.headerBackground },
         headerTitle: { fontSize: 18, color: colors.text, fontWeight: '600' },
-        content: { padding: 24, paddingBottom: 100 },
+        content: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 },
         form: { gap: 16 },
-        sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, marginTop: 16, marginBottom: 8 },
+        sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.primary, marginBottom: 8 },
         row: { flexDirection: 'row', gap: 12 },
         half: { flex: 1 },
         datePickerContainer: { marginBottom: 16 },
         label: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: colors.text },
 
         // File Preview Area
-        filePreviewContainer: { marginBottom: 20, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+        filePreviewContainer: { marginBottom: 16, borderRadius: 0, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
         imagePreview: { width: '100%', height: 200, resizeMode: 'cover' },
         reuploadButton: { padding: 12, backgroundColor: colors.surface, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border },
         reuploadText: { color: colors.primary, fontWeight: '600' },
@@ -356,18 +387,19 @@ export default function EditAttachmentScreen() {
         analyzingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
         analyzingText: { color: 'white', marginTop: 16, fontSize: 18, fontWeight: '600' },
 
-        submitButton: { marginTop: 32 },
+        submitButton: { width: '100%' },
 
         // Collapsible & Custom Fields Styles (Copied)
-        collapsibleHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: 12, padding: 16, marginTop: 24, marginBottom: 16, borderWidth: 1, borderColor: colors.cardBorder },
+        collapsibleHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 8, borderWidth: 1, borderColor: colors.cardBorder },
         collapsibleHeaderContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
         collapsibleTitle: { fontSize: 16, fontWeight: '600', color: colors.primary },
-        customFieldsSection: { marginTop: 8 },
+        customFieldsSection: { marginTop: 0 },
         customFieldRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
         customFieldKey: { flex: 1 },
         customFieldValue: { flex: 2 },
         removeFieldButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.error + '20', alignItems: 'center', justifyContent: 'center' },
         addFieldButton: { marginTop: 4, borderColor: colors.primary },
+        footer: { padding: 16, backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border },
     }), [colors]);
 
     if (loadingAttachment) {
@@ -393,28 +425,116 @@ export default function EditAttachmentScreen() {
 
             <FormContainer ref={scrollViewRef} scrollable contentStyle={styles.content}>
                 <View style={styles.form}>
-
-                    {/* File Preview & Replace */}
                     {/* File Preview & Replace */}
                     <View style={styles.filePreviewContainer}>
-                        {newFileUri ? (
-                            <Image source={{ uri: newFileUri }} style={styles.imagePreview} contentFit="contain" />
-                        ) : existingFileUri ? (
-                            <Image
-                                source={{ uri: existingFileUri }}
-                                style={styles.imagePreview}
-                                contentFit="contain"
-                                transition={1000}
-                            />
-                        ) : (
-                            <View style={{ height: 150, justifyContent: 'center', alignItems: 'center' }}>
-                                <IconSymbol name="doc.text" size={48} color={colors.textLight} />
-                                <ThemedText style={{ marginTop: 8, color: colors.textLight }}>{i18n.t('receipts.detail.sections.files')}</ThemedText>
-                            </View>
-                        )}
+                        {(() => {
+                            // Calculate display files
+                            const displayFiles = [
+                                ...existingFiles.filter(f => !deletedFileIds.includes(f.id!)).map(f => ({ ...f, _source: 'existing' as const })),
+                                ...newFiles.map((f, i) => ({ ...f, _source: 'new' as const, _index: i, id: `new-${i}`, filename: i18n.t('receipts.scan.methods.document') }))
+                            ];
+
+                            const file = displayFiles[currentFileIndex];
+                            const totalFiles = displayFiles.length;
+
+                            if (totalFiles === 0) {
+                                return (
+                                    <View style={{ width: '100%', height: 260, justifyContent: 'center', alignItems: 'center' }}>
+                                        <IconSymbol name="doc.text" size={48} color={colors.textLight} />
+                                        <ThemedText style={{ marginTop: 8, color: colors.textLight }}>{i18n.t('receipts.detail.sections.files')}</ThemedText>
+                                    </View>
+                                );
+                            }
+
+                            // Ensure index is valid safely
+                            if (!file && totalFiles > 0) {
+                                // If current index is out of bounds (e.g. after delete), fix it on next render
+                                // But for now render nothing or fallback
+                                return null;
+                            }
+
+                            const isImage = (file._source === 'existing' && file.contentType?.startsWith('image/')) || (file._source === 'new' && file.type === 'image');
+                            const fileUri = (file as any).url || (file as any).uri;
+
+                            return (
+                                <View style={{ width: '100%', height: 260, position: 'relative', overflow: 'hidden' }}>
+                                    {/* Main File View */}
+                                    <View style={{ flex: 1, backgroundColor: colors.background, borderRadius: 12, overflow: 'hidden' }}>
+                                        {isImage ? (
+                                            <Image
+                                                source={{ uri: fileUri }}
+                                                style={{ width: '100%', height: '100%' }}
+                                                contentFit="contain"
+                                            />
+                                        ) : (
+                                            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                                                <IconSymbol name="doc.text" size={64} color={colors.primary} />
+                                                <ThemedText style={{ marginTop: 12, textAlign: 'center' }} numberOfLines={2} ellipsizeMode="middle">
+                                                    {file.filename || i18n.t('receipts.scan.methods.document')}
+                                                </ThemedText>
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    {/* Navigation Arrows */}
+                                    {totalFiles > 1 && (
+                                        <>
+                                            <TouchableOpacity
+                                                style={{ position: 'absolute', left: 8, top: '50%', marginTop: -16, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 8 }}
+                                                onPress={() => setCurrentFileIndex(prev => Math.max(0, prev - 1))}
+                                                disabled={currentFileIndex === 0}
+                                            >
+                                                <IconSymbol name="chevron.left" size={20} color={currentFileIndex === 0 ? 'rgba(255,255,255,0.3)' : 'white'} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={{ position: 'absolute', right: 8, top: '50%', marginTop: -16, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 8 }}
+                                                onPress={() => setCurrentFileIndex(prev => Math.min(totalFiles - 1, prev + 1))}
+                                                disabled={currentFileIndex === totalFiles - 1}
+                                            >
+                                                <IconSymbol name="chevron.right" size={20} color={currentFileIndex === totalFiles - 1 ? 'rgba(255,255,255,0.3)' : 'white'} />
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
+
+                                    {/* Delete & Info Overlay */}
+                                    <View style={{ position: 'absolute', top: 8, right: 8, flexDirection: 'row', gap: 8 }}>
+                                        {/* Counter */}
+                                        <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+                                            <ThemedText style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>{currentFileIndex + 1} / {totalFiles}</ThemedText>
+                                        </View>
+
+                                        {/* Delete Button */}
+                                        <TouchableOpacity
+                                            style={{ backgroundColor: 'rgba(220, 38, 38, 0.9)', padding: 6, borderRadius: 20, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+                                            onPress={() => {
+                                                if (file._source === 'existing') {
+                                                    setDeletedFileIds(prev => [...prev, file.id!]);
+                                                } else {
+                                                    setNewFiles(prev => prev.filter((_, i) => i !== (file as any)._index));
+                                                }
+                                                // Adjust index if we deleted the last item
+                                                if (currentFileIndex >= totalFiles - 1) {
+                                                    setCurrentFileIndex(Math.max(0, totalFiles - 2));
+                                                }
+                                            }}
+                                        >
+                                            <IconSymbol name="trash" size={14} color="white" />
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {/* New Label */}
+                                    {file._source === 'new' && (
+                                        <View style={{ position: 'absolute', bottom: 8, left: 8, backgroundColor: colors.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                                            <ThemedText style={{ color: 'white', fontSize: 12 }}>New</ThemedText>
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })()}
+
                         <TouchableOpacity style={styles.reuploadButton} onPress={() => {
                             Alert.alert(
-                                i18n.t('common.actions.change_file'),
+                                i18n.t('common.actions.add_new_file'),
                                 undefined,
                                 [
                                     { text: i18n.t('receipts.scan.methods.camera'), onPress: takePhoto },
@@ -424,131 +544,108 @@ export default function EditAttachmentScreen() {
                                 ]
                             );
                         }}>
-                            <ThemedText style={styles.reuploadText}>{newFileUri ? i18n.t('common.actions.change_file') : i18n.t('common.actions.add_new_file')}</ThemedText>
+                            <ThemedText style={styles.reuploadText}>{i18n.t('common.actions.add_new_file')}</ThemedText>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Basic Info */}
-                    <Controller
-                        control={control}
-                        name="title"
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <FormField label={i18n.t('receipts.scan.detailsTitle')} error={errors.title?.message}>
-                                <TextInput
-                                    placeholder={i18n.t('receipts.scan.titlePlaceholder')}
-                                    onBlur={onBlur}
-                                    onChangeText={onChange}
+                    <View>
+                        {/* Basic Info */}
+                        <Controller
+                            control={control}
+                            name="title"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <FormField label={i18n.t('receipts.scan.detailsTitle')} error={errors.title?.message}>
+                                    <TextInput
+                                        placeholder={i18n.t('receipts.scan.titlePlaceholder')}
+                                        onBlur={onBlur}
+                                        onChangeText={onChange}
+                                        value={value}
+                                    />
+                                </FormField>
+                            )}
+                        />
+
+                        <Controller
+                            control={control}
+                            name="documentDate"
+                            render={({ field: { onChange, value } }) => (
+                                <DatePickerField
+                                    label={i18n.t('receipts.scan.document_date')}
                                     value={value}
+                                    onChange={onChange}
+                                    placeholder={i18n.t('receipts.scan.document_date')}
                                 />
-                            </FormField>
+                            )}
+                        />
+
+                        {/* Categorization */}
+                        <Controller
+                            control={control}
+                            name="folderId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormField label={i18n.t('receipts.scan.folder_select_label')} error={errors.folderId?.message}>
+                                    <FolderSelector folders={folders} value={value} onSelect={onChange} />
+                                </FormField>
+                            )}
+                        />
+
+                        <Controller
+                            control={control}
+                            name="attachmentTypeId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormField label={i18n.t('receipts.scan.type_select_label')} error={errors.attachmentTypeId?.message}>
+                                    <AttachmentTypeSelector types={attachmentTypes} value={value} onSelect={onChange} />
+                                </FormField>
+                            )}
+                        />
+
+                        {/* Dynamic Details */}
+                        {dynamicFields.length > 0 && (
+                            <View>
+                                <ThemedText style={styles.sectionTitle}>{i18n.t('receipts.scan.details_section_title')}</ThemedText>
+                                <DynamicFieldsSection
+                                    control={control}
+                                    dynamicFields={dynamicFields.filter(f => f.key !== 'documentDate')}
+                                    watchedDetails={watchedDetails}
+                                    watchedDocumentDate={watch('documentDate')}
+                                    setValue={setValue}
+                                    fieldStyle={attachmentTypes?.find(t => t.id === watchedTypeId)?.fieldStyle}
+                                />
+                            </View>
                         )}
-                    />
 
+                        {/* Description Hidden */}
 
+                        {/* Collapsible Custom Fields */}
+                        <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setShowDetails(!showDetails)} activeOpacity={0.7}>
+                            <View style={styles.collapsibleHeaderContent}>
+                                <IconSymbol name="list.bullet.rectangle" size={20} color={colors.primary} />
+                                <ThemedText style={styles.collapsibleTitle}>{i18n.t('receipts.scan.custom_fields_title')}</ThemedText>
+                            </View>
+                            <IconSymbol name={showDetails ? "chevron.up" : "chevron.down"} size={12} color={colors.gray} />
+                        </TouchableOpacity>
 
-                    <Controller
-                        control={control}
-                        name="documentDate"
-                        render={({ field: { onChange, value } }) => (
-                            <DatePickerField
-                                label={i18n.t('receipts.scan.document_date')}
-                                value={value}
-                                onChange={onChange}
-                                placeholder={i18n.t('receipts.scan.document_date')}
+                        {showDetails && (
+                            <CustomFieldsList
+                                fields={watchedCustomFields}
+                                onAdd={addCustomField}
+                                onRemove={removeCustomField}
+                                onUpdate={updateCustomField}
+                                style={styles.customFieldsSection}
                             />
                         )}
-                    />
-
-                    {/* Categorization */}
-                    <Controller
-                        control={control}
-                        name="folderId"
-                        render={({ field: { onChange, value } }) => (
-                            <FormField label={i18n.t('receipts.scan.folder_select_label')} error={errors.folderId?.message}>
-                                <FolderSelector folders={folders} value={value} onSelect={onChange} />
-                            </FormField>
-                        )}
-                    />
-
-                    <Controller
-                        control={control}
-                        name="attachmentTypeId"
-                        render={({ field: { onChange, value } }) => (
-                            <FormField label={i18n.t('receipts.scan.type_select_label')} error={errors.attachmentTypeId?.message}>
-                                <AttachmentTypeSelector types={attachmentTypes} value={value} onSelect={onChange} />
-                            </FormField>
-                        )}
-                    />
-
-                    {/* Dynamic Details */}
-                    {dynamicFields.length > 0 && (
-                        <View>
-                            <ThemedText style={styles.sectionTitle}>{i18n.t('receipts.scan.details_section_title')}</ThemedText>
-                            <DynamicFieldsSection
-                                control={control}
-                                dynamicFields={dynamicFields}
-                                watchedDetails={watchedDetails}
-                                watchedDocumentDate={watch('documentDate')}
-                                setValue={setValue}
-                                fieldStyle={attachmentTypes?.find(t => t.id === watchedTypeId)?.fieldStyle}
-                            />
-                        </View>
-                    )}
-
-                    {/* Description Hidden */}
-
-                    {/* Collapsible Custom Fields */}
-                    <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setShowDetails(!showDetails)} activeOpacity={0.7}>
-                        <View style={styles.collapsibleHeaderContent}>
-                            <IconSymbol name="list.bullet.rectangle" size={20} color={colors.primary} />
-                            <ThemedText style={styles.collapsibleTitle}>{i18n.t('receipts.scan.custom_fields_title')}</ThemedText>
-                        </View>
-                        <IconSymbol name={showDetails ? "chevron.up" : "chevron.down"} size={12} color={colors.gray} />
-                    </TouchableOpacity>
-
-                    {showDetails && (
-                        <View style={styles.customFieldsSection}>
-                            {watchedCustomFields.map((field, index) => (
-                                <View key={index} style={styles.customFieldRow}>
-                                    <View style={styles.customFieldKey}>
-                                        <TextInput
-                                            placeholder={i18n.t('receipts.scan.custom_key_placeholder')}
-                                            value={field.key}
-                                            onChangeText={(text) => updateCustomField(index, 'key', text)}
-                                            style={{ height: 40 }}
-                                        />
-                                    </View>
-                                    <View style={styles.customFieldValue}>
-                                        <TextInput
-                                            placeholder={i18n.t('receipts.scan.custom_value_placeholder')}
-                                            value={field.value}
-                                            onChangeText={(text) => updateCustomField(index, 'value', text)}
-                                            style={{ height: 40 }}
-                                        />
-                                    </View>
-                                    <TouchableOpacity style={styles.removeFieldButton} onPress={() => removeCustomField(index)}>
-                                        <IconSymbol name="trash" size={16} color={colors.error} />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                            <Button
-                                title={i18n.t('receipts.scan.add_custom_field')}
-                                variant="outline"
-                                onPress={addCustomField}
-                                style={styles.addFieldButton}
-                                icon={<IconSymbol name="plus" size={16} color={colors.primary} />}
-                            />
-                        </View>
-                    )}
-
-                    <Button
-                        title={i18n.t('common.actions.save')}
-                        onPress={handleSubmit(onSubmit, onError)}
-                        loading={submitting}
-                        style={styles.submitButton}
-                    />
+                    </View>
                 </View>
             </FormContainer>
+
+            <View style={styles.footer}>
+                <Button
+                    title={i18n.t('common.actions.save')}
+                    onPress={handleSubmit(onSubmit, onError)}
+                    loading={submitting}
+                    style={styles.submitButton}
+                />
+            </View>
         </SafeAreaView>
     );
 }

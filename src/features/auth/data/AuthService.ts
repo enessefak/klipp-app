@@ -126,7 +126,11 @@ export const AuthService = {
 
     async updateProfile(payload: UpdateUserProfileInput): Promise<void> {
         try {
-            await UserService.patchUsersMe(payload);
+            // Clean payload: remove nulls or convert to undefined
+            const cleanPayload = Object.fromEntries(
+                Object.entries(payload).map(([k, v]) => [k, v === null ? undefined : v])
+            );
+            await UserService.patchUsersMe(cleanPayload);
         } catch (error) {
             console.error('Update profile error:', error);
             throw error;

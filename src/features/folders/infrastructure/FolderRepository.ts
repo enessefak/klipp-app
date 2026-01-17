@@ -10,7 +10,13 @@ const mapFolder = (folder: any, fallbackParentId?: string | null): Folder => ({
     parentId: folder.parentId ?? fallbackParentId ?? undefined,
     createdAt: folder.createdAt,
     permission: folder.permission ?? 'FULL',
+    requiresApproval: folder.requiresApproval,
+    isConfidential: folder.isConfidential,
+    allowedTransactionTypes: (folder.allowedTransactionTypes ?? []) as any,
+    allowedTypeIds: folder.allowedTypeIds ?? [],
 });
+
+
 
 const flattenFolders = (items: any[], parentId?: string | null): Folder[] => {
     if (!Array.isArray(items)) return [];
@@ -72,7 +78,12 @@ export const FolderRepository = {
                 icon: dto.icon,
                 color: dto.color,
                 parentId: dto.parentId || null,
+                requiresApproval: dto.requiresApproval ?? false,
+                isConfidential: dto.isConfidential ?? false,
+                allowedTransactionTypes: (dto.allowedTransactionTypes || []) as any,
             });
+
+
 
             // Unwrap data if necessary (though postFolders usually returns the object directly in generated code, checking if it's wrapped)
             const folder = (response as any).data || response;
@@ -123,4 +134,36 @@ export const FolderRepository = {
             throw error;
         }
     },
+
+    updateFolder: async (id: string, dto: CreateFolderDTO): Promise<Folder> => {
+        try {
+            const response = await FolderService.putFolders(id, {
+                name: dto.name,
+                icon: dto.icon,
+                color: dto.color,
+                parentId: dto.parentId || null,
+                requiresApproval: dto.requiresApproval ?? false,
+                isConfidential: dto.isConfidential ?? false,
+                allowedTransactionTypes: (dto.allowedTransactionTypes || []) as any,
+            });
+
+
+            const folder = (response as any).data || response;
+            return {
+                id: folder.id,
+                name: folder.name,
+                icon: folder.icon,
+                color: folder.color,
+                parentId: folder.parentId || undefined,
+                createdAt: folder.createdAt,
+                requiresApproval: folder.requiresApproval,
+                isConfidential: folder.isConfidential,
+                allowedTransactionTypes: (folder.allowedTransactionTypes ?? []) as any,
+            };
+        } catch (error) {
+            console.error('Failed to update folder:', error);
+            throw error;
+        }
+    }
 };
+

@@ -47,6 +47,7 @@ export class FolderService {
                 createdAt: string;
                 updatedAt: string;
                 requiresApproval?: boolean;
+                isConfidential?: boolean;
                 allowedTypeIds?: Array<string>;
                 allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
                 children?: Array<any>;
@@ -88,6 +89,7 @@ export class FolderService {
             color: string;
             parentId?: string | null;
             requiresApproval?: boolean;
+            isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
         },
@@ -106,6 +108,7 @@ export class FolderService {
             createdAt: string;
             updatedAt: string;
             requiresApproval?: boolean;
+            isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
         };
@@ -156,6 +159,7 @@ export class FolderService {
             createdAt: string;
             updatedAt: string;
             requiresApproval?: boolean;
+            isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
             children?: Array<any>;
@@ -188,6 +192,7 @@ export class FolderService {
             color?: string;
             parentId?: string | null;
             requiresApproval?: boolean;
+            isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
         },
@@ -206,6 +211,7 @@ export class FolderService {
             createdAt: string;
             updatedAt: string;
             requiresApproval?: boolean;
+            isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
         };
@@ -246,6 +252,48 @@ export class FolderService {
             },
             errors: {
                 404: `Default Response`,
+            },
+        });
+    }
+    /**
+     * Create folder from template
+     * Create a pre-structured folder (e.g. Personnel File).
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postFoldersTemplates(
+        requestBody: {
+            personName: string;
+            templateType: 'PERSONNEL_FILE';
+        },
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            name: string;
+            icon: string;
+            color: string;
+            userId: string;
+            parentId: string | null;
+            isSystem?: boolean;
+            systemType?: string | null;
+            createdAt: string;
+            updatedAt: string;
+            requiresApproval?: boolean;
+            isConfidential?: boolean;
+            allowedTypeIds?: Array<string>;
+            allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/folders/templates',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
             },
         });
     }

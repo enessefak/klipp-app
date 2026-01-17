@@ -61,7 +61,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
         name?: string | null;
     };
 
-    const addFilesAndAnalyze = async (incomingFiles: PendingFile[]) => {
+    const addFilesAndAnalyze = async (incomingFiles: PendingFile[], folderId?: string) => {
         const sanitized = incomingFiles.filter(file => !!file.uri);
         if (sanitized.length === 0) return;
 
@@ -92,7 +92,8 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
 
         try {
             const ocrResult = await OCRService.scanDocument(
-                nextFiles.map(file => ({ uri: file.fileUri, mimeType: file.mimeType }))
+                nextFiles.map(file => ({ uri: file.fileUri, mimeType: file.mimeType })),
+                folderId
             );
 
             setFiles(prev => prev.map((file, index) =>
@@ -113,7 +114,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
     };
 
     // 1. Pick Image from Gallery
-    const pickImage = async () => {
+    const pickImage = async (folderId?: string) => {
         try {
             if (filesRef.current.length >= MAX_SCAN_FILES) {
                 Alert.alert(i18n.t('common.error'), i18n.t('receipts.scan.file_limit_reached', { limit: MAX_SCAN_FILES }));
@@ -135,7 +136,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
                     mimeType: asset.mimeType || 'image/jpeg',
                     name: (asset as any)?.fileName || (asset as any)?.filename || null,
                 }));
-                await addFilesAndAnalyze(pending);
+                await addFilesAndAnalyze(pending, folderId);
             }
         } catch (error) {
             console.error('Gallery pick failed:', error);
@@ -144,7 +145,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
     };
 
     // 2. Take Photo
-    const takePhoto = async () => {
+    const takePhoto = async (folderId?: string) => {
         try {
             const { status } = await ImagePicker.requestCameraPermissionsAsync();
             if (status !== 'granted') {
@@ -157,13 +158,13 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
                 quality: 1,
             });
 
-                if (!result.canceled && result.assets?.length) {
+            if (!result.canceled && result.assets?.length) {
                 await addFilesAndAnalyze([{
-                        uri: result.assets[0].uri,
+                    uri: result.assets[0].uri,
                     type: 'image',
                     mimeType: 'image/jpeg',
                     name: (result.assets[0] as any)?.fileName || (result.assets[0] as any)?.filename || null,
-                }]);
+                }], folderId);
             }
         } catch (error) {
             console.error('Camera capture failed:', error);
@@ -172,7 +173,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
     };
 
     // 3. Scan Document (Edge Detection)
-    const scanDocument = async () => {
+    const scanDocument = async (folderId?: string) => {
         if (!DocumentScanner) {
             Alert.alert(
                 'Belge Tarayıcı Mevcut Değil',
@@ -198,7 +199,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
                     type: 'image' as const,
                     mimeType: 'image/jpeg',
                 }));
-                await addFilesAndAnalyze(payload);
+                await addFilesAndAnalyze(payload, folderId);
             }
         } catch (error) {
             console.error('Document scan failed:', error);
@@ -208,7 +209,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
     };
 
     // 4. Pick File (PDF/Docs)
-    const pickDocument = async () => {
+    const pickDocument = async (folderId?: string) => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: ['application/pdf'],
@@ -228,7 +229,7 @@ export function useScanLogic({ onOcrStart, onOcrSuccess, onOcrError }: UseScanLo
                     return;
                 }
 
-                await addFilesAndAnalyze(payload);
+                await addFilesAndAnalyze(payload, folderId);
             }
         } catch (error) {
             console.error('Document pick failed:', error);

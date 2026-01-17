@@ -98,6 +98,7 @@ export const AttachmentActivity: React.FC<AttachmentActivityProps> = ({ attachme
 const styles = StyleSheet.create({
     container: {
         marginTop: 16,
+        paddingHorizontal: 16,
     },
     logItem: {
         flexDirection: 'row',

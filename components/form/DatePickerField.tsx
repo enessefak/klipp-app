@@ -9,6 +9,7 @@ import { Button } from './Button';
 
 interface DatePickerFieldProps {
     label?: string;
+    hideLabel?: boolean;
     value?: Date;
     onChange: (date: Date) => void;
     placeholder?: string;
@@ -21,6 +22,7 @@ interface DatePickerFieldProps {
 
 export function DatePickerField({
     label,
+    hideLabel,
     value,
     onChange,
     placeholder = 'Select Date',
@@ -134,7 +136,7 @@ export function DatePickerField({
 
     return (
         <View style={styles.container}>
-            {label && <ThemedText style={styles.label}>{label}</ThemedText>}
+            {label && !hideLabel && <ThemedText style={styles.label}>{label}</ThemedText>}
 
             <TouchableOpacity
                 style={styles.button}

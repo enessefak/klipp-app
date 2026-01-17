@@ -1,4 +1,3 @@
-import { HomeIcon } from '@/components/ui/home-icon';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -8,15 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
-const TAB_HEIGHT = 80;
+const TAB_HEIGHT = 70;
 const TAB_WIDTH = width;
 
 // Smoother curve path
 const getPath = (totalHeight: number) => {
     const center = TAB_WIDTH / 2;
     // Wider curve for smoother transition
-    const curveWidth = 85;
-    const curveDepth = 45;
+    const curveWidth = 80;
+    const curveDepth = 40;
 
     // Cubic bezier for organic shape
     return `
@@ -31,6 +30,14 @@ const getPath = (totalHeight: number) => {
   `;
 };
 
+// Tab icons mapping
+const TAB_ICONS: Record<string, string> = {
+    'folders': 'folder.fill',
+    'categories': 'tag.fill',
+    'documents': 'doc.text.fill',
+    'profile': 'person.fill',
+};
+
 interface CurvedTabBarProps extends BottomTabBarProps {
     onScanPress?: () => void;
 }
@@ -43,8 +50,12 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
     // On Android edge-to-edge, we strictly need to add the bottom inset.
     const totalHeight = TAB_HEIGHT + (Platform.OS === 'android' ? insets.bottom : 0);
 
-    // Filter out routes that shouldn't be displayed (like scan which we handle separately)
-    const displayRoutes = state.routes.filter(route => route.name !== 'scan');
+    // Filter out routes that shouldn't be displayed (index redirects to folders, scan is center button)
+    const displayRoutes = state.routes.filter(route => route.name !== 'scan' && route.name !== 'index');
+
+    // Split routes: left side (first 2), right side (last 2)
+    const leftRoutes = displayRoutes.slice(0, 2);
+    const rightRoutes = displayRoutes.slice(2, 4);
 
     const styles = useMemo(() => StyleSheet.create({
         container: {
@@ -125,6 +136,38 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
         }
     }), [colors, totalHeight]); // Re-create styles if totalHeight changes
 
+    const renderTabItem = (route: typeof displayRoutes[0]) => {
+        const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
+        const color = isFocused ? colors.primary : colors.gray;
+        const iconName = TAB_ICONS[route.name] || 'circle';
+
+        const onPress = () => {
+            const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+            }
+        };
+
+        return (
+            <TouchableOpacity
+                key={route.key}
+                onPress={onPress}
+                style={styles.tabItem}
+                activeOpacity={0.8}
+            >
+                <IconSymbol name={iconName as any} size={24} color={color} />
+                {isFocused && (
+                    <View style={styles.activeDot} />
+                )}
+            </TouchableOpacity>
+        );
+    };
+
     return (
         <View style={styles.container}>
             {/* SVG Background */}
@@ -142,39 +185,8 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
 
             {/* Tab Items */}
             <View style={styles.content}>
-                {/* First tab (Home) */}
-                {displayRoutes[0] && (() => {
-                    const route = displayRoutes[0];
-                    const { options } = descriptors[route.key];
-                    const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
-                    const color = isFocused ? colors.primary : colors.gray;
-
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
-
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate(route.name);
-                        }
-                    };
-
-                    return (
-                        <TouchableOpacity
-                            key={route.key}
-                            onPress={onPress}
-                            style={styles.tabItem}
-                            activeOpacity={0.8}
-                        >
-                            <HomeIcon size={28} color={color} />
-                            {isFocused && (
-                                <View style={styles.activeDot} />
-                            )}
-                        </TouchableOpacity>
-                    );
-                })()}
+                {/* Left side tabs */}
+                {leftRoutes.map(renderTabItem)}
 
                 {/* Center Scan Button */}
                 <View style={styles.middleButtonWrapper} pointerEvents="box-none">
@@ -187,39 +199,8 @@ export function CurvedTabBar({ state, descriptors, navigation, onScanPress }: Cu
                     </TouchableOpacity>
                 </View>
 
-                {/* Second tab (Folders) */}
-                {displayRoutes[1] && (() => {
-                    const route = displayRoutes[1];
-                    const { options } = descriptors[route.key];
-                    const isFocused = state.index === state.routes.findIndex(r => r.key === route.key);
-                    const color = isFocused ? colors.primary : colors.gray;
-
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
-
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate(route.name);
-                        }
-                    };
-
-                    return (
-                        <TouchableOpacity
-                            key={route.key}
-                            onPress={onPress}
-                            style={styles.tabItem}
-                            activeOpacity={0.8}
-                        >
-                            <IconSymbol name="folder.fill" size={26} color={color} />
-                            {isFocused && (
-                                <View style={styles.activeDot} />
-                            )}
-                        </TouchableOpacity>
-                    );
-                })()}
+                {/* Right side tabs */}
+                {rightRoutes.map(renderTabItem)}
             </View>
         </View>
     );

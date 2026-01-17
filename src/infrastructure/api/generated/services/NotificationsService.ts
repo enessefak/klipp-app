@@ -67,16 +67,11 @@ export class NotificationsService {
     }
     /**
      * Mark as read
-     * Mark specific notifications or all as read.
-     * @param requestBody
+     * Mark all notifications as read.
      * @returns any Default Response
      * @throws ApiError
      */
-    public static postNotificationsMarkRead(
-        requestBody?: {
-            notificationIds?: Array<string>;
-        },
-    ): CancelablePromise<{
+    public static postNotificationsMarkRead(): CancelablePromise<{
         success: boolean;
         message?: string;
         data?: {
@@ -86,8 +81,6 @@ export class NotificationsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/notifications/mark-read',
-            body: requestBody,
-            mediaType: 'application/json',
         });
     }
     /**

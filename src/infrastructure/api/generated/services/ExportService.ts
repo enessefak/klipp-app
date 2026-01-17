@@ -36,7 +36,7 @@ export class ExportService {
      * @throws ApiError
      */
     public static getExportAttachment(
-        format: 'TR_UBL' | 'DE_ZUGFERD' | 'JSON' | 'CSV' | 'XML' | 'EXCEL',
+        format: 'UBL' | 'PEPPOL_BIS' | 'TR_UBL' | 'DE_ZUGFERD' | 'DE_XRECHNUNG' | 'FR_FACTURX' | 'IT_FATTURAPA' | 'EU_UBL' | 'EU_CII' | 'TR_EXCEL' | 'DE_DATEV' | 'JSON' | 'CSV' | 'XML' | 'EXCEL' | 'PDF',
         id: string,
         fieldMapping?: string,
         selectedFields?: string,
@@ -73,7 +73,7 @@ export class ExportService {
      * @throws ApiError
      */
     public static getExportAttachments(
-        format: 'TR_EXCEL' | 'DE_DATEV' | 'JSON' | 'CSV' | 'XML' | 'EXCEL',
+        format: 'UBL' | 'PEPPOL_BIS' | 'TR_UBL' | 'TR_EXCEL' | 'DE_ZUGFERD' | 'DE_XRECHNUNG' | 'DE_DATEV' | 'FR_FACTURX' | 'IT_FATTURAPA' | 'EU_UBL' | 'EU_CII' | 'JSON' | 'CSV' | 'XML' | 'EXCEL' | 'PDF',
         folderId?: string,
         categoryId?: string,
         attachmentTypeId?: string,

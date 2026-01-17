@@ -40,7 +40,7 @@ export class AttachmentService {
     }
     /**
      * List attachments with filters and pagination
-     * List all attachments for the authenticated user. Supports filtering by folder, attachment type, title, amount range, currency, document date range, and text search across title, description and details fields. Uses cursor-based pagination.
+     * List all attachments for the authenticated user. Supports filtering by folder, attachment type, title, document date range, and text search across title and description. Uses cursor-based pagination.
      * @param folderId
      * @param categoryId
      * @param attachmentTypeId
@@ -54,7 +54,6 @@ export class AttachmentService {
      * @param createdAtFrom
      * @param createdAtTo
      * @param includeShared
-     * @param detailsFilter
      * @param cursor
      * @param page
      * @param skip
@@ -76,7 +75,6 @@ export class AttachmentService {
         createdAtFrom?: string,
         createdAtTo?: string,
         includeShared?: 'true' | 'false',
-        detailsFilter?: string,
         cursor?: string,
         page?: number,
         skip?: number,
@@ -95,7 +93,6 @@ export class AttachmentService {
                 description: string | null;
                 documentDate: string;
                 transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-                details?: any;
                 status: 'PENDING' | 'APPROVED' | 'REJECTED';
                 rejectionReason?: string | null;
                 images?: Array<{
@@ -110,6 +107,33 @@ export class AttachmentService {
                     color: string;
                     expires: boolean;
                     transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                    category?: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
+                    fieldConfig?: Array<{
+                        key: string;
+                        label: string;
+                        type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                        required?: boolean;
+                        placeholder?: string;
+                        unit?: string;
+                        options?: Array<(string | {
+                            key: string;
+                            label: string;
+                        })>;
+                        filterable?: boolean;
+                        filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                        itemConfig?: any[];
+                    }> | null;
+                    fieldStyle?: {
+                        mobile?: {
+                            gridTemplateAreas: Array<string>;
+                            gap?: string;
+                        };
+                        desktop?: {
+                            gridTemplateAreas: Array<string>;
+                            gap?: string;
+                        };
+                    } | null;
+                    defaultDetails?: Record<string, any> | null;
                 };
                 folder?: {
                     id: string;
@@ -127,8 +151,24 @@ export class AttachmentService {
                     name: string;
                     color: string;
                 }>;
+                financial?: Record<string, any> | null;
+                insurance?: Record<string, any> | null;
+                identity?: Record<string, any> | null;
+                contract?: Record<string, any> | null;
+                medical?: Record<string, any> | null;
+                vehicle?: Record<string, any> | null;
+                education?: Record<string, any> | null;
+                personnel?: Record<string, any> | null;
+                details?: Record<string, any> | null;
+                customFields?: Record<string, any> | null;
                 isOwner?: boolean;
                 permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+                permissions?: {
+                    canEdit: boolean;
+                    canDelete: boolean;
+                    canApprove: boolean;
+                    canRequestApproval: boolean;
+                };
                 createdAt: string;
                 updatedAt: string;
             }>;
@@ -153,7 +193,6 @@ export class AttachmentService {
                 'createdAtFrom': createdAtFrom,
                 'createdAtTo': createdAtTo,
                 'includeShared': includeShared,
-                'detailsFilter': detailsFilter,
                 'cursor': cursor,
                 'page': page,
                 'skip': skip,
@@ -176,7 +215,20 @@ export class AttachmentService {
             description?: string;
             documentDate: string;
             transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            details?: Record<string, any> | null;
+            amount?: number | null;
+            taxAmount?: number | null;
+            currency?: string | null;
+            exchangeRate?: number | null;
+            tagIds?: Array<string>;
+            financial?: Record<string, any>;
+            insurance?: Record<string, any>;
+            identity?: Record<string, any>;
+            contract?: Record<string, any>;
+            medical?: Record<string, any>;
+            vehicle?: Record<string, any>;
+            education?: Record<string, any>;
+            details?: Record<string, any>;
+            customFields?: Record<string, any>;
         },
     ): CancelablePromise<{
         success: boolean;
@@ -191,7 +243,6 @@ export class AttachmentService {
             description: string | null;
             documentDate: string;
             transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            details?: any;
             status: 'PENDING' | 'APPROVED' | 'REJECTED';
             rejectionReason?: string | null;
             images?: Array<{
@@ -206,6 +257,33 @@ export class AttachmentService {
                 color: string;
                 expires: boolean;
                 transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                category?: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
+                fieldConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<(string | {
+                        key: string;
+                        label: string;
+                    })>;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                    itemConfig?: any[];
+                }> | null;
+                fieldStyle?: {
+                    mobile?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                    desktop?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                } | null;
+                defaultDetails?: Record<string, any> | null;
             };
             folder?: {
                 id: string;
@@ -223,8 +301,24 @@ export class AttachmentService {
                 name: string;
                 color: string;
             }>;
+            financial?: Record<string, any> | null;
+            insurance?: Record<string, any> | null;
+            identity?: Record<string, any> | null;
+            contract?: Record<string, any> | null;
+            medical?: Record<string, any> | null;
+            vehicle?: Record<string, any> | null;
+            education?: Record<string, any> | null;
+            personnel?: Record<string, any> | null;
+            details?: Record<string, any> | null;
+            customFields?: Record<string, any> | null;
             isOwner?: boolean;
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            permissions?: {
+                canEdit: boolean;
+                canDelete: boolean;
+                canApprove: boolean;
+                canRequestApproval: boolean;
+            };
             createdAt: string;
             updatedAt: string;
         };
@@ -232,6 +326,126 @@ export class AttachmentService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/attachments/',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Default Response`,
+            },
+        });
+    }
+    /**
+     * Create manual attachment record
+     * Create a database record for physical documents (receipts, contracts, etc.) without file upload.
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postAttachmentsRecord(
+        requestBody: {
+            folderId: string;
+            attachmentTypeId: string;
+            title: string;
+            description?: string;
+            documentDate: string;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            details: Record<string, any>;
+        },
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            userId: string;
+            folderId: string;
+            categoryId?: string | null;
+            attachmentTypeId: string;
+            title: string;
+            description: string | null;
+            documentDate: string;
+            transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            status: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rejectionReason?: string | null;
+            images?: Array<{
+                id: string;
+                imageUrl: string;
+                createdAt: string;
+            }>;
+            attachmentType?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+                expires: boolean;
+                transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                category?: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
+                fieldConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<(string | {
+                        key: string;
+                        label: string;
+                    })>;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                    itemConfig?: any[];
+                }> | null;
+                fieldStyle?: {
+                    mobile?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                    desktop?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                } | null;
+                defaultDetails?: Record<string, any> | null;
+            };
+            folder?: {
+                id: string;
+                name: string;
+                icon: string;
+                color: string;
+            };
+            category?: {
+                id: string;
+                name: string;
+                accountCode?: string | null;
+            };
+            tags?: Array<{
+                id: string;
+                name: string;
+                color: string;
+            }>;
+            financial?: Record<string, any> | null;
+            insurance?: Record<string, any> | null;
+            identity?: Record<string, any> | null;
+            contract?: Record<string, any> | null;
+            medical?: Record<string, any> | null;
+            vehicle?: Record<string, any> | null;
+            education?: Record<string, any> | null;
+            personnel?: Record<string, any> | null;
+            details?: Record<string, any> | null;
+            customFields?: Record<string, any> | null;
+            isOwner?: boolean;
+            permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            permissions?: {
+                canEdit: boolean;
+                canDelete: boolean;
+                canApprove: boolean;
+                canRequestApproval: boolean;
+            };
+            createdAt: string;
+            updatedAt: string;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/attachments/record',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -260,7 +474,6 @@ export class AttachmentService {
             description: string | null;
             documentDate: string;
             transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            details?: any;
             status: 'PENDING' | 'APPROVED' | 'REJECTED';
             rejectionReason?: string | null;
             images?: Array<{
@@ -275,6 +488,33 @@ export class AttachmentService {
                 color: string;
                 expires: boolean;
                 transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                category?: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
+                fieldConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<(string | {
+                        key: string;
+                        label: string;
+                    })>;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                    itemConfig?: any[];
+                }> | null;
+                fieldStyle?: {
+                    mobile?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                    desktop?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                } | null;
+                defaultDetails?: Record<string, any> | null;
             };
             folder?: {
                 id: string;
@@ -292,8 +532,24 @@ export class AttachmentService {
                 name: string;
                 color: string;
             }>;
+            financial?: Record<string, any> | null;
+            insurance?: Record<string, any> | null;
+            identity?: Record<string, any> | null;
+            contract?: Record<string, any> | null;
+            medical?: Record<string, any> | null;
+            vehicle?: Record<string, any> | null;
+            education?: Record<string, any> | null;
+            personnel?: Record<string, any> | null;
+            details?: Record<string, any> | null;
+            customFields?: Record<string, any> | null;
             isOwner?: boolean;
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            permissions?: {
+                canEdit: boolean;
+                canDelete: boolean;
+                canApprove: boolean;
+                canRequestApproval: boolean;
+            };
             createdAt: string;
             updatedAt: string;
         };
@@ -323,7 +579,20 @@ export class AttachmentService {
             description?: string;
             documentDate?: string;
             transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            details?: Record<string, any> | null;
+            amount?: number | null;
+            taxAmount?: number | null;
+            currency?: string | null;
+            exchangeRate?: number | null;
+            tagIds?: Array<string>;
+            financial?: Record<string, any>;
+            insurance?: Record<string, any>;
+            identity?: Record<string, any>;
+            contract?: Record<string, any>;
+            medical?: Record<string, any>;
+            vehicle?: Record<string, any>;
+            education?: Record<string, any>;
+            details?: Record<string, any>;
+            customFields?: Record<string, any>;
         },
     ): CancelablePromise<{
         success: boolean;
@@ -338,7 +607,6 @@ export class AttachmentService {
             description: string | null;
             documentDate: string;
             transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            details?: any;
             status: 'PENDING' | 'APPROVED' | 'REJECTED';
             rejectionReason?: string | null;
             images?: Array<{
@@ -353,6 +621,33 @@ export class AttachmentService {
                 color: string;
                 expires: boolean;
                 transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                category?: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
+                fieldConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<(string | {
+                        key: string;
+                        label: string;
+                    })>;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                    itemConfig?: any[];
+                }> | null;
+                fieldStyle?: {
+                    mobile?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                    desktop?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                } | null;
+                defaultDetails?: Record<string, any> | null;
             };
             folder?: {
                 id: string;
@@ -370,8 +665,24 @@ export class AttachmentService {
                 name: string;
                 color: string;
             }>;
+            financial?: Record<string, any> | null;
+            insurance?: Record<string, any> | null;
+            identity?: Record<string, any> | null;
+            contract?: Record<string, any> | null;
+            medical?: Record<string, any> | null;
+            vehicle?: Record<string, any> | null;
+            education?: Record<string, any> | null;
+            personnel?: Record<string, any> | null;
+            details?: Record<string, any> | null;
+            customFields?: Record<string, any> | null;
             isOwner?: boolean;
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            permissions?: {
+                canEdit: boolean;
+                canDelete: boolean;
+                canApprove: boolean;
+                canRequestApproval: boolean;
+            };
             createdAt: string;
             updatedAt: string;
         };
@@ -433,7 +744,6 @@ export class AttachmentService {
             description: string | null;
             documentDate: string;
             transactionType: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            details?: any;
             status: 'PENDING' | 'APPROVED' | 'REJECTED';
             rejectionReason?: string | null;
             images?: Array<{
@@ -448,6 +758,33 @@ export class AttachmentService {
                 color: string;
                 expires: boolean;
                 transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+                category?: 'FINANCIAL' | 'IDENTITY' | 'INSURANCE' | 'CONTRACT' | 'MEDICAL' | 'VEHICLE' | 'EDUCATION' | 'PERSONNEL' | 'OTHER';
+                fieldConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<(string | {
+                        key: string;
+                        label: string;
+                    })>;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                    itemConfig?: any[];
+                }> | null;
+                fieldStyle?: {
+                    mobile?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                    desktop?: {
+                        gridTemplateAreas: Array<string>;
+                        gap?: string;
+                    };
+                } | null;
+                defaultDetails?: Record<string, any> | null;
             };
             folder?: {
                 id: string;
@@ -465,8 +802,24 @@ export class AttachmentService {
                 name: string;
                 color: string;
             }>;
+            financial?: Record<string, any> | null;
+            insurance?: Record<string, any> | null;
+            identity?: Record<string, any> | null;
+            contract?: Record<string, any> | null;
+            medical?: Record<string, any> | null;
+            vehicle?: Record<string, any> | null;
+            education?: Record<string, any> | null;
+            personnel?: Record<string, any> | null;
+            details?: Record<string, any> | null;
+            customFields?: Record<string, any> | null;
             isOwner?: boolean;
             permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL';
+            permissions?: {
+                canEdit: boolean;
+                canDelete: boolean;
+                canApprove: boolean;
+                canRequestApproval: boolean;
+            };
             createdAt: string;
             updatedAt: string;
         };

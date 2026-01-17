@@ -18,7 +18,9 @@ interface AttachmentTagsProps {
     onTagsUpdate?: () => void;
 }
 
-export const AttachmentTags: React.FC<AttachmentTagsProps> = ({ attachmentId, initialTags = [], onTagsUpdate }) => {
+const EMPTY_TAGS: TagData[] = [];
+
+export const AttachmentTags: React.FC<AttachmentTagsProps> = ({ attachmentId, initialTags = EMPTY_TAGS, onTagsUpdate }) => {
     const [tags, setTags] = useState<TagData[]>(initialTags);
     const [modalVisible, setModalVisible] = useState(false);
     const [allTags, setAllTags] = useState<TagData[]>([]);

@@ -79,8 +79,9 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
 
     const createFolder = useCallback(async (data: CreateFolderDTO) => {
         try {
-            await FolderRepository.createFolder(data);
+            const result = await FolderRepository.createFolder(data);
             fetchFolders();
+            return result;
         } catch (err) {
             console.error(err);
             throw err;
@@ -97,7 +98,18 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
         }
     }, []);
 
+    const updateFolder = useCallback(async (id: string, data: CreateFolderDTO) => {
+        try {
+            await FolderRepository.updateFolder(id, data);
+            fetchFolders(); // Simple refresh for now
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    }, [fetchFolders]);
+
     const refresh = () => fetchFolders();
+
     const loadMore = () => {
         // Disabled
     };
@@ -114,10 +126,12 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
         loadingMore,
         error,
         createFolder,
+        updateFolder,
         deleteFolder,
         refresh,
         loadMore,
         hasMore,
         search
     };
+
 }

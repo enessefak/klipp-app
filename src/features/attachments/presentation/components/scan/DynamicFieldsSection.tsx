@@ -2,10 +2,11 @@ import { DatePickerField, FormField, TextInput } from '@/components/form';
 import { Select } from '@/components/Select';
 import { ThemedText } from '@/components/themed-text';
 import { FieldConfig, FieldStyle } from '@/src/features/attachments/domain/AttachmentTypeFields';
+import { LineItemEditorModal } from '@/src/features/attachments/presentation/components/LineItemEditorModal';
 import { LineItemsTable } from '@/src/features/attachments/presentation/components/LineItemsTable';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import i18n from '@/src/infrastructure/localization/i18n';
-import React from 'react';
+import React, { useState } from 'react';
 import { Control, Controller, UseFormSetValue } from 'react-hook-form';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -27,6 +28,13 @@ export function DynamicFieldsSection({
     fieldStyle
 }: DynamicFieldsSectionProps) {
     const { colors } = useSettings();
+
+    // Modal State
+    const [modalVisible, setModalVisible] = useState(false);
+    const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+    const [currentFieldOnChange, setCurrentFieldOnChange] = useState<((val: any) => void) | null>(null);
+    const [currentFieldValue, setCurrentFieldValue] = useState<any[]>([]);
+    const [editingFieldIndex, setEditingFieldIndex] = useState<string | null>(null);
 
     const styles = StyleSheet.create({
         durationRow: {
@@ -97,15 +105,47 @@ export function DynamicFieldsSection({
                                             label={field.label}
                                             currency={watchedDetails?.currency || 'TRY'}
                                             variant="editable"
-                                            onEdit={() => console.log('Edit Items')}
+                                            itemsConfig={fieldStyle?.items || field.items}
+                                            onItemPress={(item, index) => {
+                                                setEditingFieldIndex(field.key);
+                                                setEditingItemIndex(index); // Set the index of item being edited
+                                                setModalVisible(true);
+                                                setCurrentFieldOnChange(() => onChange);
+                                                setCurrentFieldValue(value);
+                                            }}
+                                            onEdit={() => {
+                                                setEditingFieldIndex(field.key);
+                                                setEditingItemIndex(null); // Create New Mode
+                                                setModalVisible(true);
+                                                setCurrentFieldOnChange(() => onChange);
+                                                setCurrentFieldValue(value);
+                                            }}
                                         />
                                     ) : (
                                         <View style={{ backgroundColor: colors.card, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }}>
                                             <ThemedText style={{ color: colors.textLight, marginBottom: 4 }}>{field.label}</ThemedText>
-                                            <TouchableOpacity onPress={() => console.log('Add Item')} style={{ padding: 8 }}>
+                                            <TouchableOpacity onPress={() => {
+                                                setEditingFieldIndex(field.key);
+                                                setEditingItemIndex(null);
+                                                setModalVisible(true);
+                                                setCurrentFieldOnChange(() => onChange);
+                                                setCurrentFieldValue(value || []);
+                                            }} style={{ padding: 8 }}>
                                                 <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>+ {i18n.t('common.actions.add')}</ThemedText>
                                             </TouchableOpacity>
                                         </View>
+                                    )}
+                                    {/* Add Button for existing list */}
+                                    {value && value.length > 0 && (
+                                        <TouchableOpacity onPress={() => {
+                                            setEditingFieldIndex(field.key);
+                                            setEditingItemIndex(null);
+                                            setModalVisible(true);
+                                            setCurrentFieldOnChange(() => onChange);
+                                            setCurrentFieldValue(value);
+                                        }} style={{ marginTop: 8, alignItems: 'center', padding: 8 }}>
+                                            <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>+ {i18n.t('common.actions.add')}</ThemedText>
+                                        </TouchableOpacity>
                                     )}
                                 </View>
                             ) : field.type === 'duration' ? (
@@ -171,6 +211,7 @@ export function DynamicFieldsSection({
                             ) : field.type === 'date' ? (
                                 <DatePickerField
                                     label={field.label}
+                                    hideLabel
                                     value={value ? new Date(value) : undefined}
                                     onChange={(date) => onChange(date.toISOString())}
                                     placeholder={field.placeholder || i18n.t('common.actions.select_date')}
@@ -190,7 +231,15 @@ export function DynamicFieldsSection({
                                     label={field.label}
                                     hideLabel
                                     value={value}
-                                    options={(field.options || []).map((opt) => ({ label: opt, value: opt }))}
+                                    options={(field.options || []).map((opt: any) => {
+                                        if (typeof opt === 'string') {
+                                            return { label: opt, value: opt };
+                                        }
+                                        return {
+                                            label: opt.label || opt.name || opt.value || JSON.stringify(opt),
+                                            value: opt.value || opt.id || opt.key || JSON.stringify(opt)
+                                        };
+                                    })}
                                     onChange={onChange}
                                     placeholder={field.placeholder}
                                 />
@@ -246,13 +295,53 @@ export function DynamicFieldsSection({
                         })}
                     </View>
                 ))}
+
+                <LineItemEditorModal
+                    visible={modalVisible}
+                    onClose={() => setModalVisible(false)}
+                    onSave={(item) => {
+                        const newList = [...currentFieldValue];
+                        if (editingItemIndex !== null) {
+                            newList[editingItemIndex] = item;
+                        } else {
+                            newList.push(item);
+                        }
+                        if (currentFieldOnChange) {
+                            currentFieldOnChange(newList);
+                        }
+                        setModalVisible(false);
+                    }}
+                    initialItem={editingItemIndex !== null ? currentFieldValue[editingItemIndex] : {}}
+                    itemsConfig={fieldStyle?.items || dynamicFields.find(f => f.key === editingFieldIndex)?.items}
+                    currency={watchedDetails?.currency || 'TRY'}
+                />
             </View>
         );
     }
 
     return (
-        <View style={{ gap: 16 }}>
+        <View style={{ gap: 0 }}>
             {dynamicFields.map(field => renderField(field))}
+
+            <LineItemEditorModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                onSave={(item) => {
+                    const newList = [...currentFieldValue];
+                    if (editingItemIndex !== null) {
+                        newList[editingItemIndex] = item;
+                    } else {
+                        newList.push(item);
+                    }
+                    if (currentFieldOnChange) {
+                        currentFieldOnChange(newList);
+                    }
+                    setModalVisible(false);
+                }}
+                initialItem={editingItemIndex !== null ? currentFieldValue[editingItemIndex] : {}}
+                itemsConfig={fieldStyle?.items || dynamicFields.find(f => f.key === editingFieldIndex)?.items}
+                currency={watchedDetails?.currency || 'TRY'}
+            />
         </View>
     );
 }

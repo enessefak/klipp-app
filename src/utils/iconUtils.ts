@@ -27,6 +27,18 @@ export const sfSymbolToEmoji: Record<string, string> = {
     'airplane': '✈️',
     'building': '🏢',
     'building.2': '🏢',
+    // Additional folder icons
+    'tag': '🏷️',
+    'tag.fill': '🏷️',
+    'tray': '📥',
+    'tray.fill': '📥',
+    'heart.text.square': '❤️‍🩹',
+    'graduationcap': '🎓',
+    'graduationcap.fill': '🎓',
+    'doc.text': '📝',
+    'doc.text.fill': '📝',
+    'person.text.rectangle': '🪪',
+    'person.text.rectangle.fill': '🪪',
 };
 
 export const getIconDisplay = (icon?: string): string => {

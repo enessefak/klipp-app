@@ -60,6 +60,11 @@ export class FolderSharingService {
      * @param cursor
      * @param limit
      * @param search
+     * @param from
+     * @param to
+     * @param color
+     * @param icon
+     * @param permission
      * @returns any Default Response
      * @throws ApiError
      */
@@ -68,6 +73,11 @@ export class FolderSharingService {
         cursor?: string,
         limit?: number,
         search?: string,
+        from?: string,
+        to?: string,
+        color?: string,
+        icon?: string,
+        permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL',
     ): CancelablePromise<{
         success: boolean;
         message?: string;
@@ -100,6 +110,11 @@ export class FolderSharingService {
                 'cursor': cursor,
                 'limit': limit,
                 'search': search,
+                'from': from,
+                'to': to,
+                'color': color,
+                'icon': icon,
+                'permission': permission,
             },
         });
     }
@@ -109,6 +124,12 @@ export class FolderSharingService {
      * @param cursor
      * @param limit
      * @param search
+     * @param from
+     * @param to
+     * @param color
+     * @param icon
+     * @param permission
+     * @param status
      * @returns any Default Response
      * @throws ApiError
      */
@@ -116,6 +137,12 @@ export class FolderSharingService {
         cursor?: string,
         limit?: number,
         search?: string,
+        from?: string,
+        to?: string,
+        color?: string,
+        icon?: string,
+        permission?: 'VIEW' | 'EDIT' | 'CREATE' | 'FULL',
+        status?: 'pending' | 'accepted' | 'rejected',
     ): CancelablePromise<{
         success: boolean;
         message?: string;
@@ -150,6 +177,12 @@ export class FolderSharingService {
                 'cursor': cursor,
                 'limit': limit,
                 'search': search,
+                'from': from,
+                'to': to,
+                'color': color,
+                'icon': icon,
+                'permission': permission,
+                'status': status,
             },
         });
     }
