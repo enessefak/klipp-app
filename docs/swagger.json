@@ -2074,6 +2074,95 @@
                                                                     ]
                                                                 }
                                                             },
+                                                            "eInvoiceSettings": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "taxNumber": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "taxOffice": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "companyName": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "city": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "country": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "address": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "subdivision": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id"
+                                                                ],
+                                                                "additionalProperties": false,
+                                                                "nullable": true
+                                                            },
+                                                            "user": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "email": {
+                                                                        "type": "string",
+                                                                        "format": "email"
+                                                                    },
+                                                                    "taxNumber": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "taxOffice": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "city": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "subdivision": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "address": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "phone": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "name",
+                                                                    "email"
+                                                                ],
+                                                                "additionalProperties": false,
+                                                                "nullable": true
+                                                            },
                                                             "children": {
                                                                 "type": "array",
                                                                 "items": {}
@@ -2295,6 +2384,95 @@
                                                             "NEUTRAL"
                                                         ]
                                                     }
+                                                },
+                                                "eInvoiceSettings": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "companyName": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "country": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "format": "email"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "email"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
                                                 }
                                             },
                                             "required": [
@@ -2469,6 +2647,95 @@
                                                             "NEUTRAL"
                                                         ]
                                                     }
+                                                },
+                                                "eInvoiceSettings": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "companyName": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "country": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "format": "email"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "email"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
                                                 },
                                                 "children": {
                                                     "type": "array",
@@ -2680,6 +2947,95 @@
                                                             "NEUTRAL"
                                                         ]
                                                     }
+                                                },
+                                                "eInvoiceSettings": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "companyName": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "country": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "format": "email"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "email"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
                                                 }
                                             },
                                             "required": [
@@ -2974,6 +3330,95 @@
                                                             "NEUTRAL"
                                                         ]
                                                     }
+                                                },
+                                                "eInvoiceSettings": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "companyName": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "country": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
+                                                },
+                                                "user": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "format": "email"
+                                                        },
+                                                        "taxNumber": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "taxOffice": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "city": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "subdivision": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "address": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "email"
+                                                    ],
+                                                    "additionalProperties": false,
+                                                    "nullable": true
                                                 }
                                             },
                                             "required": [

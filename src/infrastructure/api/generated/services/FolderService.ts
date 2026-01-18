@@ -50,6 +50,27 @@ export class FolderService {
                 isConfidential?: boolean;
                 allowedTypeIds?: Array<string>;
                 allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+                eInvoiceSettings?: {
+                    id: string;
+                    taxNumber?: string | null;
+                    taxOffice?: string | null;
+                    companyName?: string | null;
+                    city?: string | null;
+                    country?: string | null;
+                    address?: string | null;
+                    subdivision?: string | null;
+                } | null;
+                user?: {
+                    id: string;
+                    name: string;
+                    email: string;
+                    taxNumber?: string | null;
+                    taxOffice?: string | null;
+                    city?: string | null;
+                    subdivision?: string | null;
+                    address?: string | null;
+                    phone?: string | null;
+                } | null;
                 children?: Array<any>;
             }>;
             hasMore: boolean;
@@ -111,6 +132,27 @@ export class FolderService {
             isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+            eInvoiceSettings?: {
+                id: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                companyName?: string | null;
+                city?: string | null;
+                country?: string | null;
+                address?: string | null;
+                subdivision?: string | null;
+            } | null;
+            user?: {
+                id: string;
+                name: string;
+                email: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                city?: string | null;
+                subdivision?: string | null;
+                address?: string | null;
+                phone?: string | null;
+            } | null;
         };
     }> {
         return __request(OpenAPI, {
@@ -162,6 +204,27 @@ export class FolderService {
             isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+            eInvoiceSettings?: {
+                id: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                companyName?: string | null;
+                city?: string | null;
+                country?: string | null;
+                address?: string | null;
+                subdivision?: string | null;
+            } | null;
+            user?: {
+                id: string;
+                name: string;
+                email: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                city?: string | null;
+                subdivision?: string | null;
+                address?: string | null;
+                phone?: string | null;
+            } | null;
             children?: Array<any>;
         };
     }> {
@@ -214,6 +277,27 @@ export class FolderService {
             isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+            eInvoiceSettings?: {
+                id: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                companyName?: string | null;
+                city?: string | null;
+                country?: string | null;
+                address?: string | null;
+                subdivision?: string | null;
+            } | null;
+            user?: {
+                id: string;
+                name: string;
+                email: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                city?: string | null;
+                subdivision?: string | null;
+                address?: string | null;
+                phone?: string | null;
+            } | null;
         };
     }> {
         return __request(OpenAPI, {
@@ -285,6 +369,27 @@ export class FolderService {
             isConfidential?: boolean;
             allowedTypeIds?: Array<string>;
             allowedTransactionTypes?: Array<'INCOME' | 'EXPENSE' | 'NEUTRAL'>;
+            eInvoiceSettings?: {
+                id: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                companyName?: string | null;
+                city?: string | null;
+                country?: string | null;
+                address?: string | null;
+                subdivision?: string | null;
+            } | null;
+            user?: {
+                id: string;
+                name: string;
+                email: string;
+                taxNumber?: string | null;
+                taxOffice?: string | null;
+                city?: string | null;
+                subdivision?: string | null;
+                address?: string | null;
+                phone?: string | null;
+            } | null;
         };
     }> {
         return __request(OpenAPI, {
