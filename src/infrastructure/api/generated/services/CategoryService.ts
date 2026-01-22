@@ -183,4 +183,38 @@ export class CategoryService {
             },
         });
     }
+    /**
+     * List categories by owner
+     * List categories owned by a specific user. Only accessible if you have shared folder access with that user.
+     * @param ownerId
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getCategoriesByOwner(
+        ownerId: string,
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            items: Array<{
+                id: string;
+                name: string;
+                accountCode?: string | null;
+                userId: string;
+                createdAt: string;
+                updatedAt: string;
+            }>;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/categories/by-owner/{ownerId}',
+            path: {
+                'ownerId': ownerId,
+            },
+            errors: {
+                403: `Default Response`,
+            },
+        });
+    }
 }

@@ -14,6 +14,7 @@ import { UpdateEInvoiceSettingsDTO } from '../../../e-invoices/domain/EInvoiceSe
 import { EInvoiceSettingsForm } from '../../../e-invoices/presentation/components/EInvoiceSettingsForm';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
+import { FolderEvents } from '../FolderEvents';
 import { useFolders } from '../useFolders';
 
 // Predefined Options - synced with web folder-icons.ts
@@ -290,9 +291,13 @@ export function CreateFolderScreen() {
                 targetFolderId = newFolder?.id;
             }
 
-            // Save E-Invoice Settings if provided (and we have a valid folder ID)
             if (targetFolderId && eInvoiceSettings && (eInvoiceSettings.companyName || eInvoiceSettings.taxNumber)) {
                 await EInvoiceSettingsRepository.updateSettings(targetFolderId, eInvoiceSettings as UpdateEInvoiceSettingsDTO);
+            }
+
+            // Emit create event to refresh folder lists
+            if (!isEditing && targetFolderId) {
+                FolderEvents.emitCreate(targetFolderId);
             }
 
             router.back();

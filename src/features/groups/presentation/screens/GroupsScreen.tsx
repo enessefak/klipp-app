@@ -131,10 +131,18 @@ export default function GroupsScreen() {
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <ThemedText type="title" style={styles.headerTitle}>
-                    {i18n.t('groups.title') || 'Gruplarım'}
-                </ThemedText>
-                <ThemedText style={styles.headerSubtitle}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{ padding: 8, marginLeft: -8, marginRight: 8 }}
+                    >
+                        <IconSymbol name="chevron.left" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <ThemedText type="title" style={styles.headerTitle}>
+                        {i18n.t('groups.title') || 'Gruplarım'}
+                    </ThemedText>
+                </View>
+                <ThemedText style={[styles.headerSubtitle, { marginLeft: 32 }]}>
                     {i18n.t('groups.subtitle') || 'Gruplarınızı yönetin ve üyeler ekleyin'}
                 </ThemedText>
             </View>

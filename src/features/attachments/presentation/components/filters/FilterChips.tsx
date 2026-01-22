@@ -7,9 +7,10 @@ interface FilterChipsProps {
     options: string[];
     selected?: string;
     onSelect: (value: string) => void;
+    getLabel?: (option: string) => string;
 }
 
-export function FilterChips({ options, selected, onSelect }: FilterChipsProps) {
+export function FilterChips({ options, selected, onSelect, getLabel }: FilterChipsProps) {
     const { colors } = useSettings();
 
     const styles = useMemo(() => StyleSheet.create({
@@ -56,7 +57,7 @@ export function FilterChips({ options, selected, onSelect }: FilterChipsProps) {
                             selected === option && styles.chipTextActive,
                         ]}
                     >
-                        {option}
+                        {getLabel ? getLabel(option) : option}
                     </ThemedText>
                 </TouchableOpacity>
             ))}

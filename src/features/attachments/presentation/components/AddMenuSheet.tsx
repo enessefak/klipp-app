@@ -55,16 +55,6 @@ export function AddMenuSheet({ visible, onClose, folderId, onImportPress }: AddM
             },
         },
         {
-            key: 'invoice',
-            icon: 'doc.text.fill',
-            label: i18n.t('addMenu.createInvoice'),
-            description: i18n.t('addMenu.createInvoiceDesc'),
-            onPress: () => {
-                onClose();
-                router.push('/e-invoice/create' as any);
-            },
-        },
-        {
             key: 'import',
             icon: 'square.and.arrow.down',
             label: i18n.t('addMenu.import'),

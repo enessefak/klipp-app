@@ -3,6 +3,8 @@ import { useSettings } from '@/src/features/settings/presentation/SettingsContex
 import React, { ReactNode, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import I18nLocal from '@/src/infrastructure/localization/i18n';
+
 interface FilterSectionProps {
     title: string;
     children: ReactNode;
@@ -43,7 +45,7 @@ export function FilterSection({ title, children, style, onClear }: FilterSection
                 <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
                 {onClear && (
                     <TouchableOpacity onPress={onClear}>
-                        <ThemedText style={styles.clearText}>Temizle</ThemedText>
+                        <ThemedText style={styles.clearText}>{I18nLocal.t('filters.clear')}</ThemedText>
                     </TouchableOpacity>
                 )}
             </View>

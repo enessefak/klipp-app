@@ -1,3 +1,4 @@
+import { GoogleSignInButton } from '@/src/features/auth/presentation/components/GoogleSignInButton';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
@@ -95,7 +96,7 @@ export function SignUpScreen() {
         header: {
             flexDirection: 'row',
             alignItems: 'center',
-            marginBottom: 40,
+            marginBottom: 15,
             gap: 16,
         },
         logo: {
@@ -121,7 +122,7 @@ export function SignUpScreen() {
             lineHeight: 20,
         },
         form: {
-            gap: 16,
+            gap: 0,
         },
         globalError: {
             color: colors.error,
@@ -140,7 +141,7 @@ export function SignUpScreen() {
         dividerContainer: {
             flexDirection: 'row',
             alignItems: 'center',
-            marginVertical: 24,
+            marginVertical: 10,
         },
         divider: {
             flex: 1,
@@ -156,6 +157,7 @@ export function SignUpScreen() {
         appleButton: {
             height: 52,
             width: '100%',
+            marginTop: 10,
         },
         footer: {
             flexDirection: 'row',
@@ -193,6 +195,29 @@ export function SignUpScreen() {
             </View>
 
             <View style={styles.form}>
+                {/* Social Login - Moved to top for visibility */}
+                <GoogleSignInButton />
+
+                {Platform.OS === 'ios' && (
+                    <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                        buttonStyle={
+                            colorScheme === 'dark'
+                                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                        }
+                        cornerRadius={12}
+                        style={styles.appleButton}
+                        onPress={handleAppleSignIn}
+                    />
+                )}
+
+                <View style={styles.dividerContainer}>
+                    <View style={styles.divider} />
+                    <ThemedText style={styles.dividerText}>veya</ThemedText>
+                    <View style={styles.divider} />
+                </View>
+
                 <Controller
                     control={control}
                     name="name"
@@ -274,29 +299,6 @@ export function SignUpScreen() {
                         </ThemedText>
                     </TouchableOpacity>
                 </View>
-
-                {/* Social Login */}
-                {Platform.OS === 'ios' && (
-                    <>
-                        <View style={styles.dividerContainer}>
-                            <View style={styles.divider} />
-                            <ThemedText style={styles.dividerText}>veya</ThemedText>
-                            <View style={styles.divider} />
-                        </View>
-
-                        <AppleAuthentication.AppleAuthenticationButton
-                            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
-                            buttonStyle={
-                                colorScheme === 'dark'
-                                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-                            }
-                            cornerRadius={12}
-                            style={styles.appleButton}
-                            onPress={handleAppleSignIn}
-                        />
-                    </>
-                )}
             </View>
         </FormContainer>
     );

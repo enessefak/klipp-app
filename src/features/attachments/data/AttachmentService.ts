@@ -1,3 +1,5 @@
+import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
+import { request as __request } from '@/src/infrastructure/api/generated/core/request';
 import { AttachmentService as GeneratedAttachmentService } from '@/src/infrastructure/api/generated/services/AttachmentService';
 import { FilesService as GeneratedFilesService } from '@/src/infrastructure/api/generated/services/FilesService';
 import { File } from 'expo-file-system';
@@ -21,25 +23,35 @@ export class AttachmentService {
         filters?: AttachmentFilters,
         pagination?: PaginationParams
     ): Promise<PaginatedAttachments> {
-        const response = await GeneratedAttachmentService.getAttachments(
-            filters?.folderId,
-            filters?.categoryId,
-            filters?.attachmentTypeId,
-            undefined, // tagId
-            filters?.transactionType as 'INCOME' | 'EXPENSE' | 'NEUTRAL' | undefined,
-            filters?.title,
-            undefined, // status
-            filters?.search,
-            filters?.documentDateFrom,
-            filters?.documentDateTo,
-            filters?.createdAtFrom,
-            filters?.createdAtTo,
-            filters?.includeShared ? 'true' : undefined,
-            pagination?.cursor,
-            undefined, // page
-            undefined, // skip
-            pagination?.limit
-        );
+        const {
+            folderId, categoryId, attachmentTypeId, transactionType, title, search,
+            documentDateFrom, documentDateTo, createdAtFrom, createdAtTo, includeShared, detailsFilter,
+            ...additionalFilters
+        } = filters || {};
+
+        const response = await __request(OpenAPI, {
+            method: 'GET',
+            url: '/attachments/',
+            query: {
+                'folderId': folderId,
+                'categoryId': categoryId,
+                'attachmentTypeId': attachmentTypeId,
+                'tagId': undefined,
+                'transactionType': transactionType as 'INCOME' | 'EXPENSE' | 'NEUTRAL' | undefined,
+                'title': title,
+                'status': undefined,
+                'search': search,
+                'documentDateFrom': documentDateFrom,
+                'documentDateTo': documentDateTo,
+                'createdAtFrom': createdAtFrom,
+                'createdAtTo': createdAtTo,
+                'includeShared': includeShared ? 'true' : undefined,
+                'detailsFilter': detailsFilter,
+                'cursor': pagination?.cursor,
+                'limit': pagination?.limit,
+                ...additionalFilters,
+            },
+        });
         return (response as any).data || response;
     }
 

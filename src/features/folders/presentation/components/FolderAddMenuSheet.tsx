@@ -13,6 +13,8 @@ interface FolderAddMenuSheetProps {
     onCreatePersonnelFile: () => void;
     onImportPress?: () => void;
     folderId?: string;
+    /** If true, this is root level - documents cannot be created here */
+    isRootLevel?: boolean;
 }
 
 interface MenuOption {
@@ -30,7 +32,8 @@ export function FolderAddMenuSheet({
     onCreateFolder,
     onCreatePersonnelFile,
     onImportPress,
-    folderId
+    folderId,
+    isRootLevel = false,
 }: FolderAddMenuSheetProps) {
     const { colors } = useSettings();
     const router = useRouter();
@@ -216,8 +219,13 @@ export function FolderAddMenuSheet({
                         <ThemedText style={styles.sectionTitle}>{i18n.t('folders.title')}</ThemedText>
                         {folderOptions.map(renderOption)}
 
-                        <ThemedText style={styles.sectionTitle}>{i18n.t('receipts.home.title')}</ThemedText>
-                        {documentOptions.map(renderOption)}
+                        {/* Only show document options when inside a folder (not root level) */}
+                        {!isRootLevel && (
+                            <>
+                                <ThemedText style={styles.sectionTitle}>{i18n.t('receipts.home.title')}</ThemedText>
+                                {documentOptions.map(renderOption)}
+                            </>
+                        )}
                     </View>
                 </Pressable>
             </Pressable>

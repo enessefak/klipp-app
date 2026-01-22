@@ -27,7 +27,7 @@ interface AttachmentType {
 export default function AttachmentTypePickerScreen() {
     const { colors } = useSettings();
     const router = useRouter();
-    const { selectedId } = useLocalSearchParams<{ selectedId?: string }>();
+    const { selectedId, allowedTypeIds } = useLocalSearchParams<{ selectedId?: string; allowedTypeIds?: string }>();
     const { onTypeSelect } = usePicker();
 
     const [types, setTypes] = useState<AttachmentType[]>([]);
@@ -51,13 +51,23 @@ export default function AttachmentTypePickerScreen() {
     };
 
     const filteredTypes = useMemo(() => {
-        if (!searchQuery.trim()) return types;
+        let currentTypes = types;
+
+        // Filter by allowedTypeIds if present
+        if (allowedTypeIds) {
+            const allowedIds = allowedTypeIds.split(',');
+            if (allowedIds.length > 0) {
+                currentTypes = currentTypes.filter(t => allowedIds.includes(t.id));
+            }
+        }
+
+        if (!searchQuery.trim()) return currentTypes;
         const lowerQuery = searchQuery.toLowerCase();
-        return types.filter(t => {
+        return currentTypes.filter(t => {
             const label = getAttachmentTypeLabel(t.name).toLowerCase();
             return t.name.toLowerCase().includes(lowerQuery) || label.includes(lowerQuery);
         });
-    }, [types, searchQuery]);
+    }, [types, searchQuery, allowedTypeIds]);
 
     const handleSelect = (type: AttachmentType | null) => {
         onTypeSelect(type);

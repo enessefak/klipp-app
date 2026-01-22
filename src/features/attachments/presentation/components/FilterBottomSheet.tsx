@@ -43,6 +43,9 @@ interface FilterBottomSheetProps {
     onApply: (filters: AttachmentFilters) => void;
     onReset: () => void;
     onPickerOpen?: () => void;
+    fixedFolderId?: string;
+    fixedFolder?: Folder;
+    onReopen?: () => void;
 }
 
 export function FilterBottomSheet({
@@ -52,6 +55,9 @@ export function FilterBottomSheet({
     onApply,
     onReset,
     onPickerOpen,
+    fixedFolderId,
+    fixedFolder: fixedFolderProp,
+    onReopen,
 }: FilterBottomSheetProps) {
     const { colors } = useSettings();
     const insets = useSafeAreaInsets();
@@ -76,17 +82,29 @@ export function FilterBottomSheet({
         }
     }, [filters.detailsFilter]);
 
+    // Initialize with fixed folder if present
+    useEffect(() => {
+        if (fixedFolderId) {
+            setLocalFilters(prev => ({ ...prev, folderId: fixedFolderId }));
+        }
+    }, [fixedFolderId]);
+
     // Options
     const [folders, setFolders] = useState<Folder[]>([]);
     const [attachmentTypes, setAttachmentTypes] = useState<AttachmentType[]>([]);
     const [loadingOptions, setLoadingOptions] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
 
     // Load options
     useEffect(() => {
-        if (visible && folders.length === 0) {
+        if (visible && !hasLoaded && !loadingOptions) {
             loadFilterOptions();
         }
-    }, [visible]);
+        // Also ensure fixedFolderProp is added if not present
+        if (fixedFolderProp && !folders.find(f => f.id === fixedFolderProp.id)) {
+            setFolders(prev => [...prev, fixedFolderProp]);
+        }
+    }, [visible, fixedFolderProp, hasLoaded, loadingOptions]);
 
     const loadFilterOptions = async () => {
         setLoadingOptions(true);
@@ -97,8 +115,10 @@ export function FilterBottomSheet({
                 AttachmentTypeService.getAttachmentTypes(),
             ]);
 
-            // Handle paginated response
-            const typesData = Array.isArray(typesResponse) ? typesResponse : ((typesResponse as any).items || []);
+            // Handle API response - it returns { data: [...], success: true }
+            const typesData = Array.isArray(typesResponse)
+                ? typesResponse
+                : ((typesResponse as any).data || (typesResponse as any).items || []);
 
             // Map shared folders
             const sharedFolders = Array.isArray(sharedResponse) ? sharedResponse : [];
@@ -115,7 +135,9 @@ export function FilterBottomSheet({
                     id: sf.owner.id,
                     name: sf.owner.name,
                     email: sf.owner.email
-                } : undefined
+                } : undefined,
+                // Assuming share/repo returns these or we might miss them if not fully mapped
+                // The current API might not return them in list view, but fixedFolderProp will have them.
             }));
 
             // Merge folders: Personal + Shared
@@ -125,8 +147,14 @@ export function FilterBottomSheet({
             }
             allFolders.push(...mappedSharedFolders);
 
+            // Add fixed folder if not present
+            if (fixedFolderProp && !allFolders.find(f => f.id === fixedFolderProp.id)) {
+                allFolders.push(fixedFolderProp);
+            }
+
             setFolders(allFolders);
             setAttachmentTypes(typesData);
+            setHasLoaded(true);
         } catch (err) {
             console.error('Failed to load filter options:', err);
         } finally {
@@ -138,6 +166,19 @@ export function FilterBottomSheet({
         setLocalFilters(prev => ({ ...prev, [key]: value }));
     }, []);
 
+    // Helpers for selected items
+    const selectedFolder = useMemo(() =>
+        (fixedFolderProp && fixedFolderProp.id === localFilters.folderId)
+            ? fixedFolderProp
+            : folders.find(f => f.id === localFilters.folderId),
+        [folders, localFilters.folderId, fixedFolderProp]
+    );
+
+    // Visibility Logic
+    const isFolderSelected = !!localFilters.folderId && localFilters.folderId !== 'root';
+    const showStatus = isFolderSelected && (selectedFolder?.requiresApproval === true);
+    const showTransactionType = isFolderSelected && (selectedFolder?.allowedTransactionTypes && selectedFolder.allowedTransactionTypes.length > 0);
+
     const triggerNavigation = useCallback((target: 'folder' | 'type') => {
         if (onPickerOpen) {
             onPickerOpen();
@@ -145,19 +186,35 @@ export function FilterBottomSheet({
         if (target === 'folder') {
             setFolderCallback((folder) => {
                 updateFilter('folderId', folder?.id);
-                // Optionally re-open or handle UI state if needed
+                setTimeout(() => {
+                    if (onReopen) onReopen();
+                }, 500);
             });
             onClose(); // Close sheet to show picker
             router.push('/picker/folder');
         } else if (target === 'type') {
             setTypeCallback((type) => {
+                console.log('[FilterBottomSheet] setTypeCallback triggered with:', type);
                 updateFilter('attachmentTypeId', type?.id);
                 setDynamicValues({}); // Reset dynamic values when type changes
+                setTimeout(() => {
+                    if (onReopen) onReopen();
+                }, 500);
             });
             onClose(); // Close sheet to show picker
-            router.push('/picker/attachment-type');
+
+            const params: any = {};
+            if (localFilters.attachmentTypeId) {
+                params.selectedId = localFilters.attachmentTypeId;
+            }
+            if (selectedFolder?.allowedTypeIds && selectedFolder.allowedTypeIds.length > 0) {
+                params.allowedTypeIds = selectedFolder.allowedTypeIds.join(',');
+            }
+
+            router.push({ pathname: '/picker/attachment-type', params });
         }
-    }, [onClose, router, setFolderCallback, setTypeCallback, updateFilter, onPickerOpen]);
+    }, [onClose, router, setFolderCallback, setTypeCallback, updateFilter, onPickerOpen, selectedFolder, localFilters.attachmentTypeId, onReopen]);
+
     const handleApply = useCallback(() => {
         const cleanFilters: AttachmentFilters = {};
         Object.entries(localFilters).forEach(([key, value]) => {
@@ -176,18 +233,26 @@ export function FilterBottomSheet({
     }, [localFilters, dynamicValues, onApply, onClose]);
 
     const handleReset = useCallback(() => {
-        setLocalFilters({});
+        const base = fixedFolderId ? { folderId: fixedFolderId } : {};
+        setLocalFilters(base);
         setDynamicValues({});
         onReset();
         onClose();
-    }, [onReset, onClose]);
+    }, [onReset, onClose, fixedFolderId]);
 
-    // Helpers
-    const selectedFolder = folders.find(f => f.id === localFilters.folderId);
     const selectedFolderName = selectedFolder?.name;
     const selectedFolderIcon = selectedFolder?.icon;
 
-    const selectedType = attachmentTypes?.find((t) => t.id === localFilters.attachmentTypeId);
+    const selectedType = attachmentTypes?.find((t) => {
+        // Debug safe comparison
+        return String(t.id) === String(localFilters.attachmentTypeId);
+    });
+    console.log('[FilterBottomSheet] selection debug:', {
+        typeId: localFilters.attachmentTypeId,
+        typesCount: attachmentTypes?.length,
+        foundMatch: !!selectedType,
+        firstTypeId: attachmentTypes?.[0]?.id
+    });
     const selectedTypeName = selectedType ? getAttachmentTypeLabel(selectedType.name) : undefined;
     const selectedTypeIcon = selectedType?.icon;
 
@@ -196,12 +261,14 @@ export function FilterBottomSheet({
     const selectedTypeFieldConfig = (selectedType as any)?.fieldConfig as FieldConfig[] | undefined;
 
     const activeFilterCount = useMemo(() => {
-        let count = Object.values(localFilters).filter(v => v !== undefined && v !== null && v !== '').length;
+        let count = Object.entries(localFilters).filter(([k, v]) =>
+            v !== undefined && v !== null && v !== '' && (fixedFolderId ? k !== 'folderId' : true)
+        ).length;
         if (Object.keys(dynamicValues).length > 0) {
             count += Object.keys(dynamicValues).length;
         }
         return count;
-    }, [localFilters, dynamicValues]);
+    }, [localFilters, dynamicValues, fixedFolderId]);
 
     const handleDynamicChange = useCallback((key: string, value: any) => {
         setDynamicValues(prev => {
@@ -349,6 +416,9 @@ export function FilterBottomSheet({
                                     updateFilter('attachmentTypeId', undefined);
                                     setDynamicValues({});
                                 }}
+                                showStatus={showStatus}
+                                showTransactionType={showTransactionType}
+                                disabledFolder={!!fixedFolderId}
                             />
                         )}
                     </ScrollView>

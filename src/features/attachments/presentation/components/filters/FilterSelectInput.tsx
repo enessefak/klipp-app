@@ -9,10 +9,11 @@ interface FilterSelectInputProps {
     placeholder: string;
     value?: string;
     icon?: string;
-    onPress: () => void;
+    onPress?: () => void;
+    disabled?: boolean;
 }
 
-export function FilterSelectInput({ placeholder, value, icon, onPress }: FilterSelectInputProps) {
+export function FilterSelectInput({ placeholder, value, icon, onPress, disabled }: FilterSelectInputProps) {
     const { colors } = useSettings();
 
     const styles = useMemo(() => StyleSheet.create({
@@ -26,6 +27,10 @@ export function FilterSelectInput({ placeholder, value, icon, onPress }: FilterS
             paddingVertical: 14,
             borderWidth: 1,
             borderColor: colors.border,
+        },
+        disabledInput: {
+            opacity: 0.5,
+            backgroundColor: colors.background, // Ensure background matches
         },
         selectedItem: {
             flexDirection: 'row',
@@ -54,7 +59,11 @@ export function FilterSelectInput({ placeholder, value, icon, onPress }: FilterS
     }), [colors]);
 
     return (
-        <TouchableOpacity style={styles.selectInput} onPress={onPress}>
+        <TouchableOpacity
+            style={[styles.selectInput, disabled && styles.disabledInput]}
+            onPress={onPress}
+            disabled={disabled}
+        >
             {value ? (
                 <View style={styles.selectedItem}>
                     <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
@@ -65,7 +74,7 @@ export function FilterSelectInput({ placeholder, value, icon, onPress }: FilterS
             ) : (
                 <ThemedText style={styles.placeholderText}>{placeholder}</ThemedText>
             )}
-            <IconSymbol name="chevron.right" size={20} color={colors.gray} />
+            {!disabled && <IconSymbol name="chevron.right" size={20} color={colors.gray} />}
         </TouchableOpacity>
     );
 }

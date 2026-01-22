@@ -17,6 +17,7 @@ import { FileDownloadService } from '@/src/features/attachments/application/File
 import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
+import { ImportEInvoiceModal } from '@/src/features/e-invoices/presentation/components/ImportEInvoiceModal';
 import { useGroups } from '@/src/features/groups/presentation/hooks/useGroups';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharingService } from '@/src/features/sharing/data/SharingService';
@@ -28,7 +29,9 @@ import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
 import { BreadcrumbNavigation, buildBreadcrumbPath } from '../components/BreadcrumbNavigation';
+import { CreatePersonnelFolderModal } from '../components/CreatePersonnelFolderModal';
 import { ExportFolderModal } from '../components/ExportFolderModal';
+import { FolderAddMenuSheet } from '../components/FolderAddMenuSheet';
 import { FolderEvents } from '../FolderEvents';
 import { useFolders } from '../useFolders';
 
@@ -54,8 +57,10 @@ export function FolderDetailScreen() {
     const [activeTab, setActiveTab] = useState<'belgeler' | 'efatura'>('belgeler');
     const [sharingTab, setSharingTab] = useState<'persons' | 'groups'>('persons');
 
-    // FAB states
-    const [isFabExpanded, setIsFabExpanded] = useState(false);
+    // Add menu and modal states
+    const [isAddMenuVisible, setIsAddMenuVisible] = useState(false);
+    const [isPersonnelModalVisible, setIsPersonnelModalVisible] = useState(false);
+    const [isImportModalVisible, setIsImportModalVisible] = useState(false);
 
     // Groups
     const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups();
@@ -326,6 +331,7 @@ export function FolderDetailScreen() {
             paddingVertical: 12,
             paddingHorizontal: 16,
             marginBottom: 24,
+            marginHorizontal: 16,
             borderRadius: 12,
             borderWidth: 1,
             borderColor: colors.cardBorder,
@@ -682,39 +688,49 @@ export function FolderDetailScreen() {
                             </View>
                         </View>
                     </View>
-                    {/* Only show share button if user is the owner */}
-                    {/* Only show share and delete buttons if user is the owner */}
-                    {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
+                </View>
+
+                {/* Folder Actions Section */}
+                {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
+                    <View style={{
+                        backgroundColor: colors.card,
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        marginTop: 8,
+                        borderTopWidth: 1,
+                        borderBottomWidth: 1,
+                        borderColor: colors.cardBorder,
+                    }}>
                         <View style={{ flexDirection: 'row', gap: 12 }}>
                             <TouchableOpacity
                                 style={styles.shareIconButton}
                                 onPress={() => router.push(`/folders/edit/${currentFolder?.id}`)}
                             >
-                                <IconSymbol name="pencil" size={24} color={colors.primary} />
+                                <IconSymbol name="pencil" size={22} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.shareIconButton}
                                 onPress={() => setShareModalVisible(true)}
                             >
-                                <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
+                                <IconSymbol name="person.badge.plus" size={22} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.shareIconButton}
                                 onPress={() => setIsExportModalVisible(true)}
                             >
-                                <IconSymbol name="square.and.arrow.up" size={24} color={colors.primary} />
+                                <IconSymbol name="square.and.arrow.up" size={22} color={colors.primary} />
                             </TouchableOpacity>
                             {!currentFolder?.isSystem && (
                                 <TouchableOpacity
                                     style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
                                     onPress={handleDelete}
                                 >
-                                    <IconSymbol name="trash.fill" size={24} color={colors.error} />
+                                    <IconSymbol name="trash.fill" size={22} color={colors.error} />
                                 </TouchableOpacity>
                             )}
                         </View>
-                    )}
-                </View>
+                    </View>
+                )}
 
                 {/* Sharing Section - Only for owned folders */}
                 {
@@ -1035,50 +1051,35 @@ export function FolderDetailScreen() {
                 onRemove={handleRemoveShare}
             />
 
-            {/* FAB Menu Overlay */}
-            {isFabExpanded && (
-                <TouchableOpacity
-                    style={styles.fabOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsFabExpanded(false)}
-                />
-            )}
+            {/* Add Menu Sheet */}
+            <FolderAddMenuSheet
+                visible={isAddMenuVisible}
+                onClose={() => setIsAddMenuVisible(false)}
+                onCreateFolder={() => router.push({ pathname: '/folders/create', params: { parentId: folderId } })}
+                onCreatePersonnelFile={() => setIsPersonnelModalVisible(true)}
+                onImportPress={() => setIsImportModalVisible(true)}
+                folderId={folderId}
+                isRootLevel={false}
+            />
 
-            {/* FAB Menu Items */}
-            {isFabExpanded && (
-                <View style={styles.fabMenu}>
-                    <TouchableOpacity
-                        style={styles.fabMenuItem}
-                        onPress={() => {
-                            setIsFabExpanded(false);
-                            router.push({ pathname: '/folders/create', params: { parentId: folderId } });
-                        }}
-                    >
-                        <View style={[styles.fabMenuItemIcon, { backgroundColor: colors.primary + '20' }]}>
-                            <IconSymbol name="folder.badge.plus" size={20} color={colors.primary} />
-                        </View>
-                        <ThemedText style={styles.fabMenuItemText}>{i18n.t('folders.fab.create_subfolder')}</ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.fabMenuItem}
-                        onPress={() => {
-                            setIsFabExpanded(false);
-                            router.push({ pathname: '/scan', params: { folderId } });
-                        }}
-                    >
-                        <View style={[styles.fabMenuItemIcon, { backgroundColor: colors.success + '20' }]}>
-                            <IconSymbol name="doc.viewfinder" size={20} color={colors.success} />
-                        </View>
-                        <ThemedText style={styles.fabMenuItemText}>{i18n.t('folders.fab.scan_document')}</ThemedText>
-                    </TouchableOpacity>
-                </View>
-            )}
+            <CreatePersonnelFolderModal
+                visible={isPersonnelModalVisible}
+                onClose={() => setIsPersonnelModalVisible(false)}
+                onSuccess={() => refresh()}
+            />
+
+            <ImportEInvoiceModal
+                visible={isImportModalVisible}
+                onClose={() => setIsImportModalVisible(false)}
+                onSuccess={() => refresh()}
+                initialFolderId={folderId}
+            />
 
             {/* FAB Button */}
             {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
                 <TouchableOpacity
-                    style={[styles.fab, isFabExpanded && { transform: [{ rotate: '45deg' }] }]}
-                    onPress={() => setIsFabExpanded(!isFabExpanded)}
+                    style={styles.fab}
+                    onPress={() => setIsAddMenuVisible(true)}
                     activeOpacity={0.8}
                 >
                     <IconSymbol name="plus" size={28} color={colors.white} />

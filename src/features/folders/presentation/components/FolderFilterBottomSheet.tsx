@@ -43,6 +43,10 @@ interface FolderFilterBottomSheetProps {
     onApply: (attachmentFilters: AttachmentFilters, folderFilters: FolderFilters) => void;
     onReset: () => void;
     onPickerOpen?: () => void;
+    fixedFolderId?: string;
+    fixedFolder?: Folder;
+    showFolderFilters?: boolean;
+    onReopen?: () => void;
 }
 
 export function FolderFilterBottomSheet({
@@ -53,6 +57,10 @@ export function FolderFilterBottomSheet({
     onApply,
     onReset,
     onPickerOpen,
+    fixedFolderId,
+    fixedFolder: fixedFolderProp,
+    showFolderFilters = true,
+    onReopen,
 }: FolderFilterBottomSheetProps) {
     const { colors } = useSettings();
     const insets = useSafeAreaInsets();
@@ -78,18 +86,42 @@ export function FolderFilterBottomSheet({
         }
     }, [attachmentFilters.detailsFilter]);
 
+    // Initialize with fixed folder if present
+    useEffect(() => {
+        if (fixedFolderId) {
+            setLocalAttachmentFilters(prev => ({ ...prev, folderId: fixedFolderId }));
+        }
+    }, [fixedFolderId]);
+
     // Options Loading Logic (Duplicated from FilterBottomSheet for independence)
     const [folders, setFolders] = useState<Folder[]>([]);
     const [attachmentTypes, setAttachmentTypes] = useState<AttachmentType[]>([]);
     const [loadingOptions, setLoadingOptions] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const [loadError, setLoadError] = useState(false);
 
     useEffect(() => {
-        if (visible && folders.length === 0) {
+        // Only load if visible, not loading, not loaded, and no previous error
+        if (visible && !loadingOptions && !hasLoaded && !loadError) {
+            console.log('[FolderFilterBottomSheet] Calling loadFilterOptions');
             loadFilterOptions();
         }
-    }, [visible]);
+
+        // Also ensure fixedFolderProp is added if not present
+        if (fixedFolderProp && !folders.find(f => f.id === fixedFolderProp.id)) {
+            setFolders(prev => [...prev, fixedFolderProp]);
+        }
+    }, [visible, fixedFolderProp, hasLoaded, loadingOptions, loadError]);
+
+    // Reset error when modal closes so user can retry
+    useEffect(() => {
+        if (!visible && loadError) {
+            setLoadError(false);
+        }
+    }, [visible, loadError]);
 
     const loadFilterOptions = async () => {
+        console.log('[FolderFilterBottomSheet] loadFilterOptions called, hasLoaded:', hasLoaded);
         setLoadingOptions(true);
         try {
             const [foldersData, sharedResponse, typesResponse] = await Promise.all([
@@ -98,8 +130,18 @@ export function FolderFilterBottomSheet({
                 AttachmentTypeService.getAttachmentTypes(),
             ]);
 
-            const typesData = Array.isArray(typesResponse) ? typesResponse : ((typesResponse as any).items || []);
+            console.log('[FolderFilterBottomSheet] API responses:', {
+                foldersCount: Array.isArray(foldersData) ? foldersData.length : 'not array',
+                typesResponse: typesResponse,
+            });
+
+            // API returns { data: [...], success: true } - extract the data array
+            const typesData = Array.isArray(typesResponse)
+                ? typesResponse
+                : ((typesResponse as any).data || (typesResponse as any).items || []);
             const sharedFolders = Array.isArray(sharedResponse) ? sharedResponse : [];
+
+            console.log('[FolderFilterBottomSheet] Parsed typesData length:', typesData.length);
 
             // Map shared folders logic... (simplified reusing existing mapping logic if possible, or repeat)
             const mappedSharedFolders: Folder[] = sharedFolders.map(sf => ({
@@ -115,7 +157,9 @@ export function FolderFilterBottomSheet({
                     id: sf.owner.id,
                     name: sf.owner.name,
                     email: sf.owner.email
-                } : undefined
+                } : undefined,
+                // Assuming share/repo returns these or we might miss them if not fully mapped
+                // The current API might not return them in list view, but fixedFolderProp will have them.
             }));
 
             const allFolders = [];
@@ -124,10 +168,18 @@ export function FolderFilterBottomSheet({
             }
             allFolders.push(...mappedSharedFolders);
 
+            // Add fixed folder if not present
+            if (fixedFolderProp && !allFolders.find(f => f.id === fixedFolderProp.id)) {
+                allFolders.push(fixedFolderProp);
+            }
+
             setFolders(allFolders);
             setAttachmentTypes(typesData);
+            setHasLoaded(true);
+            console.log('[FolderFilterBottomSheet] Loaded successfully, typesData length:', typesData.length);
         } catch (err) {
-            console.error('Failed to load filter options:', err);
+            console.error('[FolderFilterBottomSheet] Failed to load filter options:', err);
+            setLoadError(true); // Prevent infinite retries
         } finally {
             setLoadingOptions(false);
         }
@@ -141,6 +193,19 @@ export function FolderFilterBottomSheet({
         setLocalFolderFilters(prev => ({ ...prev, [key]: value }));
     }, []);
 
+    // Helpers for display
+    const selectedFolder = useMemo(() =>
+        (fixedFolderProp && fixedFolderProp.id === localAttachmentFilters.folderId)
+            ? fixedFolderProp
+            : folders.find(f => f.id === localAttachmentFilters.folderId),
+        [folders, localAttachmentFilters.folderId, fixedFolderProp]
+    );
+
+    // Visibility Logic
+    const isFolderSelected = !!localAttachmentFilters.folderId && localAttachmentFilters.folderId !== 'root';
+    const showStatus = isFolderSelected && (selectedFolder?.requiresApproval === true);
+    const showTransactionType = isFolderSelected && (selectedFolder?.allowedTransactionTypes && selectedFolder.allowedTransactionTypes.length > 0);
+
     const triggerNavigation = useCallback((target: 'folder' | 'type' | 'icon') => {
         if (onPickerOpen) {
             onPickerOpen();
@@ -148,6 +213,9 @@ export function FolderFilterBottomSheet({
         if (target === 'folder') {
             setFolderCallback((folder) => {
                 updateAttachmentFilter('folderId', folder?.id);
+                setTimeout(() => {
+                    if (onReopen) onReopen();
+                }, 500);
             });
             onClose();
             router.push('/picker/folder');
@@ -155,17 +223,31 @@ export function FolderFilterBottomSheet({
             setTypeCallback((type) => {
                 updateAttachmentFilter('attachmentTypeId', type?.id);
                 setDynamicValues({});
+                setTimeout(() => {
+                    if (onReopen) onReopen();
+                }, 500);
             });
             onClose();
-            router.push('/picker/attachment-type');
+
+            const params: any = {};
+            if (localAttachmentFilters.attachmentTypeId) {
+                params.selectedId = localAttachmentFilters.attachmentTypeId;
+            }
+            if (selectedFolder?.allowedTypeIds && selectedFolder.allowedTypeIds.length > 0) {
+                params.allowedTypeIds = selectedFolder.allowedTypeIds.join(',');
+            }
+            router.push({ pathname: '/picker/attachment-type', params });
         } else if (target === 'icon') {
             setIconCallback((icon) => {
                 updateFolderFilter('folderIcon', icon);
+                setTimeout(() => {
+                    if (onReopen) onReopen();
+                }, 500);
             });
             onClose();
             router.push('/picker/icon' as any);
         }
-    }, [onClose, router, setFolderCallback, setTypeCallback, setIconCallback, updateAttachmentFilter, updateFolderFilter, onPickerOpen]);
+    }, [onClose, router, setFolderCallback, setTypeCallback, setIconCallback, updateAttachmentFilter, updateFolderFilter, onPickerOpen, selectedFolder, localAttachmentFilters, onReopen]);
 
     const handleApply = useCallback(() => {
         // Clean Attachment Filters
@@ -192,12 +274,13 @@ export function FolderFilterBottomSheet({
     }, [localAttachmentFilters, localFolderFilters, dynamicValues, onApply, onClose]);
 
     const handleReset = useCallback(() => {
-        setLocalAttachmentFilters({});
+        const base = fixedFolderId ? { folderId: fixedFolderId } : {};
+        setLocalAttachmentFilters(base);
         setLocalFolderFilters({});
         setDynamicValues({});
         onReset();
         onClose();
-    }, [onReset, onClose]);
+    }, [onReset, onClose, fixedFolderId]);
 
     const handleDynamicChange = useCallback((key: string, value: any) => {
         setDynamicValues(prev => {
@@ -210,18 +293,26 @@ export function FolderFilterBottomSheet({
         });
     }, []);
 
-    // Helpers for display
-    const selectedFolder = folders.find(f => f.id === localAttachmentFilters.folderId);
-    const selectedType = attachmentTypes?.find((t) => t.id === localAttachmentFilters.attachmentTypeId);
+    const selectedType = attachmentTypes?.find((t) => {
+        return String(t.id) === String(localAttachmentFilters.attachmentTypeId);
+    });
+    console.log('[FolderFilterBottomSheet] selection debug:', {
+        typeId: localAttachmentFilters.attachmentTypeId,
+        typesCount: attachmentTypes?.length,
+        foundMatch: !!selectedType,
+        firstTypeId: attachmentTypes?.[0]?.id
+    });
     const selectedTypeName = selectedType ? getAttachmentTypeLabel(selectedType.name) : undefined;
     const selectedTypeFieldConfig = (selectedType as any)?.fieldConfig as FieldConfig[] | undefined;
 
     const activeFilterCount = useMemo(() => {
-        let count = Object.values(localAttachmentFilters).filter(v => v !== undefined && v !== null && v !== '').length;
+        let count = Object.entries(localAttachmentFilters).filter(([k, v]) =>
+            v !== undefined && v !== null && v !== '' && (fixedFolderId ? k !== 'folderId' : true)
+        ).length;
         if (Object.keys(dynamicValues).length > 0) count += Object.keys(dynamicValues).length;
         count += Object.values(localFolderFilters).filter(v => v !== undefined && v !== null && v !== '').length;
         return count;
-    }, [localAttachmentFilters, localFolderFilters, dynamicValues]);
+    }, [localAttachmentFilters, localFolderFilters, dynamicValues, fixedFolderId]);
 
     const styles = useMemo(() => StyleSheet.create({
         modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
@@ -282,12 +373,17 @@ export function FolderFilterBottomSheet({
                                         updateAttachmentFilter('attachmentTypeId', undefined);
                                         setDynamicValues({});
                                     }}
+                                    showStatus={showStatus}
+                                    showTransactionType={showTransactionType}
+                                    disabledFolder={!!fixedFolderId}
                                 />
-                                <FolderFilterSection
-                                    filters={localFolderFilters}
-                                    onUpdateFilter={updateFolderFilter}
-                                    onTriggerIconPicker={() => triggerNavigation('icon')}
-                                />
+                                {showFolderFilters && (
+                                    <FolderFilterSection
+                                        filters={localFolderFilters}
+                                        onUpdateFilter={updateFolderFilter}
+                                        onTriggerIconPicker={() => triggerNavigation('icon')}
+                                    />
+                                )}
                             </>
                         )}
                     </ScrollView>

@@ -1,29 +1,54 @@
 import { SearchBar } from '@/components/SearchBar';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { AttachmentFilters } from '@/src/features/attachments/domain/Attachment';
+import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
+import { Attachment, AttachmentFilters } from '@/src/features/attachments/domain/Attachment';
 import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
 import { FolderFilterBottomSheet } from '@/src/features/folders/presentation/components/FolderFilterBottomSheet';
 import { useFolders } from '@/src/features/folders/presentation/useFolders';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import i18n from '@/src/infrastructure/localization/i18n';
+import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Folder } from '../../domain/Folder';
 import { FolderFilters } from '../../domain/FolderFilters';
+import { FolderRepository } from '../../infrastructure/FolderRepository';
 
 export function FolderDocumentsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const { colors } = useSettings();
 
-    const { attachments, loading } = useFolders(id);
-
+    const [currentFolder, setCurrentFolder] = useState<Folder | undefined>(undefined);
     const [searchQuery, setSearchQuery] = useState('');
     const [isFilterVisible, setIsFilterVisible] = useState(false);
-    const [filters, setFilters] = useState<AttachmentFilters>({});
+    const [filters, setFilters] = useState<AttachmentFilters>({ folderId: id }); // Initialize with folderId
     const [folderFilters, setFolderFilters] = useState<FolderFilters>({});
+    const { setFolderCallback } = usePicker();
+
+    // Combine search query into filters for backend
+    const effectiveFilters = useMemo(() => {
+        const combined: Omit<AttachmentFilters, 'folderId'> = { ...filters };
+        // Prefer searchQuery from header if present, otherwise use filter's search
+        if (searchQuery) {
+            combined.search = searchQuery;
+        }
+        // Remove folderId since useFolders handles it separately
+        delete (combined as any).folderId;
+        return combined;
+    }, [filters, searchQuery]);
+
+    // Use backend filtering via useFolders hook
+    const { attachments, loading, refresh } = useFolders(id, { attachmentFilters: effectiveFilters });
+
+    useEffect(() => {
+        if (id) {
+            FolderRepository.getFolderById(id).then(setCurrentFolder).catch(console.error);
+        }
+    }, [id]);
 
     const handleApplyFilters = (newFilters: AttachmentFilters, newFolderFilters: FolderFilters) => {
         setFilters(newFilters);
@@ -33,48 +58,40 @@ export function FolderDocumentsScreen() {
     const handleResetFilters = () => {
         setFilters({});
         setFolderFilters({});
+        setSearchQuery('');
     };
 
-    const filteredAttachments = useMemo(() => {
-        if (!attachments) return [];
-        let result = attachments;
+    // No client-side filtering needed - backend does it
+    const displayAttachments = attachments || [];
 
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(a =>
-                a.title.toLowerCase().includes(query)
-            );
-        }
-
-        if (filters.attachmentTypeId) {
-            result = result.filter(a => a.attachmentTypeId === filters.attachmentTypeId);
-        }
-        if (filters.documentDateFrom) {
-            try {
-                const searchDate = new Date(filters.documentDateFrom);
-                result = result.filter(a => new Date(a.documentDate) >= searchDate);
-            } catch (e) { }
-        }
-        if (filters.documentDateTo) {
-            try {
-                const searchDate = new Date(filters.documentDateTo);
-                result = result.filter(a => new Date(a.documentDate) <= searchDate);
-            } catch (e) { }
-        }
-        return result;
-    }, [attachments, filters, searchQuery]);
-
-    const activeFilterCount = Object.keys(filters).length + Object.keys(folderFilters).length;
+    const activeFilterCount = Object.entries(filters).filter(([k, v]) =>
+        v !== undefined && v !== null && v !== '' && k !== 'folderId'
+    ).length + Object.keys(folderFilters).length;
 
     const handlePressAttachment = (attachment: any) => {
         router.push(`/attachment/${attachment.id}`);
     };
+
+    const handleMoveToFolder = useCallback((attachment: Attachment) => {
+        setFolderCallback(async (folder) => {
+            if (folder) {
+                try {
+                    await AttachmentService.updateAttachment(attachment.id, { folderId: folder.id });
+                    refresh();
+                } catch (error) {
+                    console.error('Failed to move attachment:', error);
+                }
+            }
+        });
+        router.push('/picker/folder');
+    }, [setFolderCallback, router, refresh]);
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={{ marginBottom: 8, marginHorizontal: 16 }}>
             <AttachmentCard
                 attachment={item}
                 onPress={() => handlePressAttachment(item)}
+                onMoveToFolder={handleMoveToFolder}
             />
         </View>
     );
@@ -109,13 +126,13 @@ export function FolderDocumentsScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={filteredAttachments}
+                    data={displayAttachments}
                     renderItem={renderItem}
                     keyExtractor={item => item.id}
                     contentContainerStyle={{ paddingVertical: 16 }}
                     ListEmptyComponent={
                         <View style={styles.center}>
-                            <ThemedText style={{ color: colors.textLight, marginTop: 32 }}>Belge bulunamadı</ThemedText>
+                            <ThemedText style={{ color: colors.textLight, marginTop: 32 }}>{i18n.t('folders.picker.empty')}</ThemedText>
                         </View>
                     }
                 />
@@ -128,6 +145,10 @@ export function FolderDocumentsScreen() {
                 onReset={handleResetFilters}
                 attachmentFilters={filters}
                 folderFilters={folderFilters}
+                fixedFolderId={id}
+                fixedFolder={currentFolder}
+                showFolderFilters={false}
+                onReopen={() => setIsFilterVisible(true)}
             />
         </SafeAreaView>
     );

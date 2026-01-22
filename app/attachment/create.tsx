@@ -55,14 +55,11 @@ export default function CreateRecordScreen() {
     // Get selected type and its dynamic fields
     const selectedType = useMemo(() => {
         const type = attachmentTypes.find(t => t.id === watchedTypeId);
-        console.log('Selected type:', type);
-        console.log('fieldConfig:', type?.fieldConfig);
         return type;
     }, [attachmentTypes, watchedTypeId]);
 
     const dynamicFields = useMemo((): FieldConfig[] => {
         if (!selectedType?.fieldConfig) return [];
-        console.log('Dynamic fields:', selectedType.fieldConfig);
         return selectedType.fieldConfig as FieldConfig[];
     }, [selectedType]);
 
@@ -70,8 +67,6 @@ export default function CreateRecordScreen() {
         const loadTypes = async () => {
             try {
                 const response = await AttachmentTypeService.getAttachmentTypes();
-                console.log('AttachmentTypes API response:', response);
-                console.log('AttachmentTypes data:', response.data);
                 setAttachmentTypes((response.data || []) as any);
             } catch (error) {
                 console.error('Failed to load attachment types', error);
@@ -134,7 +129,6 @@ export default function CreateRecordScreen() {
                 [{ text: 'OK', onPress: () => router.back() }]
             );
         } catch (error: any) {
-            console.error('Failed to create record', error);
             Alert.alert(
                 i18n.t('common.error'),
                 error?.body?.message || error?.message || i18n.t('common.errorOccurred')

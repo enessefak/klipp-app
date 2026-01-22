@@ -102,6 +102,7 @@ export function SearchBar({
             fontSize: 10,
             fontWeight: 'bold',
             textAlign: 'center',
+            lineHeight: 12,
         },
     }), [colors]);
 

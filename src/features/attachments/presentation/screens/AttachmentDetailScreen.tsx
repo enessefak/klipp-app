@@ -3,7 +3,7 @@ import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Image } from 'expo-image';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActionSheetIOS,
     ActivityIndicator,
@@ -27,6 +27,7 @@ import { ImageViewer } from '@/src/components/ImageViewer';
 import { PdfViewer } from '@/src/components/PdfViewer';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { AttachmentTypeService } from '@/src/infrastructure/api/generated/services/AttachmentTypeService';
+import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 import { FileDownloadService } from '../../application/FileDownloadService';
 import { AttachmentService } from '../../data/AttachmentService';
 import { Attachment } from '../../domain/Attachment';
@@ -72,6 +73,7 @@ export function AttachmentDetailScreen() {
     const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'activity' | 'export'>('details');
     const [fieldStyle, setFieldStyle] = useState<FieldStyle | null>(null);
     const [dynamicFields, setDynamicFields] = useState<FieldConfig[]>([]);
+    const { setFolderCallback } = usePicker();
 
     const isShared = useMemo(() => {
         if (!attachment) return false;
@@ -281,6 +283,23 @@ export function AttachmentDetailScreen() {
         );
     };
 
+    const handleMoveToFolder = useCallback(() => {
+        setShowActionMenu(false);
+        setFolderCallback(async (folder) => {
+            if (folder && attachment) {
+                try {
+                    await AttachmentService.updateAttachment(attachment.id, { folderId: folder.id });
+                    Alert.alert(i18n.t('common.success'), i18n.t('attachments.actions.move_success'));
+                    loadAttachment(); // Refresh to show new folder
+                } catch (error) {
+                    console.error('Failed to move attachment:', error);
+                    Alert.alert(i18n.t('common.error'), i18n.t('attachments.actions.move_error'));
+                }
+            }
+        });
+        router.push('/picker/folder');
+    }, [setFolderCallback, router, attachment]);
+
     const showMoreOptions = () => {
         if (Platform.OS === 'ios') {
             ActionSheetIOS.showActionSheetWithOptions(
@@ -288,20 +307,22 @@ export function AttachmentDetailScreen() {
                     options: [
                         i18n.t('receipts.detail.actions.cancel'),
                         i18n.t('receipts.detail.actions.share'),
+                        i18n.t('attachments.actions.move_to_folder'),
                         i18n.t('receipts.detail.actions.edit'),
                         i18n.t('common.actions.download'),
                         i18n.t('receipts.detail.actions.delete')
                     ],
-                    destructiveButtonIndex: 4,
+                    destructiveButtonIndex: 5,
                     cancelButtonIndex: 0,
                     title: i18n.t('receipts.detail.actions.menu_title'),
                 },
                 (buttonIndex) => {
                     switch (buttonIndex) {
                         case 1: handleShare(); break;
-                        case 2: handleEdit(); break;
-                        case 3: handleDownload(); break;
-                        case 4: handleDelete(); break;
+                        case 2: handleMoveToFolder(); break;
+                        case 3: handleEdit(); break;
+                        case 4: handleDownload(); break;
+                        case 5: handleDelete(); break;
                     }
                 }
             );
@@ -1579,6 +1600,11 @@ export function AttachmentDetailScreen() {
                         <TouchableOpacity style={styles.actionMenuItem} onPress={handleShare}>
                             <IconSymbol name="square.and.arrow.up" size={22} color={colors.text} />
                             <ThemedText style={styles.actionMenuText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.actionMenuItem} onPress={handleMoveToFolder}>
+                            <IconSymbol name="folder" size={22} color={colors.text} />
+                            <ThemedText style={styles.actionMenuText}>{i18n.t('attachments.actions.move_to_folder')}</ThemedText>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.actionMenuItem} onPress={handleDownload}>

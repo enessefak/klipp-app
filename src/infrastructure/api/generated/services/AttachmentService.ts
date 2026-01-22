@@ -54,6 +54,10 @@ export class AttachmentService {
      * @param createdAtFrom
      * @param createdAtTo
      * @param includeShared
+     * @param detailsFilter
+     * @param amountMin
+     * @param amountMax
+     * @param currency
      * @param cursor
      * @param page
      * @param skip
@@ -75,6 +79,10 @@ export class AttachmentService {
         createdAtFrom?: string,
         createdAtTo?: string,
         includeShared?: 'true' | 'false',
+        detailsFilter?: string,
+        amountMin?: number,
+        amountMax?: number,
+        currency?: string,
         cursor?: string,
         page?: number,
         skip?: number,
@@ -193,6 +201,10 @@ export class AttachmentService {
                 'createdAtFrom': createdAtFrom,
                 'createdAtTo': createdAtTo,
                 'includeShared': includeShared,
+                'detailsFilter': detailsFilter,
+                'amountMin': amountMin,
+                'amountMax': amountMax,
+                'currency': currency,
                 'cursor': cursor,
                 'page': page,
                 'skip': skip,

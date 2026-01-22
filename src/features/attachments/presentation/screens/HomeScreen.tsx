@@ -13,6 +13,7 @@ import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { ImportEInvoiceModal } from '@/src/features/e-invoices/presentation/components/ImportEInvoiceModal';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { AttachmentRepository } from '../../data/AttachmentRepository';
+import { AttachmentService } from '../../data/AttachmentService';
 import { Attachment, AttachmentFilters } from '../../domain/Attachment';
 import { AddMenuSheet } from '../components/AddMenuSheet';
 import { AttachmentCard } from '../components/AttachmentCard';
@@ -37,6 +38,8 @@ export function HomeScreen() {
     const [showFilterSheet, setShowFilterSheet] = useState(false);
     const [showAddMenu, setShowAddMenu] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [attachmentToMove, setAttachmentToMove] = useState<Attachment | null>(null);
+    const { setFolderCallback } = usePicker();
 
     // Count active filters (excluding search)
     const activeFilterCount = useMemo(() => {
@@ -215,15 +218,7 @@ export function HomeScreen() {
     }, []);
 
     // Re-open filter sheet when picker selection completes
-    useEffect(() => {
-        if (selectionVersion > 0 && filterSheetWasOpen.current) {
-            // Add delay to prevent conflict with navigation transition
-            setTimeout(() => {
-                setShowFilterSheet(true);
-                filterSheetWasOpen.current = false;
-            }, 500);
-        }
-    }, [selectionVersion]);
+
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -256,6 +251,22 @@ export function HomeScreen() {
     const handlePressAttachment = (attachment: Attachment) => {
         router.push(`/attachment/${attachment.id}`);
     };
+
+    const handleMoveToFolder = useCallback((attachment: Attachment) => {
+        setAttachmentToMove(attachment);
+        setFolderCallback(async (folder) => {
+            if (folder && attachment) {
+                try {
+                    await AttachmentService.updateAttachment(attachment.id, { folderId: folder.id });
+                    fetchAttachments(true);
+                } catch (error) {
+                    console.error('Failed to move attachment:', error);
+                }
+            }
+            setAttachmentToMove(null);
+        });
+        router.push('/picker/folder');
+    }, [setFolderCallback, router, fetchAttachments]);
 
     const EmptyState = () => (
         <View style={styles.emptyContainer}>
@@ -311,7 +322,11 @@ export function HomeScreen() {
                     data={attachments}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
-                        <AttachmentCard attachment={item} onPress={() => handlePressAttachment(item)} />
+                        <AttachmentCard
+                            attachment={item}
+                            onPress={() => handlePressAttachment(item)}
+                            onMoveToFolder={handleMoveToFolder}
+                        />
                     )}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={EmptyState}
@@ -329,6 +344,7 @@ export function HomeScreen() {
                 onApply={handleApplyFilters}
                 onReset={handleResetFilters}
                 onPickerOpen={handleFilterSheetPickerOpen}
+                onReopen={() => setShowFilterSheet(true)}
             />
 
             {/* FAB for adding documents */}

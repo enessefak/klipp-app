@@ -111,6 +111,7 @@ export const tr = {
             download: 'İndir',
             create: 'Oluştur',
             add: 'Ekle',
+            move: 'Taşı',
             tapToView: 'Görüntülemek için dokunun',
         },
         units: {
@@ -475,7 +476,10 @@ export const tr = {
         title: 'Filtreler',
         reset: 'Sıfırla',
         apply: 'Filtreleri Uygula',
+        clear: 'Temizle',
         sections: {
+            search: "Ara",
+            search_placeholder: "Başlık veya açıklama ile ara",
             folder: 'Klasör',
             folder_placeholder: 'Klasör seçin',
             document_type: 'Belge Tipi',
@@ -490,7 +494,8 @@ export const tr = {
             max: 'Max',
             start: 'Başlangıç',
             end: 'Bitiş',
-        }
+        },
+
     },
     attachment_card: {
         expired: 'Süresi doldu',
@@ -508,6 +513,8 @@ export const tr = {
             move_to_folder: 'Klasöre Taşı',
             edit: 'Düzenle',
             delete: 'Sil',
+            move_success: 'Belge başarıyla taşındı',
+            move_error: 'Belge taşınamadı',
         },
         items: {
             title: 'Harcama/İşlem Listesi',

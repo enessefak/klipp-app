@@ -1,3 +1,4 @@
+import { GoogleSignInButton } from '@/src/features/auth/presentation/components/GoogleSignInButton';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useMemo, useState } from 'react';
@@ -91,7 +92,7 @@ export function LoginScreen() {
         header: {
             flexDirection: 'row',
             alignItems: 'center',
-            marginBottom: 40,
+            marginBottom: 15,
             gap: 16,
             // justifyContent: 'center', // Removed to align left
         },
@@ -118,7 +119,7 @@ export function LoginScreen() {
             lineHeight: 20,
         },
         form: {
-            gap: 16,
+            gap: 0,
         },
         globalError: {
             color: colors.error,
@@ -137,7 +138,7 @@ export function LoginScreen() {
         dividerContainer: {
             flexDirection: 'row',
             alignItems: 'center',
-            marginVertical: 24,
+            marginVertical: 10,
         },
         divider: {
             flex: 1,
@@ -153,6 +154,7 @@ export function LoginScreen() {
         appleButton: {
             height: 52,
             width: '100%',
+            marginTop: 10,
         },
         footer: {
             flexDirection: 'row',
@@ -190,6 +192,29 @@ export function LoginScreen() {
             </View>
 
             <View style={styles.form}>
+                {/* Social Login - Moved to top for visibility */}
+                <GoogleSignInButton />
+
+                {Platform.OS === 'ios' && (
+                    <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                        buttonStyle={
+                            colorScheme === 'dark'
+                                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                        }
+                        cornerRadius={12}
+                        style={styles.appleButton}
+                        onPress={handleAppleSignIn}
+                    />
+                )}
+
+                <View style={styles.dividerContainer}>
+                    <View style={styles.divider} />
+                    <ThemedText style={styles.dividerText}>veya</ThemedText>
+                    <View style={styles.divider} />
+                </View>
+
                 <Controller
                     control={control}
                     name="email"
@@ -251,29 +276,6 @@ export function LoginScreen() {
                         </ThemedText>
                     </TouchableOpacity>
                 </View>
-
-                {/* Social Login */}
-                {Platform.OS === 'ios' && (
-                    <>
-                        <View style={styles.dividerContainer}>
-                            <View style={styles.divider} />
-                            <ThemedText style={styles.dividerText}>veya</ThemedText>
-                            <View style={styles.divider} />
-                        </View>
-
-                        <AppleAuthentication.AppleAuthenticationButton
-                            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                            buttonStyle={
-                                colorScheme === 'dark'
-                                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-                            }
-                            cornerRadius={12}
-                            style={styles.appleButton}
-                            onPress={handleAppleSignIn}
-                        />
-                    </>
-                )}
             </View>
         </FormContainer>
     );

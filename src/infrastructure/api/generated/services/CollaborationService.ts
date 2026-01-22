@@ -146,6 +146,38 @@ export class CollaborationService {
         });
     }
     /**
+     * List tags by owner
+     * List tags owned by a specific user. Only accessible if you have shared folder access.
+     * @param ownerId
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getCollaborationTagsByOwner(
+        ownerId: string,
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: Array<{
+            id: string;
+            name: string;
+            color: string;
+            userId: string;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/collaboration/tags/by-owner/{ownerId}',
+            path: {
+                'ownerId': ownerId,
+            },
+            errors: {
+                403: `Default Response`,
+            },
+        });
+    }
+    /**
      * Attach a tag to a document
      * @param requestBody
      * @returns any Default Response

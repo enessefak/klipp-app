@@ -76,7 +76,13 @@
         }
       ],
       "expo-iap",
-      "./plugins/withPodfileDeploymentTarget"
+      "./plugins/withPodfileDeploymentTarget",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1053510280344-7gffs2e4gnrufp6nd34mug04ui5s741u"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

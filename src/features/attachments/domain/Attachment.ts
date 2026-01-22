@@ -89,6 +89,8 @@ export interface AttachmentFilters {
     createdAtTo?: string;
     includeShared?: boolean; // Include attachments from shared folders
     detailsFilter?: string; // JSON string for filtering by details fields
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    [key: string]: any;
 }
 
 // Pagination parameters

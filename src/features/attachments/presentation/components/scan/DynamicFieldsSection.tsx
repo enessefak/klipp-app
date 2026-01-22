@@ -39,7 +39,6 @@ export function DynamicFieldsSection({
     const styles = StyleSheet.create({
         durationRow: {
             flexDirection: 'row',
-            gap: 12,
         },
         durationInput: {
             flex: 1,
@@ -265,7 +264,7 @@ export function DynamicFieldsSection({
     };
 
     if (fieldStyle?.mobile?.gridTemplateAreas) {
-        const gap = fieldStyle.mobile.gap ? parseInt(fieldStyle.mobile.gap) : 12;
+        const gap = 0;
 
         const rows = fieldStyle.mobile.gridTemplateAreas.map((rowStr: string) => {
             return rowStr.replace(/['"]+/g, '').trim().split(/\s+/).filter(Boolean);

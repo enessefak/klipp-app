@@ -67,13 +67,14 @@ export class AttachmentRepository {
     }
 
     /**
-     * Fetch attachments by folder
+     * Fetch attachments by folder with optional additional filters
      */
     static async getAttachmentsByFolder(
         folderId: string,
+        filters?: Omit<AttachmentFilters, 'folderId'>,
         pagination?: PaginationParams
     ): Promise<PaginatedAttachments> {
-        return await this.getAttachments({ folderId }, pagination);
+        return await this.getAttachments({ folderId, ...filters }, pagination);
     }
 
     static async requestApproval(id: string, reviewerEmail: string): Promise<void> {

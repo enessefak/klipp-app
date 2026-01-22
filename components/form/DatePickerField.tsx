@@ -35,21 +35,33 @@ export function DatePickerField({
     const { colors, language } = useSettings();
     const [showPicker, setShowPicker] = useState(false);
 
-    // Initial value for picker if value is undefined
-    const pickerValue = value || new Date();
+    // Temporary state for iOS picker value before confirmation
+    const [tempPickerValue, setTempPickerValue] = useState<Date>(value || new Date());
 
     const handleChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         if (Platform.OS === 'android') {
             setShowPicker(false);
-        }
-
-        if (selectedDate) {
-            onChange(selectedDate);
+            if (selectedDate) {
+                onChange(selectedDate);
+            }
+        } else {
+            // For iOS, just update temp value - don't call onChange until OK is pressed
+            if (selectedDate) {
+                setTempPickerValue(selectedDate);
+            }
         }
     };
 
     const confirmIOSDate = () => {
+        // Always call onChange with current picker value when OK is pressed
+        onChange(tempPickerValue);
         setShowPicker(false);
+    };
+
+    // Reset temp value when picker opens
+    const openPicker = () => {
+        setTempPickerValue(value || new Date());
+        setShowPicker(true);
     };
 
     const formattedDate = useMemo(() => {
@@ -140,7 +152,7 @@ export function DatePickerField({
 
             <TouchableOpacity
                 style={styles.button}
-                onPress={() => setShowPicker(true)}
+                onPress={openPicker}
                 activeOpacity={0.7}
             >
                 <IconSymbol name="calendar" size={20} color={colors.gray} style={styles.icon} />
@@ -175,11 +187,11 @@ export function DatePickerField({
                                         title={I18nLocal.t('common.actions.ok')}
                                         onPress={confirmIOSDate}
                                         size="small"
-                                        style={{ minWidth: 60, height: 32 }}
+                                        style={{ minWidth: 60, paddingVertical: 6, paddingHorizontal: 12 }}
                                     />
                                 </View>
                                 <RNDateTimePicker
-                                    value={pickerValue}
+                                    value={tempPickerValue}
                                     mode={mode}
                                     display="spinner"
                                     onChange={handleChange}
@@ -195,7 +207,7 @@ export function DatePickerField({
                     </Modal>
                 ) : (
                     <RNDateTimePicker
-                        value={pickerValue}
+                        value={value || new Date()}
                         mode={mode}
                         display="default"
                         onChange={handleChange}

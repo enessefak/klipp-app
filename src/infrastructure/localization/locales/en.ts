@@ -111,6 +111,7 @@ export const en = {
             download: 'Download',
             create: 'Create',
             add: 'Add',
+            move: 'Move',
             tapToView: 'Tap to view',
         },
         missing: 'Missing',
@@ -486,7 +487,10 @@ export const en = {
         title: 'Filters',
         reset: 'Reset',
         apply: 'Apply Filters',
+        clear: 'Clear',
         sections: {
+            search: "Search",
+            search_placeholder: "Search by title or description",
             folder: 'Folder',
             folder_placeholder: 'Select folder',
             document_type: 'Document Type',
@@ -501,7 +505,8 @@ export const en = {
             max: 'Max',
             start: 'Start',
             end: 'End',
-        }
+        },
+
     },
     attachment_card: {
         expired: 'Expired',
@@ -518,6 +523,8 @@ export const en = {
             move_to_folder: 'Move to Folder',
             edit: 'Edit',
             delete: 'Delete',
+            move_success: 'Document moved successfully',
+            move_error: 'Failed to move document',
         },
         items: {
             title: 'Expense/Transaction List',

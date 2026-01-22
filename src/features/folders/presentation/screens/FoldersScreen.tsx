@@ -684,6 +684,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                 onCreatePersonnelFile={() => setIsPersonnelModalVisible(true)}
                 onImportPress={() => setIsImportModalVisible(true)}
                 folderId={parentId}
+                isRootLevel={!parentId}
             />
 
             <CreatePersonnelFolderModal

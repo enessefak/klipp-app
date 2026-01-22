@@ -1,5 +1,5 @@
 import { AttachmentRepository } from '@/src/features/attachments/data/AttachmentRepository';
-import { Attachment } from '@/src/features/attachments/domain/Attachment';
+import { Attachment, AttachmentFilters } from '@/src/features/attachments/domain/Attachment';
 import { useCallback, useEffect, useState } from 'react';
 import { CreateFolderDTO, Folder } from '../domain/Folder';
 import { FolderRepository } from '../infrastructure/FolderRepository';
@@ -9,6 +9,7 @@ interface UseFoldersOptions {
     limit?: number;
     isSharedFolder?: boolean;
     fetchMode?: 'all' | 'rootOnly';
+    attachmentFilters?: Omit<AttachmentFilters, 'folderId'>;
 }
 
 export function useFolders(parentId?: string, options?: UseFoldersOptions) {
@@ -23,6 +24,7 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
 
     const limit = options?.limit || 20;
     const fetchMode = options?.fetchMode || 'all';
+    const attachmentFilters = options?.attachmentFilters;
 
     const fetchFolders = useCallback(async () => {
         try {
@@ -48,8 +50,12 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
             setHasMore(false);
             setCursor(undefined);
 
-            if (parentId && !searchQuery) {
-                const folderAttachments = await AttachmentRepository.getAttachmentsByFolder(parentId);
+            if (parentId) {
+                // Pass all filters (including search) to the backend
+                const folderAttachments = await AttachmentRepository.getAttachmentsByFolder(
+                    parentId,
+                    attachmentFilters
+                );
                 setAttachments(folderAttachments.items || []);
             } else if (!parentId && !searchQuery) {
                 setAttachments([]);
@@ -62,12 +68,14 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [parentId, searchQuery]);
+    }, [parentId, searchQuery, attachmentFilters]);
+    // Stringify filters for stable dependency comparison
+    const filtersKey = JSON.stringify(attachmentFilters);
 
-    // Initial load
+    // Initial load and refetch when filters change
     useEffect(() => {
         fetchFolders();
-    }, [parentId, searchQuery]); // Re-fetch on parentId or search change
+    }, [parentId, searchQuery, filtersKey]); // Re-fetch on parentId, search, or filters change
 
     // Listen for global delete events
     useEffect(() => {
@@ -76,6 +84,14 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
         });
         return unsubscribe;
     }, []);
+
+    // Listen for global create events
+    useEffect(() => {
+        const unsubscribe = FolderEvents.subscribeToCreate(() => {
+            fetchFolders();
+        });
+        return unsubscribe;
+    }, [fetchFolders]);
 
     const createFolder = useCallback(async (data: CreateFolderDTO) => {
         try {
