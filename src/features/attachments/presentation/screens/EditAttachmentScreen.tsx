@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { AttachmentTypeSelector } from '@/components/AttachmentTypeSelector';
 import { FolderSelector } from '@/components/FolderSelector';
 import { Button, DatePickerField, FormContainer, FormField, TextInput } from '@/components/form';
+import { Select, SelectOption } from '@/components/Select';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
@@ -21,6 +22,7 @@ import { useAttachmentTypes } from '@/src/features/attachments/presentation/useA
 import { useFolders } from '@/src/features/folders/presentation/useFolders';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
+import { CategoryService } from '@/src/infrastructure/api/generated/services/CategoryService';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { OCRService } from '../../data/OCRService';
 import { CustomFieldsList } from '../components/scan/CustomFieldsList';
@@ -45,6 +47,7 @@ const editSchema = z.object({
     // currency: z.string(),
     attachmentTypeId: z.string().min(1, i18n.t('receipts.scan.validation.type_required')),
     folderId: z.string().min(1, i18n.t('receipts.scan.validation.folder_required')),
+    categoryId: z.string().optional(),
     documentDate: z.date(),
     details: z.record(z.string(), z.any()).optional(),
     description: z.string().optional(),
@@ -68,6 +71,10 @@ export default function EditAttachmentScreen() {
     const [showDetails, setShowDetails] = useState(true);
     const [dynamicFields, setDynamicFields] = useState<FieldConfig[]>([]);
 
+    // Category State
+    const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+
     // File state
     const [existingFiles, setExistingFiles] = useState<{ id: string; url: string; contentType?: string; filename: string }[]>([]);
     const [newFiles, setNewFiles] = useState<{ uri: string; type: 'image' | 'document'; mime: string }[]>([]);
@@ -90,6 +97,7 @@ export default function EditAttachmentScreen() {
             // currency: 'TRY',
             attachmentTypeId: AttachmentTypeIds.RECEIPT,
             folderId: '',
+            categoryId: '',
             documentDate: new Date(),
             details: {},
             description: '',
@@ -98,6 +106,7 @@ export default function EditAttachmentScreen() {
     });
 
     const watchedTypeId = watch('attachmentTypeId');
+    const watchedFolderId = watch('folderId');
     const watchedDetails = (watch('details') || {}) as Record<string, any>;
     const watchedCustomFields = watch('customFields') || [];
 
@@ -200,6 +209,7 @@ export default function EditAttachmentScreen() {
                 // currency: data.details?.currency || 'TRY',
                 attachmentTypeId: data.attachmentTypeId,
                 folderId: data.folderId,
+                categoryId: (data as any).categoryId || '',
                 documentDate: new Date(data.documentDate),
                 description: data.description || '',
                 details: details,
@@ -249,6 +259,58 @@ export default function EditAttachmentScreen() {
             setDynamicFields([]);
         }
     }, [watchedTypeId, attachmentTypes]);
+
+    // Fetch Categories Logic
+    useEffect(() => {
+        const fetchCategories = async () => {
+            if (!watchedFolderId) {
+                setCategoryOptions([]);
+                return;
+            }
+
+            setLoadingCategories(true);
+            try {
+                // Find folder owner
+                const selectedFolder = folders.find(f => f.id === watchedFolderId);
+                const currentUserId = user?.id;
+
+                let ownerId = currentUserId;
+                if (selectedFolder && selectedFolder.owner && selectedFolder.owner.id !== currentUserId) {
+                    ownerId = selectedFolder.owner.id;
+                }
+
+                let items: any[] = [];
+                if (ownerId !== currentUserId) {
+                    // Fetch owner's categories
+                    const response = await CategoryService.getCategoriesByOwner(ownerId!);
+                    items = response.data?.items || [];
+                } else {
+                    // Fetch my categories
+                    // Note: CategoryService.getCategories supports pagination but we want all list for picker?
+                    // Typically select needs full list or search. For now getting first page or assuming unpaginated helper needed?
+                    // The generated service has pagination. Let's try to get a reasonable amount
+                    const response = await CategoryService.getCategories(undefined, 100);
+                    items = response.data?.items || [];
+                }
+
+                const options: SelectOption[] = items.map(cat => ({
+                    label: cat.name + (cat.accountCode ? ` (${cat.accountCode})` : ''),
+                    value: cat.id,
+                    icon: 'folder' // Default icon
+                }));
+                setCategoryOptions(options);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                setCategoryOptions([]);
+            } finally {
+                setLoadingCategories(false);
+            }
+        };
+
+        if (user && folders.length >= 0) { // folders might be empty initially but if hook loaded it's array
+            fetchCategories();
+        }
+    }, [watchedFolderId, user, folders]);
 
     // File Processing (from ScanScreen)
     const processFileWithOCR = async (uri: string, type: 'image' | 'document', mime: string) => {
@@ -323,9 +385,10 @@ export default function EditAttachmentScreen() {
                 documentDate: data.documentDate.toISOString(),
                 attachmentTypeId: data.attachmentTypeId,
                 folderId: data.folderId,
+                categoryId: data.categoryId,
                 description: data.description,
                 details: mergedDetails,
-            });
+            } as any);
 
             // 2. Upload New Files
             if (newFiles.length > 0) {
@@ -595,6 +658,25 @@ export default function EditAttachmentScreen() {
                             render={({ field: { onChange, value } }) => (
                                 <FormField label={i18n.t('receipts.scan.type_select_label')} error={errors.attachmentTypeId?.message}>
                                     <AttachmentTypeSelector types={attachmentTypes} value={value} onSelect={onChange} />
+                                </FormField>
+                            )}
+                        />
+
+                        {/* Category Selector */}
+                        <Controller
+                            control={control}
+                            name="categoryId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormField label={i18n.t('attachments.categoryLabel') || "Kategori"} error={errors.categoryId?.message}>
+                                    <Select
+                                        label={i18n.t('attachments.categoryLabel') || "Kategori"}
+                                        value={value || ''}
+                                        onChange={onChange}
+                                        options={categoryOptions}
+                                        placeholder={i18n.t('attachments.selectCategory') || "Kategori seçiniz"}
+                                        hideLabel
+                                        disabled={loadingCategories}
+                                    />
                                 </FormField>
                             )}
                         />
