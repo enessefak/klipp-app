@@ -86,7 +86,6 @@ export default function EditAttachmentScreen() {
     // OCR state
     const [step, setStep] = useState<Step>('form'); // Start in form mode for edit
 
-    const { attachmentTypes } = useAttachmentTypes();
     const { folders } = useFolders();
 
     const { control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<EditFormData>({
@@ -112,6 +111,17 @@ export default function EditAttachmentScreen() {
 
     const [user, setUser] = useState<{ id: string } | null>(null);
     const [originalAttachment, setOriginalAttachment] = useState<Attachment | null>(null);
+
+    // Calculate folder owner
+    const selectedFolder = folders.find(f => f.id === watchedFolderId);
+    const currentUserId = user?.id;
+    let folderOwnerId: string | undefined = undefined;
+
+    if (selectedFolder && selectedFolder.owner && selectedFolder.owner.id !== currentUserId) {
+        folderOwnerId = selectedFolder.owner.id;
+    }
+
+    const { attachmentTypes } = useAttachmentTypes(folderOwnerId);
 
     // Scroll ref for auto-scrolling to errors
     const scrollViewRef = useRef<ScrollView>(null);

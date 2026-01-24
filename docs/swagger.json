@@ -10563,6 +10563,14 @@
                                                         "type": "string",
                                                         "format": "uuid"
                                                     },
+                                                    "userId": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "isSystem": {
+                                                        "type": "boolean",
+                                                        "default": false
+                                                    },
                                                     "name": {
                                                         "type": "string",
                                                         "description": "Unique identifier key (e.g. invoice, receipt)"
@@ -10643,6 +10651,9 @@
                                                                 "required": {
                                                                     "type": "boolean"
                                                                 },
+                                                                "unique": {
+                                                                    "type": "boolean"
+                                                                },
                                                                 "placeholder": {
                                                                     "type": "string"
                                                                 },
@@ -10652,27 +10663,20 @@
                                                                 "options": {
                                                                     "type": "array",
                                                                     "items": {
-                                                                        "anyOf": [
-                                                                            {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "key": {
                                                                                 "type": "string"
                                                                             },
-                                                                            {
-                                                                                "type": "object",
-                                                                                "properties": {
-                                                                                    "key": {
-                                                                                        "type": "string"
-                                                                                    },
-                                                                                    "label": {
-                                                                                        "type": "string"
-                                                                                    }
-                                                                                },
-                                                                                "required": [
-                                                                                    "key",
-                                                                                    "label"
-                                                                                ],
-                                                                                "additionalProperties": false
+                                                                            "label": {
+                                                                                "type": "string"
                                                                             }
-                                                                        ]
+                                                                        },
+                                                                        "required": [
+                                                                            "key",
+                                                                            "label"
+                                                                        ],
+                                                                        "additionalProperties": false
                                                                     }
                                                                 },
                                                                 "defaultValue": {},
@@ -10770,6 +10774,651 @@
                                     "required": [
                                         "success"
                                     ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create custom attachment type",
+                "tags": [
+                    "AttachmentType"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "icon": {
+                                        "type": "string"
+                                    },
+                                    "color": {
+                                        "type": "string"
+                                    },
+                                    "transactionType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "INCOME",
+                                            "EXPENSE",
+                                            "NEUTRAL"
+                                        ]
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "enum": [
+                                            "FINANCIAL",
+                                            "IDENTITY",
+                                            "INSURANCE",
+                                            "CONTRACT",
+                                            "MEDICAL",
+                                            "VEHICLE",
+                                            "EDUCATION",
+                                            "PERSONNEL",
+                                            "OTHER"
+                                        ]
+                                    },
+                                    "fieldConfig": {
+                                        "type": "array"
+                                    },
+                                    "fieldStyle": {},
+                                    "parentId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "icon",
+                                    "color",
+                                    "transactionType",
+                                    "category"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "userId": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "isSystem": {
+                                                    "type": "boolean",
+                                                    "default": false
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Unique identifier key (e.g. invoice, receipt)"
+                                                },
+                                                "label": {
+                                                    "type": "string",
+                                                    "description": "Translated display name (e.g. Fatura, Fiş)"
+                                                },
+                                                "icon": {
+                                                    "type": "string"
+                                                },
+                                                "color": {
+                                                    "type": "string"
+                                                },
+                                                "expires": {
+                                                    "type": "boolean"
+                                                },
+                                                "transactionType": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "INCOME",
+                                                                "EXPENSE",
+                                                                "NEUTRAL"
+                                                            ]
+                                                        },
+                                                        "label": {
+                                                            "type": "string",
+                                                            "description": "Translated transaction type (e.g. Gider, Gelir)"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "name",
+                                                        "label"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "category": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "FINANCIAL",
+                                                        "IDENTITY",
+                                                        "INSURANCE",
+                                                        "CONTRACT",
+                                                        "MEDICAL",
+                                                        "VEHICLE",
+                                                        "EDUCATION",
+                                                        "PERSONNEL",
+                                                        "OTHER"
+                                                    ],
+                                                    "description": "Document category for sub-table assignment"
+                                                },
+                                                "fieldConfig": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "text",
+                                                                    "number",
+                                                                    "date",
+                                                                    "select",
+                                                                    "textarea",
+                                                                    "duration",
+                                                                    "array"
+                                                                ]
+                                                            },
+                                                            "required": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "unique": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "placeholder": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            },
+                                                            "options": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "key": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "label": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "key",
+                                                                        "label"
+                                                                    ],
+                                                                    "additionalProperties": false
+                                                                }
+                                                            },
+                                                            "defaultValue": {},
+                                                            "filterable": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "filterType": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "text",
+                                                                    "number",
+                                                                    "date",
+                                                                    "dateRange",
+                                                                    "select",
+                                                                    "amount"
+                                                                ]
+                                                            },
+                                                            "itemConfig": {
+                                                                "type": "array",
+                                                                "items": {}
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "key",
+                                                            "label",
+                                                            "type"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "nullable": true
+                                                },
+                                                "defaultDetails": {
+                                                    "type": "object",
+                                                    "additionalProperties": {},
+                                                    "nullable": true
+                                                },
+                                                "fieldStyle": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "mobile": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "gridTemplateAreas": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "gap": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "gridTemplateAreas"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        },
+                                                        "desktop": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "gridTemplateAreas": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "gap": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "gridTemplateAreas"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "label",
+                                                "icon",
+                                                "color",
+                                                "expires",
+                                                "transactionType",
+                                                "category"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/attachment-types/{id}": {
+            "put": {
+                "summary": "Update custom attachment type",
+                "tags": [
+                    "AttachmentType"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                    },
+                                    "icon": {
+                                        "type": "string"
+                                    },
+                                    "color": {
+                                        "type": "string"
+                                    },
+                                    "transactionType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "INCOME",
+                                            "EXPENSE",
+                                            "NEUTRAL"
+                                        ]
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "enum": [
+                                            "FINANCIAL",
+                                            "IDENTITY",
+                                            "INSURANCE",
+                                            "CONTRACT",
+                                            "MEDICAL",
+                                            "VEHICLE",
+                                            "EDUCATION",
+                                            "PERSONNEL",
+                                            "OTHER"
+                                        ]
+                                    },
+                                    "fieldConfig": {
+                                        "type": "array"
+                                    },
+                                    "fieldStyle": {},
+                                    "parentId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "userId": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "isSystem": {
+                                                    "type": "boolean",
+                                                    "default": false
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Unique identifier key (e.g. invoice, receipt)"
+                                                },
+                                                "label": {
+                                                    "type": "string",
+                                                    "description": "Translated display name (e.g. Fatura, Fiş)"
+                                                },
+                                                "icon": {
+                                                    "type": "string"
+                                                },
+                                                "color": {
+                                                    "type": "string"
+                                                },
+                                                "expires": {
+                                                    "type": "boolean"
+                                                },
+                                                "transactionType": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "INCOME",
+                                                                "EXPENSE",
+                                                                "NEUTRAL"
+                                                            ]
+                                                        },
+                                                        "label": {
+                                                            "type": "string",
+                                                            "description": "Translated transaction type (e.g. Gider, Gelir)"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "name",
+                                                        "label"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "category": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "FINANCIAL",
+                                                        "IDENTITY",
+                                                        "INSURANCE",
+                                                        "CONTRACT",
+                                                        "MEDICAL",
+                                                        "VEHICLE",
+                                                        "EDUCATION",
+                                                        "PERSONNEL",
+                                                        "OTHER"
+                                                    ],
+                                                    "description": "Document category for sub-table assignment"
+                                                },
+                                                "fieldConfig": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "key": {
+                                                                "type": "string"
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "text",
+                                                                    "number",
+                                                                    "date",
+                                                                    "select",
+                                                                    "textarea",
+                                                                    "duration",
+                                                                    "array"
+                                                                ]
+                                                            },
+                                                            "required": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "unique": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "placeholder": {
+                                                                "type": "string"
+                                                            },
+                                                            "unit": {
+                                                                "type": "string"
+                                                            },
+                                                            "options": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "key": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "label": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "key",
+                                                                        "label"
+                                                                    ],
+                                                                    "additionalProperties": false
+                                                                }
+                                                            },
+                                                            "defaultValue": {},
+                                                            "filterable": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "filterType": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "text",
+                                                                    "number",
+                                                                    "date",
+                                                                    "dateRange",
+                                                                    "select",
+                                                                    "amount"
+                                                                ]
+                                                            },
+                                                            "itemConfig": {
+                                                                "type": "array",
+                                                                "items": {}
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "key",
+                                                            "label",
+                                                            "type"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "nullable": true
+                                                },
+                                                "defaultDetails": {
+                                                    "type": "object",
+                                                    "additionalProperties": {},
+                                                    "nullable": true
+                                                },
+                                                "fieldStyle": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "mobile": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "gridTemplateAreas": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "gap": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "gridTemplateAreas"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        },
+                                                        "desktop": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "gridTemplateAreas": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "gap": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "gridTemplateAreas"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "label",
+                                                "icon",
+                                                "color",
+                                                "expires",
+                                                "transactionType",
+                                                "category"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete custom attachment type",
+                "tags": [
+                    "AttachmentType"
+                ],
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "id",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ],
+                                    "additionalProperties": false
                                 }
                             }
                         }
