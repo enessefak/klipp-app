@@ -22,6 +22,7 @@ export { FilesService } from './services/FilesService';
 export { FolderService } from './services/FolderService';
 export { FolderAccountingService } from './services/FolderAccountingService';
 export { FolderSharingService } from './services/FolderSharingService';
+export { ImportService } from './services/ImportService';
 export { NotificationsService } from './services/NotificationsService';
 export { OAuthService } from './services/OAuthService';
 export { PaymentService } from './services/PaymentService';

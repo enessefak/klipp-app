@@ -427,16 +427,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -2512,16 +2543,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -3075,16 +3137,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -3458,16 +3551,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -6286,16 +6410,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -6539,16 +6694,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -8176,16 +8362,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -8745,16 +8962,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -9860,16 +10108,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -11514,16 +11793,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -11643,16 +11953,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -14327,16 +14668,47 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Validation Error"
+                                            "example": "validation_error"
                                         },
                                         "message": {
                                             "type": "string"
                                         },
                                         "details": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "field": {
+                                                                "type": "string"
+                                                            },
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            },
+                                                            "value": {},
+                                                            "existingId": {
+                                                                "type": "string"
+                                                            },
+                                                            "existingTitle": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "field",
+                                                            "code",
+                                                            "message"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "errors"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -16747,6 +17119,70 @@
                 "responses": {
                     "200": {
                         "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/import/folder/{folderId}": {
+            "post": {
+                "tags": [
+                    "Import"
+                ],
+                "description": "Import documents to folder from Excel/JSON/ZIP",
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "in": "path",
+                        "name": "folderId",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "importedCount": {
+                                                    "type": "number"
+                                                },
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "success"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
