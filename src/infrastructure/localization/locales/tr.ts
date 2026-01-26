@@ -596,7 +596,8 @@ export const tr = {
             },
             languages: {
                 tr: 'Türkçe',
-                en: 'English'
+                en: 'English',
+                de: 'Almanca'
             },
             web: 'WEB',
             webLogin: "Web'e Giriş Yap",

@@ -606,7 +606,8 @@ export const en = {
             },
             languages: {
                 tr: 'Türkçe',
-                en: 'English'
+                en: 'English',
+                de: 'Deutsch'
             },
             web: 'WEB',
             webLogin: 'Web Login',

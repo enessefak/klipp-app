@@ -1,12 +1,14 @@
 import { getLocales } from 'expo-localization';
 import { I18n } from 'i18n-js';
 
+import { de } from './locales/de';
 import { en } from './locales/en';
 import { tr } from './locales/tr';
 
 const i18n = new I18n({
     en,
     tr,
+    de,
 });
 
 // Set the locale once at the beginning of your app.
