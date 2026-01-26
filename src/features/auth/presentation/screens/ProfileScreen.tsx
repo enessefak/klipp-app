@@ -670,7 +670,7 @@ export function ProfileScreen() {
                     />
                 </SettingSection>
 
-                <SettingSection title={i18n.t('profile.settings.storage')}>
+                {/* <SettingSection title={i18n.t('profile.settings.storage')}>
                     <SettingItem
                         icon="icloud"
                         iconColor="#34C759"
@@ -684,7 +684,7 @@ export function ProfileScreen() {
                         title={i18n.t('profile.settings.export')}
                         onPress={() => Alert.alert('Bilgi', i18n.t('profile.settings.soon'))}
                     />
-                </SettingSection>
+                </SettingSection> */}
 
                 <SettingSection title={i18n.t('profile.settings.support')}>
                     <SettingItem
@@ -694,12 +694,12 @@ export function ProfileScreen() {
                         subtitle="info@klipphq.com"
                         onPress={handleContactPress}
                     />
-                    <SettingItem
+                    {/* <SettingItem
                         icon="star.fill"
                         iconColor="#FFCC00"
                         title={i18n.t('profile.settings.rate')}
                         onPress={() => Alert.alert('Bilgi', i18n.t('profile.settings.soon'))}
-                    />
+                    /> */}
                 </SettingSection>
 
                 <SettingSection title={i18n.t('profile.settings.account')}>
