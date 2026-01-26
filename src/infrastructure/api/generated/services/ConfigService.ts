@@ -64,4 +64,29 @@ export class ConfigService {
             url: '/config/',
         });
     }
+    /**
+     * Get folder icon and color options
+     * Returns available folder icons and colors with localized labels. Cached per locale.
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getFolderOptions(): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            icons: Array<{
+                value: string;
+                label: string;
+            }>;
+            colors: Array<{
+                value: string;
+                label: string;
+            }>;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/folder-options/',
+        });
+    }
 }

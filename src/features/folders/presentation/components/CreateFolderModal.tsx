@@ -8,9 +8,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Keyboard, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { EInvoiceSettingsForm } from '../../../e-invoices/presentation/components/EInvoiceSettingsForm';
 import { CreateFolderDTO, Folder } from '../../domain/Folder';
+import { getFolderOptions } from '../../domain/FolderOptionsService';
 
-// Predefined Options - synced with web folder-icons.ts
-const ICONS = [
+// Fallback options if API fails
+const FALLBACK_ICONS = [
     'folder.fill',
     'briefcase.fill',
     'house.fill',
@@ -18,7 +19,6 @@ const ICONS = [
     'heart.fill',
     'tag.fill',
     'tray.fill',
-    // Personnel Template Icons
     'person.fill',
     'briefcase',
     'heart.text.square.fill',
@@ -26,13 +26,13 @@ const ICONS = [
     'doc.text.fill',
     'person.text.rectangle.fill'
 ];
-const COLORS = [
-    '#4DABF7', // Cyan
-    '#1C2A4E', // Navy
-    '#FF9500', // Orange
-    '#FF3B30', // Red
-    '#34C759', // Green
-    '#AF52DE', // Purple
+const FALLBACK_COLORS = [
+    '#4DABF7',
+    '#1C2A4E',
+    '#FF9500',
+    '#FF3B30',
+    '#34C759',
+    '#AF52DE',
 ];
 
 interface CreateFolderModalProps {
@@ -47,10 +47,15 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
     const { colors } = useSettings();
     const [activeTab, setActiveTab] = useState<'settings' | 'efatura'>('settings');
 
+    // Dynamic options from API
+    const [icons, setIcons] = useState<string[]>(FALLBACK_ICONS);
+    const [colorOptions, setColorOptions] = useState<string[]>(FALLBACK_COLORS);
+    const [optionsLoading, setOptionsLoading] = useState(true);
+
     // Form State
     const [name, setName] = useState('');
-    const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
-    const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+    const [selectedIcon, setSelectedIcon] = useState(FALLBACK_ICONS[0]);
+    const [selectedColor, setSelectedColor] = useState(FALLBACK_COLORS[0]);
     const [requiresApproval, setRequiresApproval] = useState(false);
     const [isConfidential, setIsConfidential] = useState(false);
     const [allowedTransactionTypes, setAllowedTransactionTypes] = useState<string[]>([]);
@@ -62,7 +67,31 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
 
     useEffect(() => {
         loadAttachmentTypes();
+        loadFolderOptions();
     }, []);
+
+    const loadFolderOptions = async () => {
+        setOptionsLoading(true);
+        try {
+            const options = await getFolderOptions();
+            if (options) {
+                const iconValues = options.icons.map(i => i.value);
+                const colorValues = options.colors.map(c => c.value);
+                setIcons(iconValues);
+                setColorOptions(colorValues);
+                // Only set defaults if not editing
+                if (!initialData) {
+                    setSelectedIcon(iconValues[0] || FALLBACK_ICONS[0]);
+                    setSelectedColor(colorValues[0] || FALLBACK_COLORS[0]);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load folder options:', error);
+            // Keep using fallback values
+        } finally {
+            setOptionsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (visible) {
@@ -86,8 +115,8 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
 
     const resetForm = () => {
         setName('');
-        setSelectedIcon(ICONS[0]);
-        setSelectedColor(COLORS[0]);
+        setSelectedIcon(icons[0] || FALLBACK_ICONS[0]);
+        setSelectedColor(colorOptions[0] || FALLBACK_COLORS[0]);
         setRequiresApproval(false);
         setIsConfidential(false);
         setAllowedTransactionTypes([]);
@@ -253,7 +282,7 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
                 <View>
                     <ThemedText style={styles.label}>İkon Seç</ThemedText>
                     <View style={styles.grid}>
-                        {ICONS.map(icon => (
+                        {icons.map((icon: string) => (
                             <TouchableOpacity
                                 key={icon}
                                 onPress={() => setSelectedIcon(icon)}
@@ -271,7 +300,7 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
                 <View>
                     <ThemedText style={styles.label}>Renk Seç</ThemedText>
                     <View style={styles.grid}>
-                        {COLORS.map(color => (
+                        {colorOptions.map((color: string) => (
                             <TouchableOpacity
                                 key={color}
                                 onPress={() => setSelectedColor(color)}
