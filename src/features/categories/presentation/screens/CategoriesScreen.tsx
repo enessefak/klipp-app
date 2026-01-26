@@ -117,9 +117,7 @@ export function CategoriesScreen() {
     const loadCategories = async () => {
         try {
             setLoading(true);
-            console.log('Fetching categories...');
             const response = await CategoryService.getCategories() as any;
-            console.log('Categories response:', JSON.stringify(response, null, 2));
 
             if (response.data && Array.isArray(response.data.items)) {
                 setCategories(response.data.items);

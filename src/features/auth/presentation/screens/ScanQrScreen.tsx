@@ -31,8 +31,6 @@ export function ScanQrScreen() {
         isProcessing.current = true;
         setScanned(true);
 
-        console.log('Scanned QR:', data);
-
         let sessionCode = '';
 
         try {
@@ -57,8 +55,6 @@ export function ScanQrScreen() {
         }
 
         try {
-            console.log('Sending Web QR Confirm for code:', sessionCode);
-
             // Call Correct API Method
             await WebSessionService.postWebQrConfirm({ sessionCode: sessionCode });
 

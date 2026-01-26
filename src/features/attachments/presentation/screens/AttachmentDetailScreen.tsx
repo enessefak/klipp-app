@@ -104,12 +104,6 @@ export function AttachmentDetailScreen() {
             const data = await AttachmentService.getAttachmentById(id!);
             setAttachment(data);
 
-            // Log for debugging items
-            if (data.details && data.details.items) {
-                console.log('[Detail] Attachment has items:', data.details.items);
-            }
-
-            // Resolve current user to check ownership reliably
             let currentUser = user;
             if (!currentUser) {
                 const { AuthService } = await import('@/src/features/auth/data/AuthService');
@@ -151,15 +145,11 @@ export function AttachmentDetailScreen() {
             // Fetch attachment types to get configuration
             try {
                 const typesResponse = await AttachmentTypeService.getAttachmentTypes();
-                console.log('[Detail] typesResponse:', typesResponse);
                 const types = (typesResponse as any).data || typesResponse;
                 // Verify types is an array
                 const typesArray = Array.isArray(types) ? types : (types as any).items || [];
-                console.log('[Detail] typesArray:', typesArray);
 
                 const attachmentType = typesArray.find((t: any) => t.id === data.attachmentTypeId);
-                console.log('[Detail] attachmentType:', attachmentType);
-                console.log('[Detail] attachment.details:', data.details);
                 if (attachmentType) {
                     setAttachmentTypeName(attachmentType.name);
 
@@ -171,7 +161,6 @@ export function AttachmentDetailScreen() {
                     const categoryData = category ? (data as any)[category] : null;
 
                     if (categoryData && categoryData.items && !fields.find((f: any) => f.key === 'items')) {
-                        console.log('[Detail] Adding synthetic items field config from category:', category);
                         fields = [...fields, {
                             key: 'items',
                             label: i18n.t('attachments.items.title') || 'Items',
@@ -180,7 +169,6 @@ export function AttachmentDetailScreen() {
                     }
 
                     if (fields) {
-                        console.log('[Detail] Setting dynamicFields:', fields);
                         setDynamicFields(fields);
                     }
                     if (attachmentType.fieldStyle) {

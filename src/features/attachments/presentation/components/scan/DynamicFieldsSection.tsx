@@ -92,101 +92,77 @@ export function DynamicFieldsSection({
                 control={control}
                 name={`details.${field.key}`}
                 defaultValue={watchedDetails?.[field.key]}
-                render={({ field: { onChange, value } }) => (
-                    <View style={{ flex }}>
-                        <FormField label={field.label} required={field.required}>
-                            {/* Line Items Editor */}
-                            {(Array.isArray(value) && typeof value[0] === 'object') || field.key === 'items' || field.key === 'lineItems' ? (
-                                <View style={{ marginBottom: 12 }}>
-                                    {value && value.length > 0 ? (
-                                        <LineItemsTable
-                                            items={value}
-                                            label={field.label}
-                                            currency={watchedDetails?.currency || 'TRY'}
-                                            variant="editable"
-                                            itemsConfig={fieldStyle?.items || field.items}
-                                            onItemPress={(item, index) => {
-                                                setEditingFieldIndex(field.key);
-                                                setEditingItemIndex(index); // Set the index of item being edited
-                                                setModalVisible(true);
-                                                setCurrentFieldOnChange(() => onChange);
-                                                setCurrentFieldValue(value);
-                                            }}
-                                            onEdit={() => {
-                                                setEditingFieldIndex(field.key);
-                                                setEditingItemIndex(null); // Create New Mode
-                                                setModalVisible(true);
-                                                setCurrentFieldOnChange(() => onChange);
-                                                setCurrentFieldValue(value);
-                                            }}
-                                        />
-                                    ) : (
-                                        <View style={{ backgroundColor: colors.card, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }}>
-                                            <ThemedText style={{ color: colors.textLight, marginBottom: 4 }}>{field.label}</ThemedText>
+                render={({ field: { onChange, value } }) => {
+                    const label = i18n.t(`attachments.fields.${field.key}`, { defaultValue: field.label });
+                    return (
+                        <View style={{ flex }}>
+                            <FormField label={label} required={field.required}>
+                                {/* Line Items Editor */}
+                                {(Array.isArray(value) && typeof value[0] === 'object') || field.key === 'items' || field.key === 'lineItems' ? (
+                                    <View style={{ marginBottom: 12 }}>
+                                        {value && value.length > 0 ? (
+                                            <LineItemsTable
+                                                items={value}
+                                                label={field.label}
+                                                currency={watchedDetails?.currency || 'TRY'}
+                                                variant="editable"
+                                                itemsConfig={fieldStyle?.items || field.items}
+                                                onItemPress={(item, index) => {
+                                                    setEditingFieldIndex(field.key);
+                                                    setEditingItemIndex(index); // Set the index of item being edited
+                                                    setModalVisible(true);
+                                                    setCurrentFieldOnChange(() => onChange);
+                                                    setCurrentFieldValue(value);
+                                                }}
+                                                onEdit={() => {
+                                                    setEditingFieldIndex(field.key);
+                                                    setEditingItemIndex(null); // Create New Mode
+                                                    setModalVisible(true);
+                                                    setCurrentFieldOnChange(() => onChange);
+                                                    setCurrentFieldValue(value);
+                                                }}
+                                            />
+                                        ) : (
+                                            <View style={{ backgroundColor: colors.card, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center' }}>
+                                                <ThemedText style={{ color: colors.textLight, marginBottom: 4 }}>{field.label}</ThemedText>
+                                                <TouchableOpacity onPress={() => {
+                                                    setEditingFieldIndex(field.key);
+                                                    setEditingItemIndex(null);
+                                                    setModalVisible(true);
+                                                    setCurrentFieldOnChange(() => onChange);
+                                                    setCurrentFieldValue(value || []);
+                                                }} style={{ padding: 8 }}>
+                                                    <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>+ {i18n.t('common.actions.add')}</ThemedText>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                        {/* Add Button for existing list */}
+                                        {value && value.length > 0 && (
                                             <TouchableOpacity onPress={() => {
                                                 setEditingFieldIndex(field.key);
                                                 setEditingItemIndex(null);
                                                 setModalVisible(true);
                                                 setCurrentFieldOnChange(() => onChange);
-                                                setCurrentFieldValue(value || []);
-                                            }} style={{ padding: 8 }}>
+                                                setCurrentFieldValue(value);
+                                            }} style={{ marginTop: 8, alignItems: 'center', padding: 8 }}>
                                                 <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>+ {i18n.t('common.actions.add')}</ThemedText>
                                             </TouchableOpacity>
-                                        </View>
-                                    )}
-                                    {/* Add Button for existing list */}
-                                    {value && value.length > 0 && (
-                                        <TouchableOpacity onPress={() => {
-                                            setEditingFieldIndex(field.key);
-                                            setEditingItemIndex(null);
-                                            setModalVisible(true);
-                                            setCurrentFieldOnChange(() => onChange);
-                                            setCurrentFieldValue(value);
-                                        }} style={{ marginTop: 8, alignItems: 'center', padding: 8 }}>
-                                            <ThemedText style={{ color: colors.primary, fontWeight: '600' }}>+ {i18n.t('common.actions.add')}</ThemedText>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-                            ) : field.type === 'duration' ? (
-                                <View style={styles.durationRow}>
-                                    <TextInput
-                                        style={styles.durationInput}
-                                        placeholder="0"
-                                        value={value?.toString() || ''}
-                                        onChangeText={(text) => {
-                                            const numValue = parseInt(text) || 0;
-                                            onChange(numValue);
+                                        )}
+                                    </View>
+                                ) : field.type === 'duration' ? (
+                                    <View style={styles.durationRow}>
+                                        <TextInput
+                                            style={styles.durationInput}
+                                            placeholder="0"
+                                            value={value?.toString() || ''}
+                                            onChangeText={(text) => {
+                                                const numValue = parseInt(text) || 0;
+                                                onChange(numValue);
 
-                                            // Auto-calculate end date based on duration
-                                            if (field.key === 'warrantyDuration') {
-                                                const endDate = new Date(watchedDocumentDate);
-                                                const unit = watchedDetails.warrantyDurationUnit || 'month';
-                                                if (unit === 'day') {
-                                                    endDate.setDate(endDate.getDate() + numValue);
-                                                } else if (unit === 'month') {
-                                                    endDate.setMonth(endDate.getMonth() + numValue);
-                                                } else if (unit === 'year') {
-                                                    endDate.setFullYear(endDate.getFullYear() + numValue);
-                                                }
-                                                updateDetailField('warrantyEndDate', endDate.toISOString());
-                                            }
-                                        }}
-                                        keyboardType="numeric"
-                                    />
-                                    <View style={styles.durationUnitSelector}>
-                                        {['day', 'month', 'year'].map((unit) => (
-                                            <TouchableOpacity
-                                                key={unit}
-                                                style={[
-                                                    styles.durationUnitButton,
-                                                    (watchedDetails?.[`${field.key}Unit`] || 'month') === unit && styles.durationUnitButtonActive
-                                                ]}
-                                                onPress={() => {
-                                                    updateDetailField(`${field.key}Unit`, unit);
-
-                                                    // Recalculate end date
-                                                    const numValue = watchedDetails?.[field.key] || 0;
+                                                // Auto-calculate end date based on duration
+                                                if (field.key === 'warrantyDuration') {
                                                     const endDate = new Date(watchedDocumentDate);
+                                                    const unit = watchedDetails.warrantyDurationUnit || 'month';
                                                     if (unit === 'day') {
                                                         endDate.setDate(endDate.getDate() + numValue);
                                                     } else if (unit === 'month') {
@@ -195,70 +171,97 @@ export function DynamicFieldsSection({
                                                         endDate.setFullYear(endDate.getFullYear() + numValue);
                                                     }
                                                     updateDetailField('warrantyEndDate', endDate.toISOString());
-                                                }}
-                                            >
-                                                <ThemedText style={[
-                                                    styles.durationUnitText,
-                                                    (watchedDetails?.[`${field.key}Unit`] || 'month') === unit && styles.durationUnitTextActive
-                                                ]}>
-                                                    {i18n.t(`common.units.${unit}` as any)}
-                                                </ThemedText>
-                                            </TouchableOpacity>
-                                        ))}
+                                                }
+                                            }}
+                                            keyboardType="numeric"
+                                        />
+                                        <View style={styles.durationUnitSelector}>
+                                            {['day', 'month', 'year'].map((unit) => (
+                                                <TouchableOpacity
+                                                    key={unit}
+                                                    style={[
+                                                        styles.durationUnitButton,
+                                                        (watchedDetails?.[`${field.key}Unit`] || 'month') === unit && styles.durationUnitButtonActive
+                                                    ]}
+                                                    onPress={() => {
+                                                        updateDetailField(`${field.key}Unit`, unit);
+
+                                                        // Recalculate end date
+                                                        const numValue = watchedDetails?.[field.key] || 0;
+                                                        const endDate = new Date(watchedDocumentDate);
+                                                        if (unit === 'day') {
+                                                            endDate.setDate(endDate.getDate() + numValue);
+                                                        } else if (unit === 'month') {
+                                                            endDate.setMonth(endDate.getMonth() + numValue);
+                                                        } else if (unit === 'year') {
+                                                            endDate.setFullYear(endDate.getFullYear() + numValue);
+                                                        }
+                                                        updateDetailField('warrantyEndDate', endDate.toISOString());
+                                                    }}
+                                                >
+                                                    <ThemedText style={[
+                                                        styles.durationUnitText,
+                                                        (watchedDetails?.[`${field.key}Unit`] || 'month') === unit && styles.durationUnitTextActive
+                                                    ]}>
+                                                        {i18n.t(`common.units.${unit}` as any)}
+                                                    </ThemedText>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
                                     </View>
-                                </View>
-                            ) : field.type === 'date' ? (
-                                <DatePickerField
-                                    label={field.label}
-                                    hideLabel
-                                    value={value ? new Date(value) : undefined}
-                                    onChange={(date) => onChange(date.toISOString())}
-                                    placeholder={field.placeholder || i18n.t('common.actions.select_date')}
-                                    error={field.required && !value ? 'Required' : undefined}
-                                />
-                            ) : field.type === 'textarea' ? (
-                                <TextInput
-                                    style={styles.textArea}
-                                    placeholder={field.placeholder}
-                                    value={value || ''}
-                                    onChangeText={onChange}
-                                    multiline
-                                    numberOfLines={4}
-                                />
-                            ) : field.type === 'select' ? (
-                                <Select
-                                    label={field.label}
-                                    hideLabel
-                                    value={value}
-                                    options={(field.options || []).map((opt: any) => {
-                                        if (typeof opt === 'string') {
-                                            return { label: opt, value: opt };
-                                        }
-                                        return {
-                                            label: opt.label || opt.name || opt.value || JSON.stringify(opt),
-                                            value: opt.value || opt.id || opt.key || JSON.stringify(opt)
-                                        };
-                                    })}
-                                    onChange={onChange}
-                                    placeholder={field.placeholder}
-                                />
-                            ) : field.type === 'number' ? (
-                                <TextInput
-                                    placeholder={field.placeholder}
-                                    value={value?.toString() || ''}
-                                    onChangeText={(text) => onChange(parseFloat(text) || '')}
-                                    keyboardType="numeric"
-                                />
-                            ) : (
-                                <TextInput
-                                    placeholder={field.placeholder}
-                                    value={value || ''}
-                                    onChangeText={onChange}
-                                />
-                            )}
-                        </FormField>
-                    </View>
-                )}
+                                ) : field.type === 'date' ? (
+                                    <DatePickerField
+                                        label={field.label}
+                                        hideLabel
+                                        value={value ? new Date(value) : undefined}
+                                        onChange={(date) => onChange(date.toISOString())}
+                                        placeholder={field.placeholder || i18n.t('common.actions.select_date')}
+                                        error={field.required && !value ? 'Required' : undefined}
+                                    />
+                                ) : field.type === 'textarea' ? (
+                                    <TextInput
+                                        style={styles.textArea}
+                                        placeholder={field.placeholder}
+                                        value={value || ''}
+                                        onChangeText={onChange}
+                                        multiline
+                                        numberOfLines={4}
+                                    />
+                                ) : field.type === 'select' ? (
+                                    <Select
+                                        label={field.label}
+                                        hideLabel
+                                        value={value}
+                                        options={(field.options || []).map((opt: any) => {
+                                            if (typeof opt === 'string') {
+                                                return { label: opt, value: opt };
+                                            }
+                                            return {
+                                                label: opt.label || opt.name || opt.value || JSON.stringify(opt),
+                                                value: opt.value || opt.id || opt.key || JSON.stringify(opt)
+                                            };
+                                        })}
+                                        onChange={onChange}
+                                        placeholder={field.placeholder}
+                                    />
+                                ) : field.type === 'number' ? (
+                                    <TextInput
+                                        placeholder={field.placeholder}
+                                        value={value?.toString() || ''}
+                                        onChangeText={(text) => onChange(parseFloat(text) || '')}
+                                        keyboardType="numeric"
+                                    />
+                                ) : (
+                                    <TextInput
+                                        placeholder={field.placeholder}
+                                        value={value || ''}
+                                        onChangeText={onChange}
+                                    />
+                                )}
+                            </FormField>
+                        </View>
+                    );
+                }}
             />
         );
     };

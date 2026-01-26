@@ -21,7 +21,6 @@ export function WebSessionsScreen() {
         setLoading(true);
         try {
             const result = await WebSessionService.getWebSessions();
-            console.log('WebSessions Response:', JSON.stringify(result, null, 2));
 
             // Handle response based on generated service signature: { sessions: Array<{...}> }
             const data = (result as any).data || result;

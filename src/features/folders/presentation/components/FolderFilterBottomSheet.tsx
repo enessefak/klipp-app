@@ -103,7 +103,6 @@ export function FolderFilterBottomSheet({
     useEffect(() => {
         // Only load if visible, not loading, not loaded, and no previous error
         if (visible && !loadingOptions && !hasLoaded && !loadError) {
-            console.log('[FolderFilterBottomSheet] Calling loadFilterOptions');
             loadFilterOptions();
         }
 
@@ -121,7 +120,6 @@ export function FolderFilterBottomSheet({
     }, [visible, loadError]);
 
     const loadFilterOptions = async () => {
-        console.log('[FolderFilterBottomSheet] loadFilterOptions called, hasLoaded:', hasLoaded);
         setLoadingOptions(true);
         try {
             const [foldersData, sharedResponse, typesResponse] = await Promise.all([
@@ -130,18 +128,11 @@ export function FolderFilterBottomSheet({
                 AttachmentTypeService.getAttachmentTypes(),
             ]);
 
-            console.log('[FolderFilterBottomSheet] API responses:', {
-                foldersCount: Array.isArray(foldersData) ? foldersData.length : 'not array',
-                typesResponse: typesResponse,
-            });
-
             // API returns { data: [...], success: true } - extract the data array
             const typesData = Array.isArray(typesResponse)
                 ? typesResponse
                 : ((typesResponse as any).data || (typesResponse as any).items || []);
             const sharedFolders = Array.isArray(sharedResponse) ? sharedResponse : [];
-
-            console.log('[FolderFilterBottomSheet] Parsed typesData length:', typesData.length);
 
             // Map shared folders logic... (simplified reusing existing mapping logic if possible, or repeat)
             const mappedSharedFolders: Folder[] = sharedFolders.map(sf => ({
@@ -176,7 +167,6 @@ export function FolderFilterBottomSheet({
             setFolders(allFolders);
             setAttachmentTypes(typesData);
             setHasLoaded(true);
-            console.log('[FolderFilterBottomSheet] Loaded successfully, typesData length:', typesData.length);
         } catch (err) {
             console.error('[FolderFilterBottomSheet] Failed to load filter options:', err);
             setLoadError(true); // Prevent infinite retries
@@ -296,12 +286,7 @@ export function FolderFilterBottomSheet({
     const selectedType = attachmentTypes?.find((t) => {
         return String(t.id) === String(localAttachmentFilters.attachmentTypeId);
     });
-    console.log('[FolderFilterBottomSheet] selection debug:', {
-        typeId: localAttachmentFilters.attachmentTypeId,
-        typesCount: attachmentTypes?.length,
-        foundMatch: !!selectedType,
-        firstTypeId: attachmentTypes?.[0]?.id
-    });
+
     const selectedTypeName = selectedType ? getAttachmentTypeLabel(selectedType.name) : undefined;
     const selectedTypeFieldConfig = (selectedType as any)?.fieldConfig as FieldConfig[] | undefined;
 
