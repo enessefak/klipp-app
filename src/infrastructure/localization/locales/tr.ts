@@ -615,6 +615,7 @@ export const tr = {
             export: 'Verileri Dışa Aktar',
             support: 'Destek',
             help: 'Yardım Merkezi',
+            helpSubtitle: 'Sık sorulan sorular ve rehberler',
             contact: 'Bize Ulaşın',
             rate: 'Uygulamayı Değerlendir',
             account: 'Hesap',

@@ -2,6 +2,10 @@ import { SubscriptionService } from '@/src/infrastructure/api/generated/services
 import { SubscriptionProduct } from '../domain/SubscriptionProduct';
 
 export class SubscriptionRepository {
+    /**
+     * Get subscription plans from backend (LemonSqueezy)
+     * This is kept for web-based fallback or display purposes
+     */
     static async getPlans(): Promise<SubscriptionProduct[]> {
         const response = await SubscriptionService.getSubscriptionPlans();
         if (response.success && response.data) {
@@ -16,15 +20,31 @@ export class SubscriptionRepository {
         return [];
     }
 
-    static async createCheckout(planId: string): Promise<string | null> {
-        const response = await SubscriptionService.postSubscriptionCheckout({
-            planId: planId as any, // Cast to expected enum or string
-            redirectUrl: 'klipp://subscription/success'
+    /**
+     * Verify subscription status with backend
+     * This checks both LemonSqueezy and RevenueCat subscriptions
+     */
+    static async verifySubscription(forceSync: boolean = false): Promise<{
+        isValid: boolean;
+        status: string;
+        planId: string | null;
+        provider: string | null;
+        subscriptionEndDate: string | null;
+    }> {
+        const response = await SubscriptionService.postSubscriptionVerify({
+            forceSync
         });
 
-        if (response.success && response.data && response.data.url) {
-            return response.data.url;
+        if (response.success && response.data) {
+            return response.data as any;
         }
-        return null;
+
+        return {
+            isValid: false,
+            status: 'inactive',
+            planId: null,
+            provider: null,
+            subscriptionEndDate: null
+        };
     }
 }

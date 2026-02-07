@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 
-type Language = 'tr' | 'en';
+type Language = 'tr' | 'en' | 'de';
 type Theme = 'system' | 'light' | 'dark';
 
 interface SettingsContextType {
@@ -52,7 +52,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             } else {
                 // Default to device locale if supported, or 'tr'
                 const deviceLocale = i18n.locale.split('-')[0];
-                if (deviceLocale === 'en' || deviceLocale === 'tr') {
+                if (deviceLocale === 'en' || deviceLocale === 'tr' || deviceLocale === 'de') {
                     setLanguageState(deviceLocale as Language);
                 }
             }

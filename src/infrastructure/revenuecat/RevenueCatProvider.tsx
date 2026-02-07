@@ -1,42 +1,66 @@
+import Constants from 'expo-constants';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import Purchases, { CustomerInfo, LOG_LEVEL } from 'react-native-purchases';
+import { Platform } from 'react-native';
+import Purchases, { CustomerInfo, LOG_LEVEL, PurchasesOfferings } from 'react-native-purchases';
 
 interface RevenueCatContextType {
     isPro: boolean;
     customerInfo: CustomerInfo | null;
-    restorePermissions: () => Promise<CustomerInfo | null>;
+    offerings: PurchasesOfferings | null;
+    isLoading: boolean;
+    restorePurchases: () => Promise<CustomerInfo | null>;
 }
 
 const RevenueCatContext = createContext<RevenueCatContextType | undefined>(undefined);
 
-// Use the API key provided by the user
-const API_KEY = 'test_kJTQQiwxWkgufePcsVoqglXWvpr';
+// Get API keys from environment variables
+const IOS_API_KEY = Constants.expoConfig?.extra?.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY || 'appl_YOUR_IOS_API_KEY_HERE';
+const ANDROID_API_KEY = Constants.expoConfig?.extra?.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY || 'goog_YOUR_ANDROID_API_KEY_HERE';
 
-export const RevenueCatProvider = ({ children }: { children: React.ReactNode }) => {
+export const RevenueCatProvider = ({ children, userId }: { children: React.ReactNode; userId?: string }) => {
     const [isPro, setIsPro] = useState(false);
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+    const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const init = async () => {
-            Purchases.setLogLevel(LOG_LEVEL.WARN);
-
-            // Configure with the same key for both platforms as requested, 
-            // or usually you'd have different keys for iOS/Android.
-            // The user provided one key, assuming it's for the current platform or a universal one if that existed (it doesn't usually).
-            // But for this task I will use the provided key.
-            Purchases.configure({ apiKey: API_KEY });
-
             try {
+                console.log('RevenueCat Init - IOS_API_KEY:', IOS_API_KEY);
+                console.log('RevenueCat Init - ANDROID_API_KEY:', ANDROID_API_KEY);
+                console.log('RevenueCat Init - Platform:', Platform.OS);
+                console.log('RevenueCat Init - Extra config:', Constants.expoConfig?.extra);
+
+                Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+
+                // Configure with platform-specific API key
+                const apiKey = Platform.OS === 'ios' ? IOS_API_KEY : ANDROID_API_KEY;
+
+                if (userId) {
+                    // Configure with user ID for cross-platform sync
+                    Purchases.configure({ apiKey, appUserID: userId });
+                } else {
+                    // Configure without user ID (anonymous)
+                    Purchases.configure({ apiKey });
+                }
+
+                // Get initial customer info
                 const info = await Purchases.getCustomerInfo();
                 setCustomerInfo(info);
                 checkEntitlements(info);
+
+                // Load offerings
+                const availableOfferings = await Purchases.getOfferings();
+                setOfferings(availableOfferings);
             } catch (e) {
                 console.error("RevenueCat init error", e);
+            } finally {
+                setIsLoading(false);
             }
         };
 
         init();
-    }, []);
+    }, [userId]);
 
     useEffect(() => {
         const customerInfoUpdated = (info: CustomerInfo) => {
@@ -50,7 +74,7 @@ export const RevenueCatProvider = ({ children }: { children: React.ReactNode }) 
     }, []);
 
     const checkEntitlements = (info: CustomerInfo) => {
-        // Check for 'klipp Pro' entitlement as requested
+        // Check for 'pro_access' entitlement
         if (info.entitlements.active['pro_access']) {
             setIsPro(true);
         } else {
@@ -58,7 +82,7 @@ export const RevenueCatProvider = ({ children }: { children: React.ReactNode }) 
         }
     };
 
-    const restorePermissions = async () => {
+    const restorePurchases = async () => {
         try {
             const info = await Purchases.restorePurchases();
             setCustomerInfo(info);
@@ -71,7 +95,7 @@ export const RevenueCatProvider = ({ children }: { children: React.ReactNode }) 
     };
 
     return (
-        <RevenueCatContext.Provider value={{ isPro, customerInfo, restorePermissions }}>
+        <RevenueCatContext.Provider value={{ isPro, customerInfo, offerings, isLoading, restorePurchases }}>
             {children}
         </RevenueCatContext.Provider>
     );

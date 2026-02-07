@@ -627,6 +627,7 @@ export const de = {
             export: 'Daten exportieren',
             support: 'Support',
             help: 'Hilfe-Center',
+            helpSubtitle: 'Häufig gestellte Fragen und Anleitungen',
             contact: 'Kontaktieren Sie uns',
             rate: 'App bewerten',
             account: 'Konto',

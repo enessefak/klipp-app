@@ -214,35 +214,10 @@ export class AttachmentService {
     }
     /**
      * Create attachment
-     * @param requestBody
      * @returns any Default Response
      * @throws ApiError
      */
-    public static postAttachments(
-        requestBody: {
-            folderId: string;
-            categoryId?: string;
-            attachmentTypeId: string;
-            title: string;
-            description?: string;
-            documentDate: string;
-            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
-            amount?: number | null;
-            taxAmount?: number | null;
-            currency?: string | null;
-            exchangeRate?: number | null;
-            tagIds?: Array<string>;
-            financial?: Record<string, any>;
-            insurance?: Record<string, any>;
-            identity?: Record<string, any>;
-            contract?: Record<string, any>;
-            medical?: Record<string, any>;
-            vehicle?: Record<string, any>;
-            education?: Record<string, any>;
-            details?: Record<string, any>;
-            customFields?: Record<string, any>;
-        },
-    ): CancelablePromise<{
+    public static postAttachments(): CancelablePromise<{
         success: boolean;
         message?: string;
         data?: {
@@ -338,8 +313,6 @@ export class AttachmentService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/attachments/',
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 400: `Default Response`,
             },

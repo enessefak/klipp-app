@@ -669,12 +669,14 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
 
             {/* FAB - Only show on My Folders tab */}
             {activeTab === 'myFolders' && (
-                <TouchableOpacity
-                    style={styles.fab}
-                    onPress={() => setIsAddMenuVisible(true)}
-                >
-                    <IconSymbol name="plus" size={32} color={colors.white} />
-                </TouchableOpacity>
+                <>
+                    <TouchableOpacity
+                        style={styles.fab}
+                        onPress={() => setIsAddMenuVisible(true)}
+                    >
+                        <IconSymbol name="plus" size={32} color={colors.white} />
+                    </TouchableOpacity>
+                </>
             )}
 
             <FolderAddMenuSheet

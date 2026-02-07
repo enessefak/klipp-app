@@ -7,6 +7,24 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class EFaturaService {
     /**
+     * Get Invoice Countries
+     * Get list of supported invoice countries with localized names.
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getEInvoicesInvoiceCountries(): CancelablePromise<{
+        success?: boolean;
+        data?: Array<{
+            code?: string;
+            name?: string;
+        }>;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/e-invoices/invoice-countries',
+        });
+    }
+    /**
      * Get Invoice Types & Form Config
      * Get dynamic invoice form configuration based on country types (e.g., SATIS, OZELMATRAH for TR).
      * @param country Country code (TR, DE, GB, GLOBAL supported)
@@ -24,7 +42,7 @@ export class EFaturaService {
             sections?: Array<{
                 id?: string;
                 title?: string;
-                type?: 'default' | 'table';
+                type?: 'default' | 'table' | 'type_specific';
                 fields?: Array<Record<string, any>>;
             }>;
         }>;
@@ -177,6 +195,50 @@ export class EFaturaService {
         });
     }
     /**
+     * Download Invoice PDF
+     * Download the generated PDF for an invoice attachment.
+     * @param attachmentId
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getEInvoicesPdf(
+        attachmentId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/e-invoices/{attachmentId}/pdf',
+            path: {
+                'attachmentId': attachmentId,
+            },
+        });
+    }
+    /**
+     * Send Invoice Email
+     * Send the invoice PDF via email.
+     * @param attachmentId
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static postEInvoicesEmail(
+        attachmentId: string,
+        requestBody: {
+            to: string;
+        },
+    ): CancelablePromise<{
+        success?: boolean;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/e-invoices/{attachmentId}/email',
+            path: {
+                'attachmentId': attachmentId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * List E-Invoices
      * List E-Invoices for a folder with optional filters.
      * @param folderId
@@ -243,10 +305,10 @@ export class EFaturaService {
             folderId: string;
             recipient: Record<string, any>;
             items: Array<{
-                name: string;
+                description: string;
                 quantity: number;
-                price: number;
-                taxRate: number | string;
+                unitPrice: number;
+                vatRate: number | string;
                 unitCode?: string;
             }>;
             issueDate: string;
@@ -261,6 +323,53 @@ export class EFaturaService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/e-invoices/manual',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Update Manual E-Invoice
+     * Update an existing manual invoice, regenerate PDF, and save changes.
+     * @param attachmentId Attachment ID to update
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static putEInvoicesManual(
+        attachmentId: string,
+        requestBody: {
+            folderId?: string;
+            recipient: Record<string, any>;
+            sender?: {
+                vkn?: string;
+                name?: string;
+                address?: string;
+                city?: string;
+                country?: string;
+            };
+            items: Array<{
+                description: string;
+                quantity: number;
+                unitPrice: number;
+                vatRate: number | string;
+                unitCode?: string;
+                discountAmount?: number;
+            }>;
+            issueDate: string;
+            currencyCode?: string;
+            invoiceType: string;
+            profileId: string;
+            notes?: string;
+            country?: string;
+            attachmentTypeId?: string;
+        },
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/e-invoices/manual/{attachmentId}',
+            path: {
+                'attachmentId': attachmentId,
+            },
             body: requestBody,
             mediaType: 'application/json',
         });

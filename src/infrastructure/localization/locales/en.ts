@@ -625,6 +625,7 @@ export const en = {
             export: 'Export Data',
             support: 'Support',
             help: 'Help Center',
+            helpSubtitle: 'FAQ and guides',
             contact: 'Contact Us',
             rate: 'Rate App',
             account: 'Account',

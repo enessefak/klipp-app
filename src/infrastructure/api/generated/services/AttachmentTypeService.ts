@@ -55,7 +55,22 @@ export class AttachmentTypeService {
                 defaultValue?: any;
                 filterable?: boolean;
                 filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
-                itemConfig?: Array<any>;
+                itemConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    unique?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<{
+                        key: string;
+                        label: string;
+                    }>;
+                    defaultValue?: any;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                }>;
             }> | null;
             defaultDetails?: Record<string, any> | null;
             fieldStyle?: {
@@ -136,7 +151,22 @@ export class AttachmentTypeService {
                 defaultValue?: any;
                 filterable?: boolean;
                 filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
-                itemConfig?: Array<any>;
+                itemConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    unique?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<{
+                        key: string;
+                        label: string;
+                    }>;
+                    defaultValue?: any;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                }>;
             }> | null;
             defaultDetails?: Record<string, any> | null;
             fieldStyle?: {
@@ -221,7 +251,22 @@ export class AttachmentTypeService {
                 defaultValue?: any;
                 filterable?: boolean;
                 filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
-                itemConfig?: Array<any>;
+                itemConfig?: Array<{
+                    key: string;
+                    label: string;
+                    type: 'text' | 'number' | 'date' | 'select' | 'textarea' | 'duration' | 'array';
+                    required?: boolean;
+                    unique?: boolean;
+                    placeholder?: string;
+                    unit?: string;
+                    options?: Array<{
+                        key: string;
+                        label: string;
+                    }>;
+                    defaultValue?: any;
+                    filterable?: boolean;
+                    filterType?: 'text' | 'number' | 'date' | 'dateRange' | 'select' | 'amount';
+                }>;
             }> | null;
             defaultDetails?: Record<string, any> | null;
             fieldStyle?: {

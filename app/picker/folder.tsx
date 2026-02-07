@@ -39,13 +39,16 @@ export default function FolderPickerScreen() {
     const [moving, setMoving] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+    const [isAddMenuVisible, setIsAddMenuVisible] = useState(false);
 
     const breadcrumbScrollRef = useRef<ScrollView>(null);
     const hasInitializedRef = useRef(false);
 
-    useEffect(() => {
-        loadFolders();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadFolders();
+        }, [])
+    );
 
     useEffect(() => {
         if (!loading && folders.length > 0 && selectedId && !hasInitializedRef.current) {
@@ -412,7 +415,9 @@ export default function FolderPickerScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.title}>
                     {isMoveMode ? I18nLocal.t('folders.picker.move_title') : I18nLocal.t('folders.picker.modal_title')}
                 </ThemedText>
-                <View style={styles.closeButton} />
+                <TouchableOpacity onPress={() => setIsAddMenuVisible(true)} style={styles.closeButton}>
+                    <IconSymbol name="plus" size={22} color={colors.primary} />
+                </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
@@ -449,6 +454,15 @@ export default function FolderPickerScreen() {
                             <ThemedText style={styles.emptyText}>
                                 {searchQuery ? I18nLocal.t('folders.picker.empty') : I18nLocal.t('folders.empty')}
                             </ThemedText>
+                            {!searchQuery && (
+                                <Button
+                                    title={I18nLocal.t('folders.createFolder')}
+                                    onPress={() => setIsAddMenuVisible(true)}
+                                    size="medium"
+                                    style={{ marginTop: 12 }}
+                                    icon="folder.badge.plus"
+                                />
+                            )}
                         </View>
                     }
                     style={styles.list}
@@ -476,6 +490,14 @@ export default function FolderPickerScreen() {
                     />
                 </View>
             )}
+
+            <FolderAddMenuSheet
+                visible={isAddMenuVisible}
+                onClose={() => setIsAddMenuVisible(false)}
+                onCreateFolder={() => router.push({ pathname: '/folders/create', params: currentFolderId ? { parentId: currentFolderId } : {} })}
+                onCreatePersonnelFile={() => { }} // Not implemented in picker context yet
+                isRootLevel={!currentFolderId}
+            />
         </SafeAreaView>
     );
 }

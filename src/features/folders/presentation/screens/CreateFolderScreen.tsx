@@ -46,7 +46,7 @@ const COLORS = [
 export function CreateFolderScreen() {
     const { colors } = useSettings();
     const router = useRouter();
-    const params = useLocalSearchParams<{ id?: string; parentId?: string; initialTab?: string }>();
+    const params = useLocalSearchParams<{ id?: string; parentId?: string; initialTab?: string; name?: string; icon?: string; color?: string }>();
     const isEditing = !!params.id;
     const folderId = params.id;
     const parentId = params.parentId || null;
@@ -60,9 +60,9 @@ export function CreateFolderScreen() {
     const [initialData, setInitialData] = useState<Folder | null>(null);
 
     // Form State
-    const [name, setName] = useState('');
-    const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
-    const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+    const [name, setName] = useState(params.name || '');
+    const [selectedIcon, setSelectedIcon] = useState(params.icon || ICONS[0]);
+    const [selectedColor, setSelectedColor] = useState(params.color || COLORS[0]);
     const [requiresApproval, setRequiresApproval] = useState(false);
     const [isConfidential, setIsConfidential] = useState(false);
     const [allowedTransactionTypes, setAllowedTransactionTypes] = useState<string[]>([]);

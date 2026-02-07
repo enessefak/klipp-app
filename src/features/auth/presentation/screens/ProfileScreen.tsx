@@ -388,13 +388,14 @@ export function ProfileScreen() {
         if (Platform.OS === 'ios') {
             ActionSheetIOS.showActionSheetWithOptions(
                 {
-                    options: ['Türkçe', 'English', i18n.t('profile.settings.cancel')],
-                    cancelButtonIndex: 2,
+                    options: ['Türkçe', 'English', 'Deutsch', i18n.t('profile.settings.cancel')],
+                    cancelButtonIndex: 3,
                     title: i18n.t('profile.settings.language'),
                 },
                 (buttonIndex) => {
                     if (buttonIndex === 0) setLanguage('tr');
                     else if (buttonIndex === 1) setLanguage('en');
+                    else if (buttonIndex === 2) setLanguage('de');
                 }
             );
         } else {
@@ -404,6 +405,7 @@ export function ProfileScreen() {
                 [
                     { text: 'Türkçe', onPress: () => setLanguage('tr') },
                     { text: 'English', onPress: () => setLanguage('en') },
+                    { text: 'Deutsch', onPress: () => setLanguage('de') },
                     { text: i18n.t('profile.settings.cancel'), style: 'cancel' },
                 ]
             );
@@ -687,6 +689,13 @@ export function ProfileScreen() {
                 </SettingSection> */}
 
                 <SettingSection title={i18n.t('profile.settings.support')}>
+                    <SettingItem
+                        icon="questionmark.circle.fill"
+                        iconColor="#34C759"
+                        title={i18n.t('profile.settings.help') || 'Yardım'}
+                        subtitle={i18n.t('profile.settings.helpSubtitle') || 'Sık sorulan sorular ve rehberler'}
+                        onPress={() => router.push('/help' as any)}
+                    />
                     <SettingItem
                         icon="envelope.fill"
                         iconColor="#007AFF"
