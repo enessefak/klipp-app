@@ -10,19 +10,11 @@
       "ios": {
         "credentialsSource": "remote"
       },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://klipp-api.orjinfinity.net",
-        "EXPO_PUBLIC_ENV": "development"
-      }
     },
     "preview": {
       "distribution": "store",
       "ios": {
         "credentialsSource": "remote"
-      },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://klipp-api.orjinfinity.net",
-        "EXPO_PUBLIC_ENV": "preview"
       },
       "channel": "preview"
     },
@@ -34,10 +26,6 @@
       },
       "android": {
         "credentialsSource": "remote"
-      },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://klipp-api.orjinfinity.net",
-        "EXPO_PUBLIC_ENV": "production"
       },
       "channel": "production"
     }
