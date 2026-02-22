@@ -12,7 +12,7 @@
     "ios:prebuild": "expo prebuild --platform ios --clean",
     "web": "expo start --web",
     "lint": "expo lint",
-    "generate-api": "npx openapi --input http://localhost:4000/documentation/json --output ./src/infrastructure/api/generated --client axios",
+    "generate-api": "npx openapi --input http://localhost:4000/documentation/json --output ./src/infrastructure/api/generated --client axios && node scripts/patch-api-client.js",
     "build:dev": "eas build --platform ios --profile development",
     "build:dev:android": "eas build --platform android --profile development",
     "build:preview": "eas build --platform ios --profile preview",

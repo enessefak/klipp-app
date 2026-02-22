@@ -8,7 +8,6 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Attachment, AttachmentFilters } from '@/src/features/attachments/domain/Attachment';
-import { AttachmentCard } from '@/src/features/attachments/presentation/components/AttachmentCard';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { ImportEInvoiceModal } from '@/src/features/e-invoices/presentation/components/ImportEInvoiceModal';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
@@ -282,6 +281,40 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
             color: '#FFFFFF',
             fontWeight: '600',
         },
+        rootDocsButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 16,
+            backgroundColor: colors.card,
+            borderRadius: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        rootDocsIcon: {
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 16,
+        },
+        rootDocsInfo: {
+            flex: 1,
+        },
+        rootDocsName: {
+            fontSize: 16,
+            color: colors.text,
+        },
+        rootDocsCount: {
+            fontSize: 12,
+            color: colors.gray,
+            marginTop: 2,
+        },
     }), [colors]);
 
     // Load shared folders on mount (only for root level)
@@ -469,18 +502,28 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                             <View style={styles.sectionHeader}>
                                 <View>
                                     <ThemedText type="subtitle" style={styles.sectionTitle}>
-                                        {i18n.t('receipts.home.title')}
+                                        {i18n.t('folders.section.contents')}
                                     </ThemedText>
                                 </View>
                             </View>
                             <View style={{ paddingHorizontal: 16 }}>
-                                {filteredAttachments.map((attachment) => (
-                                    <AttachmentCard
-                                        key={attachment.id}
-                                        attachment={attachment}
-                                        onPress={() => handlePressAttachment(attachment)}
-                                    />
-                                ))}
+                                <TouchableOpacity
+                                    style={[styles.rootDocsButton, { backgroundColor: colors.card, marginBottom: 12 }]}
+                                    onPress={() => router.push('/folders/root/documents')}
+                                >
+                                    <View style={[styles.rootDocsIcon, { backgroundColor: colors.primary + '15' }]}>
+                                        <IconSymbol name="doc.fill" size={24} color={colors.primary} />
+                                    </View>
+                                    <View style={styles.rootDocsInfo}>
+                                        <ThemedText type="defaultSemiBold" style={styles.rootDocsName}>
+                                            Belgeler
+                                        </ThemedText>
+                                        <ThemedText style={styles.rootDocsCount}>
+                                            {filteredAttachments.length} belge
+                                        </ThemedText>
+                                    </View>
+                                    <IconSymbol name="chevron.right" size={20} color={colors.gray} />
+                                </TouchableOpacity>
                             </View>
                         </>
                     )}
@@ -686,7 +729,6 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                 onCreatePersonnelFile={() => setIsPersonnelModalVisible(true)}
                 onImportPress={() => setIsImportModalVisible(true)}
                 folderId={parentId}
-                isRootLevel={!parentId}
             />
 
             <CreatePersonnelFolderModal

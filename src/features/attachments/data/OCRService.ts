@@ -53,7 +53,7 @@ export class OCRService {
 
             const requestPayload: Record<string, any> = {
                 mimeType: apiMimeType,
-                folderId
+                ...(folderId ? { folderId } : {}),
             };
 
             if (base64Files.length === 1) {

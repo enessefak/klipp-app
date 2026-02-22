@@ -3,7 +3,6 @@ import { Control, Controller, FieldErrors, UseFormSetValue } from 'react-hook-fo
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { AttachmentTypeSelector } from '@/components/AttachmentTypeSelector';
-import { FolderSelector } from '@/components/FolderSelector';
 import { Button, DatePickerField, FormContainer, FormField, TextInput } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 
@@ -158,23 +157,6 @@ export const EditDetailsStep = ({
                 </View>
             )}
 
-            {/* Folder Selection */}
-            <Controller
-                control={control}
-                name="folderId"
-                render={({ field: { onChange, value } }) => (
-                    <FormField error={errors.folderId?.message}>
-                        <FolderSelector
-                            label={i18n.t('folders.title')}
-                            value={value}
-                            onSelect={onChange}
-                            placeholder={i18n.t('folders.picker.placeholder')}
-                            folders={folders}
-                            requiredPermission="CREATE"
-                        />
-                    </FormField>
-                )}
-            />
 
             {/* Type Selection */}
             <Controller

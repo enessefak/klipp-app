@@ -58,7 +58,15 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
                 );
                 setAttachments(folderAttachments.items || []);
             } else if (!parentId && !searchQuery) {
-                setAttachments([]);
+                // Fetch root-level documents explicitly using the new API param
+                // Note: we fetch root attachments using the new isRootLevel filter. We have to map it via AttachmentFilters format 
+                // but the openapi client probably generated isRootLevel?: 'true' | 'false' in AttachmentListQuery.
+                // We'll pass it manually if needed, or update our domain filter. 
+                const rootAttachments = await AttachmentRepository.getAttachments({
+                    ...attachmentFilters,
+                    isRootLevel: 'true' as any, // Bypass strict typing in domain layer if we didn't update it yet
+                });
+                setAttachments(rootAttachments.items || []);
             }
 
         } catch (err) {

@@ -22,10 +22,13 @@ export function FolderDocumentsScreen() {
     const router = useRouter();
     const { colors } = useSettings();
 
+    const isRoot = id === 'root';
+    const folderIdForFetch = isRoot ? undefined : id;
+
     const [currentFolder, setCurrentFolder] = useState<Folder | undefined>(undefined);
     const [searchQuery, setSearchQuery] = useState('');
     const [isFilterVisible, setIsFilterVisible] = useState(false);
-    const [filters, setFilters] = useState<AttachmentFilters>({ folderId: id }); // Initialize with folderId
+    const [filters, setFilters] = useState<AttachmentFilters>({ folderId: folderIdForFetch }); // Initialize with folderId
     const [folderFilters, setFolderFilters] = useState<FolderFilters>({});
     const { setFolderCallback } = usePicker();
 
@@ -42,13 +45,13 @@ export function FolderDocumentsScreen() {
     }, [filters, searchQuery]);
 
     // Use backend filtering via useFolders hook
-    const { attachments, loading, refresh } = useFolders(id, { attachmentFilters: effectiveFilters });
+    const { attachments, loading, refresh } = useFolders(folderIdForFetch, { attachmentFilters: effectiveFilters });
 
     useEffect(() => {
-        if (id) {
+        if (id && !isRoot) {
             FolderRepository.getFolderById(id).then(setCurrentFolder).catch(console.error);
         }
-    }, [id]);
+    }, [id, isRoot]);
 
     const handleApplyFilters = (newFilters: AttachmentFilters, newFolderFilters: FolderFilters) => {
         setFilters(newFilters);
@@ -145,7 +148,7 @@ export function FolderDocumentsScreen() {
                 onReset={handleResetFilters}
                 attachmentFilters={filters}
                 folderFilters={folderFilters}
-                fixedFolderId={id}
+                fixedFolderId={folderIdForFetch}
                 fixedFolder={currentFolder}
                 showFolderFilters={false}
                 onReopen={() => setIsFilterVisible(true)}

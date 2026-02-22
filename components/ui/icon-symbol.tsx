@@ -74,6 +74,7 @@ const MAPPING = {
   'person.text.rectangle': 'badge',
   'circle': 'radio-button-unchecked',
   'checkmark.circle.fill': 'check-circle',
+  'checkmark.seal.fill': 'verified',
   'checkmark': 'check',
   'plus': 'add',
   'sparkles': 'auto-awesome',

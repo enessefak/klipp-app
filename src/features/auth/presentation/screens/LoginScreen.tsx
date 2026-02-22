@@ -3,13 +3,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Image, Platform, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Alert, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
 import { z } from 'zod';
 
 import { Button, FormContainer, FormField, TextInput } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
+import { ApiError } from '@/src/infrastructure/api/generated/core/ApiError';
+import { UserService } from '@/src/infrastructure/api/generated/services/UserService';
 import i18n from '@/src/infrastructure/localization/i18n';
 
 // Logo import
@@ -30,13 +32,17 @@ export function LoginScreen() {
     const [isAppleLoading, setIsAppleLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+    const { control, handleSubmit, formState: { errors }, watch } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
             email: '',
             password: '',
         },
     });
+    const [isForgotVisible, setIsForgotVisible] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [isSendingReset, setIsSendingReset] = useState(false);
+    const emailValue = watch('email');
 
     const onSubmit = async (data: LoginFormData) => {
         setIsSubmitting(true);
@@ -171,9 +177,98 @@ export function LoginScreen() {
             fontWeight: '700',
             fontSize: 14,
         },
+        actionsRow: {
+            alignItems: 'flex-end',
+            marginTop: 4,
+        },
+        forgotButton: {
+            paddingVertical: 8,
+        },
+        forgotText: {
+            color: colors.primary,
+            fontSize: 13,
+            fontWeight: '600',
+        },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            justifyContent: 'flex-end',
+        },
+        modalCard: {
+            backgroundColor: colors.card,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingHorizontal: 24,
+            paddingTop: 24,
+            paddingBottom: 32,
+            borderTopWidth: 1,
+            borderColor: colors.cardBorder,
+            gap: 16,
+        },
+        modalHandle: {
+            width: 48,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: colors.border,
+            alignSelf: 'center',
+            marginBottom: 12,
+        },
+        modalTitle: {
+            fontSize: 20,
+            fontWeight: '700',
+            color: colors.text,
+        },
+        modalDescription: {
+            color: colors.textLight,
+            fontSize: 14,
+        },
+        modalActions: {
+            flexDirection: 'row',
+            gap: 12,
+        },
+        modalButton: {
+            flex: 1,
+        },
     }), [colors]);
 
+    const openForgotPassword = () => {
+        setForgotEmail(emailValue || '');
+        setIsForgotVisible(true);
+    };
+
+    const closeForgotPassword = () => {
+        if (isSendingReset) return;
+        setIsForgotVisible(false);
+    };
+
+    const handleForgotPassword = async () => {
+        const email = forgotEmail.trim();
+        if (!email) {
+            Alert.alert(i18n.t('auth.login.forgotPasswordTitle'), i18n.t('auth.login.forgotPasswordMissingEmail'));
+            return;
+        }
+
+        setIsSendingReset(true);
+        try {
+            await UserService.postUsersForgotPassword({ email });
+            Alert.alert(i18n.t('auth.login.forgotPasswordTitle'), i18n.t('auth.login.forgotPasswordSuccess'));
+            setIsForgotVisible(false);
+        } catch (error) {
+            console.error('Forgot password error', error);
+            const fallbackMessage = i18n.t('auth.login.forgotPasswordError');
+            if (error instanceof ApiError) {
+                const serverMessage = error.body?.message || fallbackMessage;
+                Alert.alert(i18n.t('auth.login.forgotPasswordTitle'), serverMessage);
+            } else {
+                Alert.alert(i18n.t('auth.login.forgotPasswordTitle'), fallbackMessage);
+            }
+        } finally {
+            setIsSendingReset(false);
+        }
+    };
+
     return (
+        <>
         <FormContainer
             scrollable={true}
             backgroundColor={colors.background}
@@ -256,6 +351,12 @@ export function LoginScreen() {
                     )}
                 />
 
+                <View style={styles.actionsRow}>
+                    <TouchableOpacity onPress={openForgotPassword} style={styles.forgotButton}>
+                        <ThemedText style={styles.forgotText}>{i18n.t('auth.login.forgotPasswordLink')}</ThemedText>
+                    </TouchableOpacity>
+                </View>
+
                 {error && <ThemedText style={styles.globalError}>{error}</ThemedText>}
 
                 <Button
@@ -278,5 +379,47 @@ export function LoginScreen() {
                 </View>
             </View>
         </FormContainer>
+
+        <Modal
+            visible={isForgotVisible}
+            animationType="slide"
+            transparent
+            onRequestClose={closeForgotPassword}
+        >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                        <View style={styles.modalCard}>
+                            <View style={styles.modalHandle} />
+                            <ThemedText style={styles.modalTitle}>{i18n.t('auth.login.forgotPasswordTitle')}</ThemedText>
+                            <ThemedText style={styles.modalDescription}>{i18n.t('auth.login.forgotPasswordDescription')}</ThemedText>
+                            <TextInput
+                                placeholder={i18n.t('auth.login.forgotPasswordEmailPlaceholder')}
+                                value={forgotEmail}
+                                onChangeText={setForgotEmail}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                            />
+                            <View style={styles.modalActions}>
+                                <Button
+                                    title={i18n.t('auth.login.forgotPasswordCancel')}
+                                    variant="ghost"
+                                    onPress={closeForgotPassword}
+                                    disabled={isSendingReset}
+                                    style={styles.modalButton}
+                                />
+                                <Button
+                                    title={i18n.t('auth.login.forgotPasswordSubmit')}
+                                    onPress={handleForgotPassword}
+                                    loading={isSendingReset}
+                                    style={styles.modalButton}
+                                />
+                            </View>
+                        </View>
+                    </KeyboardAvoidingView>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+        </>
     );
 }

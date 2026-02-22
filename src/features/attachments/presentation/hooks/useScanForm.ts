@@ -23,7 +23,7 @@ const customFieldSchema = z.object({
 const scanFormSchema = z.object({
     title: z.string().min(1, i18n.t('receipts.scan.validation.title_required')),
     attachmentTypeId: z.string().min(1, i18n.t('receipts.scan.validation.type_required')),
-    folderId: z.string().min(1, i18n.t('receipts.scan.validation.folder_required')),
+    folderId: z.string().optional(),
     documentDate: z.date(),
     details: z.record(z.string(), z.any()).optional(),
     description: z.string().optional(),
@@ -247,7 +247,7 @@ export function useScanForm() {
                 title: data.title,
                 description: data.description || undefined,
                 documentDate: data.documentDate.toISOString(),
-                folderId: data.folderId,
+                folderId: data.folderId || undefined,
                 attachmentTypeId: data.attachmentTypeId,
                 details: Object.keys(mergedDetails).length > 0 ? mergedDetails : undefined,
             };

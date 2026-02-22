@@ -1,4 +1,5 @@
 import { SubscriptionProduct } from '@/src/features/subscription/domain/SubscriptionProduct';
+import i18n from '@/src/infrastructure/localization/i18n';
 import { useRevenueCat } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -72,7 +73,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         try {
             const pkg = packageMap.get(productId);
             if (!pkg) {
-                Alert.alert('Hata', 'Ürün bulunamadı.');
+                Alert.alert(
+                    i18n.t('subscription.alerts.titles.error'),
+                    i18n.t('subscription.alerts.productMissing')
+                );
                 return false;
             }
 
@@ -80,11 +84,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
             // Check if purchase was successful
             if (customerInfo.entitlements.active['pro_access']) {
-                Alert.alert('Başarılı!', 'Aboneliğiniz aktif edildi.');
+                Alert.alert(
+                    i18n.t('subscription.alerts.titles.success'),
+                    i18n.t('subscription.alerts.purchaseActivated')
+                );
                 router.push('/subscription/customer-center');
                 return true;
             } else {
-                Alert.alert('Bilgi', 'Satın alma işlemi tamamlandı.');
+                Alert.alert(
+                    i18n.t('subscription.alerts.titles.info'),
+                    i18n.t('subscription.alerts.purchaseCompleted')
+                );
                 return true;
             }
         } catch (e: any) {
@@ -93,7 +103,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
                 return false;
             }
             console.error('Purchase failed', e);
-            Alert.alert('Hata', e.message || 'Satın alma işlemi başarısız oldu.');
+            Alert.alert(
+                i18n.t('subscription.alerts.titles.error'),
+                e?.message || (i18n.t('subscription.alerts.purchaseFailed') as string)
+            );
             return false;
         } finally {
             setIsPurchasing(false);
@@ -104,13 +117,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         try {
             const customerInfo = await restorePurchases();
             if (customerInfo && customerInfo.entitlements.active['pro_access']) {
-                Alert.alert('Başarılı!', 'Aboneliğiniz geri yüklendi.');
+                Alert.alert(
+                    i18n.t('subscription.alerts.titles.success'),
+                    i18n.t('subscription.alerts.restoreSuccess')
+                );
             } else {
-                Alert.alert('Bilgi', 'Geri yüklenecek abonelik bulunamadı.');
+                Alert.alert(
+                    i18n.t('subscription.alerts.titles.info'),
+                    i18n.t('subscription.alerts.restoreEmpty')
+                );
             }
         } catch (e) {
             console.error('Restore failed', e);
-            Alert.alert('Hata', 'Geri yükleme işlemi başarısız oldu.');
+            Alert.alert(
+                i18n.t('subscription.alerts.titles.error'),
+                i18n.t('subscription.alerts.restoreFailed')
+            );
         }
     };
 

@@ -15,6 +15,7 @@ module.exports = {
             supportsTablet: true,
             bundleIdentifier: 'com.enes.klipp',
             usesAppleSignIn: true,
+            associatedDomains: ['applinks:klipphq.com'],
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false,
                 NSCameraUsageDescription: 'Belge ve fiş taramak için kamera izni gereklidir.',
@@ -33,6 +34,19 @@ module.exports = {
             googleServicesFile: './google-services.json',
             edgeToEdgeEnabled: true,
             predictiveBackGestureEnabled: false,
+            intentFilters: [
+                {
+                    action: 'VIEW',
+                    data: [
+                        {
+                            scheme: 'https',
+                            host: 'klipphq.com',
+                            pathPrefix: '/reset-password',
+                        },
+                    ],
+                    category: ['BROWSABLE', 'DEFAULT'],
+                },
+            ],
         },
         web: {
             output: 'static',
@@ -90,7 +104,9 @@ module.exports = {
             reactCompiler: true,
         },
         extra: {
-            router: {},
+            router: {
+                origin: 'https://klipphq.com',
+            },
             eas: {
                 projectId: '1c046509-b7d5-4810-9fa5-51cc9fdb409e',
             },

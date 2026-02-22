@@ -218,7 +218,7 @@ export default function EditAttachmentScreen() {
                 // amount: data.details?.amount ? String(data.details.amount) : '',
                 // currency: data.details?.currency || 'TRY',
                 attachmentTypeId: data.attachmentTypeId,
-                folderId: data.folderId,
+                folderId: data.folderId ?? undefined,
                 categoryId: (data as any).categoryId || '',
                 documentDate: new Date(data.documentDate),
                 description: data.description || '',

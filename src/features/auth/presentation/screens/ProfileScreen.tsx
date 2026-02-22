@@ -6,6 +6,7 @@ import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { useNotifications } from '@/src/features/notifications/presentation/useNotifications';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { useFolderSharing } from '@/src/features/sharing/presentation/useFolderSharing';
+import { formatSubscriptionPlan, resolveSubscriptionProviderKey } from '@/src/features/subscription/utils/planLabel';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { useRevenueCat } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import * as Clipboard from 'expo-clipboard';
@@ -145,9 +146,11 @@ type ProfileFormState = {
 
 type CompanyFieldKey = Exclude<keyof ProfileFormState, 'name' | 'email'>;
 
+const WEB_LOGIN_URL = 'https://klipphq.com/auth/login?redirect=%2Fdashboard';
+
 export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
-    const { isPro } = useRevenueCat();
+    const { isPro, hasExternalSubscription, externalSubscription, refreshSubscriptionStatus } = useRevenueCat();
     const router = useRouter();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const { unreadCount, refreshUnreadCount } = useNotifications();
@@ -539,6 +542,63 @@ export function ProfileScreen() {
 
     const { from } = useLocalSearchParams<{ from: string }>();
 
+    const formattedPlan = useMemo(() => formatSubscriptionPlan(externalSubscription?.planId), [externalSubscription?.planId]);
+    const providerKey = useMemo(() => resolveSubscriptionProviderKey(externalSubscription?.provider), [externalSubscription?.provider]);
+    const providerLabel = i18n.t(`subscription.providers.${providerKey}`);
+    const isWebManaged = providerKey === 'web' || providerKey === 'lemonsqueezy';
+    const externalDescriptionKey = isWebManaged ? 'subscription.external.webDescription' : 'subscription.external.description';
+
+    const externalSubtitleParts = useMemo(() => {
+        if (!hasExternalSubscription) return [] as string[];
+        const parts: string[] = [];
+        if (formattedPlan) {
+            parts.push(i18n.t('subscription.external.planLabel', { plan: formattedPlan }));
+        }
+        parts.push(i18n.t('subscription.external.providerInfo', { provider: providerLabel }));
+        return parts;
+    }, [formattedPlan, hasExternalSubscription, providerLabel]);
+
+    const subscriptionTitle = hasExternalSubscription
+        ? 'Klipp Pro (Web)'
+        : (isPro ? 'Klipp Pro' : i18n.t('subscription.title'));
+
+    const subscriptionSubtitle = hasExternalSubscription
+        ? externalSubtitleParts.join(' • ')
+        : (isPro ? i18n.t('subscription.status.premium_plan') : i18n.t('subscription.status.free_plan'));
+
+    const subscriptionCtaLabel = hasExternalSubscription
+        ? (isWebManaged ? i18n.t('subscription.external.openWeb') : i18n.t('subscription.external.close'))
+        : (isPro ? 'Manage' : i18n.t('common.actions.upgrade'));
+
+    const handleSubscriptionPress = () => {
+        if (hasExternalSubscription) {
+            const buttons = [
+                {
+                    text: i18n.t('subscription.external.close'),
+                    onPress: () => {
+                        refreshSubscriptionStatus(true);
+                    },
+                },
+            ];
+
+            if (isWebManaged) {
+                buttons.unshift({
+                    text: i18n.t('subscription.external.openWeb'),
+                    onPress: () => Linking.openURL(WEB_LOGIN_URL),
+                });
+            }
+
+            Alert.alert(
+                i18n.t('subscription.external.title'),
+                i18n.t(externalDescriptionKey, { provider: providerLabel }),
+                buttons,
+            );
+            return;
+        }
+
+        router.push(isPro ? '/subscription/customer-center' : '/subscription/paywall');
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={['top']} key={language}>
             {/* Header */}
@@ -576,13 +636,13 @@ export function ProfileScreen() {
                     <SettingItem
                         icon="checkmark.seal.fill"
                         iconColor="#4A90E2"
-                        title={isPro ? "Klipp Pro" : i18n.t('subscription.title')}
-                        subtitle={isPro ? "Active" : i18n.t('subscription.status.free_plan')}
-                        onPress={() => router.push(isPro ? '/subscription/customer-center' : '/subscription/paywall')}
+                        title={subscriptionTitle}
+                        subtitle={subscriptionSubtitle}
+                        onPress={handleSubscriptionPress}
                         rightElement={
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <ThemedText style={{ color: colors.primary, fontSize: 13, marginRight: 4 }}>
-                                    {isPro ? "Manage" : i18n.t('common.actions.upgrade')}
+                                    {subscriptionCtaLabel}
                                 </ThemedText>
                                 <IconSymbol name="chevron.right" size={14} color={colors.primary} />
                             </View>
@@ -598,9 +658,9 @@ export function ProfileScreen() {
                         icon="desktopcomputer"
                         iconColor="#007AFF"
                         title={i18n.t('profile.settings.webLoginUrl') || 'Web Giriş Adresi'}
-                        subtitle="https://klipphq.com/login"
+                        subtitle={WEB_LOGIN_URL}
                         onPress={async () => {
-                            await Clipboard.setStringAsync('https://klipphq.com/login');
+                            await Clipboard.setStringAsync(WEB_LOGIN_URL);
                             Alert.alert('Bilgi', i18n.t('profile.settings.urlCopied') || 'Adres kopyalandı');
                         }}
                         rightElement={
@@ -641,6 +701,13 @@ export function ProfileScreen() {
                 </SettingSection>
 
                 <SettingSection title={i18n.t('profile.settings.general')}>
+                    <SettingItem
+                        icon="doc.text.fill"
+                        iconColor="#AF52DE"
+                        title={i18n.t('settings.documentTypes.title') || 'Belge Türleri'}
+                        subtitle={i18n.t('settings.documentTypes.description') || 'Özel veya sistem türlerini yönetin'}
+                        onPress={() => router.push('/document-types' as any)}
+                    />
                     <SettingItem
                         icon="bell.fill"
                         iconColor="#FF9500"

@@ -54,6 +54,7 @@ export class AttachmentService {
      * @param createdAtFrom
      * @param createdAtTo
      * @param includeShared
+     * @param isRootLevel
      * @param detailsFilter
      * @param amountMin
      * @param amountMax
@@ -79,6 +80,7 @@ export class AttachmentService {
         createdAtFrom?: string,
         createdAtTo?: string,
         includeShared?: 'true' | 'false',
+        isRootLevel?: 'true' | 'false',
         detailsFilter?: string,
         amountMin?: number,
         amountMax?: number,
@@ -94,7 +96,7 @@ export class AttachmentService {
             items: Array<{
                 id: string;
                 userId: string;
-                folderId: string;
+                folderId?: string;
                 categoryId?: string | null;
                 attachmentTypeId: string;
                 title: string;
@@ -201,6 +203,7 @@ export class AttachmentService {
                 'createdAtFrom': createdAtFrom,
                 'createdAtTo': createdAtTo,
                 'includeShared': includeShared,
+                'isRootLevel': isRootLevel,
                 'detailsFilter': detailsFilter,
                 'amountMin': amountMin,
                 'amountMax': amountMax,
@@ -214,16 +217,41 @@ export class AttachmentService {
     }
     /**
      * Create attachment
+     * @param requestBody
      * @returns any Default Response
      * @throws ApiError
      */
-    public static postAttachments(): CancelablePromise<{
+    public static postAttachments(
+        requestBody: {
+            folderId?: string;
+            categoryId?: string;
+            attachmentTypeId: string;
+            title: string;
+            description?: string;
+            documentDate: string;
+            transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+            amount?: number | null;
+            taxAmount?: number | null;
+            currency?: string | null;
+            exchangeRate?: number | null;
+            tagIds?: Array<string>;
+            financial?: Record<string, any>;
+            insurance?: Record<string, any>;
+            identity?: Record<string, any>;
+            contract?: Record<string, any>;
+            medical?: Record<string, any>;
+            vehicle?: Record<string, any>;
+            education?: Record<string, any>;
+            details?: Record<string, any>;
+            customFields?: Record<string, any>;
+        },
+    ): CancelablePromise<{
         success: boolean;
         message?: string;
         data?: {
             id: string;
             userId: string;
-            folderId: string;
+            folderId?: string;
             categoryId?: string | null;
             attachmentTypeId: string;
             title: string;
@@ -313,6 +341,8 @@ export class AttachmentService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/attachments/',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Default Response`,
             },
@@ -327,7 +357,7 @@ export class AttachmentService {
      */
     public static postAttachmentsRecord(
         requestBody: {
-            folderId: string;
+            folderId?: string;
             attachmentTypeId: string;
             title: string;
             description?: string;
@@ -341,7 +371,7 @@ export class AttachmentService {
         data?: {
             id: string;
             userId: string;
-            folderId: string;
+            folderId?: string;
             categoryId?: string | null;
             attachmentTypeId: string;
             title: string;
@@ -452,7 +482,7 @@ export class AttachmentService {
         data?: {
             id: string;
             userId: string;
-            folderId: string;
+            folderId?: string;
             categoryId?: string | null;
             attachmentTypeId: string;
             title: string;
@@ -585,7 +615,7 @@ export class AttachmentService {
         data?: {
             id: string;
             userId: string;
-            folderId: string;
+            folderId?: string;
             categoryId?: string | null;
             attachmentTypeId: string;
             title: string;
@@ -722,7 +752,7 @@ export class AttachmentService {
         data?: {
             id: string;
             userId: string;
-            folderId: string;
+            folderId?: string;
             categoryId?: string | null;
             attachmentTypeId: string;
             title: string;

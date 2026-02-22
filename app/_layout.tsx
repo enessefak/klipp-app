@@ -6,7 +6,7 @@ import '@/src/infrastructure/api/apiConfig';
 import { PickerProvider } from '@/src/infrastructure/picker/PickerContext';
 import { RevenueCatProvider } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, useFonts } from '@expo-google-fonts/outfit';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
@@ -19,6 +19,10 @@ function RootLayoutContent() {
   const { isAuthenticated } = useAuth();
   const { language, colors } = useSettings();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const hideChatBubble = pathname?.includes('/subscription/paywall');
+  const canShowChatBubble = isAuthenticated && !hideChatBubble;
 
   // Push notification listener - registers token with backend when authenticated
   usePushNotifications(isAuthenticated);
@@ -74,7 +78,7 @@ function RootLayoutContent() {
           }}
         />
       </Stack>
-      {isAuthenticated && (
+      {canShowChatBubble && (
         <View style={{ position: 'absolute', bottom: 100, left: 20, zIndex: 999 }} pointerEvents="box-none">
           <TouchableOpacity
             onPress={() => router.push('/chat')}

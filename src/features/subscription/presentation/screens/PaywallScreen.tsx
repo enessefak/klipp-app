@@ -1,137 +1,194 @@
 import { Button } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useSubscription } from '@/src/features/subscription/presentation/SubscriptionContext';
+import { formatSubscriptionPlan, resolveSubscriptionProviderKey } from '@/src/features/subscription/utils/planLabel';
 import i18n from '@/src/infrastructure/localization/i18n';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useRevenueCat } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { CustomerInfo, PurchasesError } from 'react-native-purchases';
+import RevenueCatUI from 'react-native-purchases-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const WEB_DASHBOARD_URL = 'https://klipphq.com/auth/login?redirect=%2Fdashboard';
+
 export function PaywallScreen() {
-    const { products, isLoading, isPurchasing, purchase, restore } = useSubscription();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+    const {
+        offerings,
+        isLoading,
+        refreshOfferings,
+        refreshSubscriptionStatus,
+        hasExternalSubscription,
+        externalSubscription,
+    } = useRevenueCat();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const currentOffering = offerings?.current ?? null;
+    const isBusy = isLoading || isRefreshing;
+
+    const formattedPlan = useMemo(
+        () => formatSubscriptionPlan(externalSubscription?.planId),
+        [externalSubscription?.planId]
+    );
+    const providerKey = resolveSubscriptionProviderKey(externalSubscription?.provider);
+    const providerLabel = i18n.t(`subscription.providers.${providerKey}`);
+    const isWebManaged = providerKey === 'web' || providerKey === 'lemonsqueezy';
+    const externalDescriptionKey = isWebManaged
+        ? 'subscription.external.webDescription'
+        : 'subscription.external.description';
 
     useEffect(() => {
-        // Auto select first product when loaded
-        if (products.length > 0 && !selectedProduct) {
-            // Prefer yearly plan if available (usually better value)
-            const yearlyPlan = products.find(p =>
-                p.title.toLowerCase().includes('yearly') ||
-                p.title.toLowerCase().includes('yıllık') ||
-                p.productId.includes('yearly')
-            );
-            setSelectedProduct(yearlyPlan?.productId || products[0].productId);
+        refreshSubscriptionStatus(true);
+    }, [refreshSubscriptionStatus]);
+
+    const handleClose = () => {
+        router.back();
+    };
+
+    const handleOpenWebDashboard = () => {
+        Linking.openURL(WEB_DASHBOARD_URL);
+    };
+
+    const handlePurchaseCompleted = ({ customerInfo }: { customerInfo: CustomerInfo }) => {
+        if (customerInfo.entitlements.active['pro_access']) {
+            router.replace('/subscription/customer-center');
         }
-    }, [products]);
-
-    const handlePurchase = async () => {
-        if (!selectedProduct) return;
-        await purchase(selectedProduct);
     };
 
-    const handleRestore = async () => {
-        await restore();
+    const handlePurchaseError = ({ error }: { error: PurchasesError }) => {
+        Alert.alert(i18n.t('subscription.error.title'), error?.message || i18n.t('subscription.error.message'));
     };
 
-    const features = [
-        { icon: 'doc.viewfinder', text: i18n.t('subscription.features.unlimited') },
-        { icon: 'cloud', text: i18n.t('subscription.features.cloud') },
-        { icon: 'arrow.up.doc', text: i18n.t('subscription.features.export') },
-        { icon: 'sparkles', text: i18n.t('subscription.features.no_ads') },
-    ];
+    const handleRestoreCompleted = ({ customerInfo }: { customerInfo: CustomerInfo }) => {
+        if (customerInfo.entitlements.active['pro_access']) {
+            router.replace('/subscription/customer-center');
+        } else {
+            Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.error.message'));
+        }
+    };
+
+    const handleRetry = async () => {
+        setIsRefreshing(true);
+        try {
+            await refreshOfferings();
+        } catch (error) {
+            Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.error.message'));
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const renderFallback = () => (
+        <View style={styles.fallback}>
+            {isBusy ? (
+                <>
+                    <ActivityIndicator color="#fff" />
+                    <ThemedText style={styles.loadingText}>{i18n.t('subscription.states.loading')}</ThemedText>
+                </>
+            ) : (
+                <>
+                    <View style={styles.fallbackBadge}>
+                        <IconSymbol name="hare.fill" size={28} color="#4A90E2" />
+                    </View>
+                    <ThemedText style={styles.fallbackTitle}>{i18n.t('subscription.states.offeringsUnavailable')}</ThemedText>
+                    <ThemedText style={styles.fallbackSubtitle}>{i18n.t('subscription.poweredBy.subtitle')}</ThemedText>
+                    <Button
+                        title={i18n.t('subscription.actions.retry')}
+                        onPress={handleRetry}
+                        loading={isRefreshing}
+                        disabled={isRefreshing}
+                        style={styles.retryButton}
+                    />
+                </>
+            )}
+        </View>
+    );
+
+    if (hasExternalSubscription) {
+        return (
+            <View style={[styles.container, styles.externalContainer, { paddingTop: insets.top + 24 }]}>
+                <View style={styles.externalCard}>
+                    <View style={styles.externalIconWrap}>
+                        <IconSymbol name="checkmark.seal.fill" size={28} color="#4A90E2" />
+                    </View>
+                    <ThemedText style={styles.externalTitle}>{i18n.t('subscription.external.title')}</ThemedText>
+                    <ThemedText style={styles.externalSubtitle}>
+                        {i18n.t(externalDescriptionKey, { provider: providerLabel })}
+                    </ThemedText>
+                    {formattedPlan && (
+                        <ThemedText style={styles.externalMeta}>
+                            {i18n.t('subscription.external.planLabel', { plan: formattedPlan })}
+                        </ThemedText>
+                    )}
+                    <ThemedText style={styles.externalMeta}>
+                        {i18n.t('subscription.external.providerInfo', { provider: providerLabel })}
+                    </ThemedText>
+                </View>
+                {isWebManaged && (
+                    <Button
+                        title={i18n.t('subscription.external.openWeb')}
+                        onPress={handleOpenWebDashboard}
+                        size="large"
+                        variant="outline"
+                        style={styles.externalButton}
+                    />
+                )}
+                <Button
+                    title={i18n.t('subscription.external.close')}
+                    onPress={handleClose}
+                    size="large"
+                    style={styles.externalButton}
+                />
+
+                <TouchableOpacity
+                    style={[styles.closeButton, { top: insets.top + 12 }]}
+                    onPress={handleClose}
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                >
+                    <IconSymbol name="xmark" size={20} color="#fff" />
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                colors={['#0a0a0a', '#1a1a1a']}
-                style={StyleSheet.absoluteFill}
-            />
-
-            <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top }]}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-                        <IconSymbol name="xmark" size={24} color="white" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Hero */}
-                <View style={styles.hero}>
-                    <View style={styles.iconContainer}>
-                        <IconSymbol name="checkmark.seal.fill" size={64} color="#4A90E2" />
+            {currentOffering ? (
+                <>
+                    <RevenueCatUI.Paywall
+                        style={styles.paywall}
+                        options={{
+                            offering: currentOffering,
+                            displayCloseButton: false,
+                        }}
+                        onPurchaseCompleted={handlePurchaseCompleted}
+                        onPurchaseError={handlePurchaseError}
+                        onPurchaseCancelled={() => console.log('RevenueCat purchase cancelled')}
+                        onRestoreCompleted={handleRestoreCompleted}
+                        onRestoreError={handlePurchaseError}
+                        onDismiss={handleClose}
+                    />
+                    <View style={styles.poweredBy} pointerEvents="none">
+                        <IconSymbol name="hare.fill" size={14} color="#4A90E2" />
+                        <ThemedText style={styles.poweredByText}>{i18n.t('subscription.poweredBy.title')}</ThemedText>
                     </View>
-                    <ThemedText type="title" style={styles.title}>{i18n.t('subscription.title')}</ThemedText>
-                    <ThemedText style={styles.subtitle}>{i18n.t('subscription.subtitle')}</ThemedText>
-                </View>
+                </>
+            ) : (
+                renderFallback()
+            )}
 
-                {/* Features */}
-                <View style={styles.features}>
-                    {features.map((feature, index) => (
-                        <View key={index} style={styles.featureRow}>
-                            <View style={styles.featureIcon}>
-                                <IconSymbol name={feature.icon as any} size={20} color="#4A90E2" />
-                            </View>
-                            <ThemedText style={styles.featureText}>{feature.text}</ThemedText>
-                        </View>
-                    ))}
-                </View>
-
-                {/* Products */}
-                <View style={styles.products}>
-                    {products.map((product) => {
-                        const isSelected = selectedProduct === product.productId;
-                        return (
-                            <TouchableOpacity
-                                key={product.productId}
-                                style={[styles.productCard, isSelected && styles.productCardSelected]}
-                                onPress={() => setSelectedProduct(product.productId)}
-                                activeOpacity={0.9}
-                            >
-                                <View style={styles.productInfo}>
-                                    <ThemedText style={styles.productTitle}>{product.title}</ThemedText>
-                                    <ThemedText style={styles.productPrice}>{product.price}</ThemedText>
-                                </View>
-                                <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
-                                    {isSelected && <View style={styles.radioButtonInner} />}
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-
-                {/* Cancel Anytime */}
-                <ThemedText style={styles.disclaimer}>{i18n.t('subscription.plans.cancel_anytime')}</ThemedText>
-
-                {/* Purchase Button */}
-                <Button
-                    title={i18n.t('subscription.actions.subscribe')}
-                    onPress={handlePurchase}
-                    loading={isPurchasing}
-                    disabled={isLoading || !selectedProduct}
-                    size="large"
-                    style={styles.subscribeButton}
-                />
-
-                {/* Footer Links */}
-                <View style={styles.footer}>
-                    <TouchableOpacity onPress={handleRestore} disabled={isPurchasing}>
-                        <ThemedText style={styles.footerLink}>{i18n.t('subscription.actions.restore')}</ThemedText>
-                    </TouchableOpacity>
-                    <View style={styles.footerRow}>
-                        <TouchableOpacity>
-                            <ThemedText style={styles.footerLink}>{i18n.t('subscription.actions.terms')}</ThemedText>
-                        </TouchableOpacity>
-                        <ThemedText style={styles.footerSeparator}>•</ThemedText>
-                        <TouchableOpacity>
-                            <ThemedText style={styles.footerLink}>{i18n.t('subscription.actions.privacy')}</ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </ScrollView>
+            <TouchableOpacity
+                style={[styles.closeButton, { top: insets.top + 12 }]}
+                onPress={handleClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+            >
+                <IconSymbol name="xmark" size={20} color="#fff" />
+            </TouchableOpacity>
         </View>
     );
 }
@@ -139,139 +196,104 @@ export function PaywallScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: '#050505',
     },
-    content: {
-        padding: 24,
-        paddingBottom: 40,
+    externalContainer: {
+        paddingHorizontal: 24,
+        justifyContent: 'center',
+        gap: 24,
     },
-    header: {
-        alignItems: 'flex-end',
-        marginBottom: 20,
+    paywall: {
+        flex: 1,
     },
     closeButton: {
-        padding: 8,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        position: 'absolute',
+        right: 16,
+        padding: 10,
         borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        zIndex: 2,
     },
-    hero: {
-        alignItems: 'center',
-        marginBottom: 40,
-    },
-    iconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    fallback: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
+        paddingHorizontal: 32,
+        gap: 20,
     },
-    title: {
-        fontSize: 32,
-        marginBottom: 8,
-        color: '#fff',
+    fallbackBadge: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(74,144,226,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    subtitle: {
-        fontSize: 16,
-        color: '#rgba(255,255,255,0.7)',
+    fallbackTitle: {
         textAlign: 'center',
-    },
-    features: {
-        marginBottom: 40,
-        gap: 16,
-    },
-    featureRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    featureIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(74, 144, 226, 0.1)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    featureText: {
-        fontSize: 16,
         color: '#fff',
-        fontWeight: '500',
-    },
-    products: {
-        gap: 12,
-        marginBottom: 24,
-    },
-    productCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 20,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderWidth: 2,
-        borderColor: 'transparent',
-    },
-    productCardSelected: {
-        borderColor: '#4A90E2',
-        backgroundColor: 'rgba(74, 144, 226, 0.1)',
-    },
-    productInfo: {
-        gap: 4,
-    },
-    productTitle: {
-        fontSize: 16,
+        fontSize: 20,
         fontWeight: '600',
-        color: '#fff',
     },
-    productPrice: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#4A90E2',
-    },
-    radioButton: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.3)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radioButtonSelected: {
-        borderColor: '#4A90E2',
-    },
-    radioButtonInner: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#4A90E2',
-    },
-    disclaimer: {
+    fallbackSubtitle: {
         textAlign: 'center',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: 12,
-        marginBottom: 24,
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
     },
-    subscribeButton: {
-        marginBottom: 24,
-        backgroundColor: '#4A90E2', // Primary color overriding default
+    loadingText: {
+        color: 'rgba(255,255,255,0.8)',
     },
-    footer: {
-        alignItems: 'center',
-        gap: 16,
+    retryButton: {
+        alignSelf: 'stretch',
     },
-    footerRow: {
+    poweredBy: {
+        position: 'absolute',
+        bottom: 32,
+        alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        paddingHorizontal: 18,
+        paddingVertical: 8,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.08)',
     },
-    footerLink: {
+    poweredByText: {
+        color: '#fff',
         fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
+        fontWeight: '500',
     },
-    footerSeparator: {
-        color: 'rgba(255,255,255,0.3)',
-    }
+    externalCard: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 20,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        gap: 12,
+    },
+    externalIconWrap: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(74,144,226,0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+    },
+    externalTitle: {
+        color: '#fff',
+        fontSize: 22,
+        fontWeight: '700',
+    },
+    externalSubtitle: {
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 15,
+    },
+    externalMeta: {
+        color: 'rgba(255,255,255,0.65)',
+        fontSize: 14,
+    },
+    externalButton: {
+        alignSelf: 'stretch',
+    },
 });

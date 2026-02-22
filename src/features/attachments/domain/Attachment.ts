@@ -3,7 +3,7 @@ import { FieldConfig, FieldStyle } from './AttachmentTypeFields';
 export interface Attachment {
     id: string;
     userId: string;
-    folderId: string;
+    folderId?: string | null;
     attachmentTypeId: string;
     title: string;
     description: string | null;
@@ -28,9 +28,17 @@ export interface Attachment {
 export interface AttachmentType {
     id: string;
     name: string;
+    label?: string;
     icon: string;
     color: string;
-    requiresWarranty: boolean;
+    isSystem?: boolean;
+    category?: string;
+    transactionType?: {
+        name: 'INCOME' | 'EXPENSE' | 'NEUTRAL';
+        label: string;
+    };
+    expires?: boolean;
+    requiresWarranty?: boolean;
     fieldConfig?: FieldConfig[];
     defaultDetails?: Record<string, any>;
     fieldStyle?: FieldStyle;
@@ -65,7 +73,7 @@ export const AttachmentTypeIds = {
 };
 
 export interface CreateAttachmentDTO {
-    folderId: string;
+    folderId?: string;
     attachmentTypeId: string;
     title: string;
     description?: string;

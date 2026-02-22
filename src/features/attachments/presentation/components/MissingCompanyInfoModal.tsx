@@ -92,7 +92,7 @@ export const MissingCompanyInfoModal: React.FC<MissingCompanyInfoModalProps> = (
                         </TouchableOpacity>
                     </View>
 
-                    <Text style={[styles.description, { color: colors.textSecondary }]}>
+                    <Text style={[styles.description, { color: colors.gray }]}>
                         {description || i18n.t('common.export_missing_company_info_desc') || "Please complete missing information to export."}
                     </Text>
 
@@ -111,7 +111,7 @@ export const MissingCompanyInfoModal: React.FC<MissingCompanyInfoModalProps> = (
                                 value={formData.name}
                                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                                 placeholder="Acme Corp"
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={colors.gray}
                             />
                         </View>
 
@@ -124,7 +124,7 @@ export const MissingCompanyInfoModal: React.FC<MissingCompanyInfoModalProps> = (
                                     onChangeText={(text) => setFormData({ ...formData, taxNumber: text })}
                                     keyboardType="numeric"
                                     placeholder="1234567890"
-                                    placeholderTextColor={colors.textSecondary}
+                                    placeholderTextColor={colors.gray}
                                 />
                             </View>
                             <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
@@ -134,7 +134,7 @@ export const MissingCompanyInfoModal: React.FC<MissingCompanyInfoModalProps> = (
                                     value={formData.taxOffice}
                                     onChangeText={(text) => setFormData({ ...formData, taxOffice: text })}
                                     placeholder="Maslak"
-                                    placeholderTextColor={colors.textSecondary}
+                                    placeholderTextColor={colors.gray}
                                 />
                             </View>
                         </View>
@@ -146,7 +146,7 @@ export const MissingCompanyInfoModal: React.FC<MissingCompanyInfoModalProps> = (
                                 value={formData.city}
                                 onChangeText={(text) => setFormData({ ...formData, city: text })}
                                 placeholder="Istanbul"
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={colors.gray}
                             />
                         </View>
 
@@ -158,7 +158,7 @@ export const MissingCompanyInfoModal: React.FC<MissingCompanyInfoModalProps> = (
                                 onChangeText={(text) => setFormData({ ...formData, address: text })}
                                 multiline
                                 placeholder="Full Address"
-                                placeholderTextColor={colors.textSecondary}
+                                placeholderTextColor={colors.gray}
                             />
                         </View>
                     </ScrollView>

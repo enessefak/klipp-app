@@ -4,13 +4,14 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Folder } from '@/src/features/folders/domain/Folder';
 import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
+import { FolderAddMenuSheet } from '@/src/features/folders/presentation/components/FolderAddMenuSheet';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharingService } from '@/src/features/sharing/data/SharingService';
 import I18nLocal from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
 import { getIconDisplay } from '@/src/utils/iconUtils';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -448,6 +449,30 @@ export default function FolderPickerScreen() {
                     data={displayedFolders}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
+                    ListHeaderComponent={
+                        /* Show Ana Dizin option only at root level and not in move/search mode */
+                        !isMoveMode && !searchQuery && currentFolderId === null ? (
+                            <TouchableOpacity
+                                style={[styles.item, { backgroundColor: colors.card }]}
+                                onPress={() => handleSelect(null)}
+                            >
+                                <View style={styles.itemContent}>
+                                    <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                                        <IconSymbol name="house.fill" size={20} color={colors.primary} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <ThemedText style={styles.itemText}>
+                                            {I18nLocal.t('folders.picker.root_directory', { defaultValue: 'Ana Dizin' })}
+                                        </ThemedText>
+                                        <ThemedText style={[styles.sharedText, { color: colors.subtext }]}>
+                                            {I18nLocal.t('folders.picker.root_directory_desc', { defaultValue: 'Klasörsüz olarak kaydet' })}
+                                        </ThemedText>
+                                    </View>
+                                    <IconSymbol name="checkmark.circle" size={20} color={colors.primary} />
+                                </View>
+                            </TouchableOpacity>
+                        ) : null
+                    }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <IconSymbol name="folder" size={48} color={colors.border} />
@@ -460,7 +485,6 @@ export default function FolderPickerScreen() {
                                     onPress={() => setIsAddMenuVisible(true)}
                                     size="medium"
                                     style={{ marginTop: 12 }}
-                                    icon="folder.badge.plus"
                                 />
                             )}
                         </View>
@@ -476,8 +500,12 @@ export default function FolderPickerScreen() {
                             moving
                                 ? I18nLocal.t('common.loading')
                                 : isMoveMode
-                                    ? (currentFolder ? `${I18nLocal.t('folders.picker.move_title')}: "${currentFolder.name}"` : I18nLocal.t('folders.picker.move_title'))
-                                    : (currentFolder ? `Select "${currentFolder.name}"` : I18nLocal.t('folders.picker.all'))
+                                    ? (currentFolder
+                                        ? `${I18nLocal.t('folders.picker.move_title')}: "${currentFolder.name}"`
+                                        : I18nLocal.t('folders.picker.select_folder_error', { defaultValue: 'Bir klasör seçin' }))
+                                    : (currentFolder
+                                        ? `"${currentFolder.name}" ${I18nLocal.t('common.actions.select', { defaultValue: 'Seç' })}`
+                                        : I18nLocal.t('folders.picker.all'))
                         }
                         onPress={() => {
                             if (isMoveMode) {
@@ -496,7 +524,6 @@ export default function FolderPickerScreen() {
                 onClose={() => setIsAddMenuVisible(false)}
                 onCreateFolder={() => router.push({ pathname: '/folders/create', params: currentFolderId ? { parentId: currentFolderId } : {} })}
                 onCreatePersonnelFile={() => { }} // Not implemented in picker context yet
-                isRootLevel={!currentFolderId}
             />
         </SafeAreaView>
     );

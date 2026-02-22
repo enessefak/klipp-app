@@ -25,6 +25,7 @@ export { FolderAccountingService } from './services/FolderAccountingService';
 export { FolderSharingService } from './services/FolderSharingService';
 export { HelpDocumentsService } from './services/HelpDocumentsService';
 export { ImportService } from './services/ImportService';
+export { InvoiceTemplatesService } from './services/InvoiceTemplatesService';
 export { NotificationsService } from './services/NotificationsService';
 export { OAuthService } from './services/OAuthService';
 export { PaymentService } from './services/PaymentService';

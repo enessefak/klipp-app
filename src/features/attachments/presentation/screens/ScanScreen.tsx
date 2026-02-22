@@ -176,7 +176,7 @@ export function ScanScreen() {
                 folders={allFolders}
                 initialFolderId={initialFolderId}
                 onNext={(fid) => {
-                    scanForm.form.setValue('folderId', fid);
+                    scanForm.form.setValue('folderId', fid || '');
                     setCurrentStep('capture');
                 }}
                 onClose={handleClose}

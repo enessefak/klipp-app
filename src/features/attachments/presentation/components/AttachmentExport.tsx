@@ -102,7 +102,9 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
             // 2. Check Folder E-Invoice Settings
             let folderSettings = null;
             try {
-                folderSettings = await EInvoiceSettingsRepository.getSettings(folderId);
+                if (folderId) {
+                    folderSettings = await EInvoiceSettingsRepository.getSettings(folderId);
+                }
             } catch (e) { }
 
             // Check if folder has valid info (Tax ID is the main indicator)

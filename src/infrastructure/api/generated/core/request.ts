@@ -217,6 +217,8 @@ export const sendRequest = async <T>(
         withCredentials: config.WITH_CREDENTIALS,
         withXSRFToken: config.CREDENTIALS === 'include' ? config.WITH_CREDENTIALS : false,
         cancelToken: source.token,
+        // Set responseType for binary files (Excel, PDF, etc.)
+        responseType: options.url.includes('/export/') ? 'blob' : 'json',
     };
 
     onCancel(() => source.cancel('The user aborted a request.'));

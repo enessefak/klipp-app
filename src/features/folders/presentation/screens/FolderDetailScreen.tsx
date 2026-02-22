@@ -1059,7 +1059,6 @@ export function FolderDetailScreen() {
                 onCreatePersonnelFile={() => setIsPersonnelModalVisible(true)}
                 onImportPress={() => setIsImportModalVisible(true)}
                 folderId={folderId}
-                isRootLevel={false}
             />
 
             <CreatePersonnelFolderModal
