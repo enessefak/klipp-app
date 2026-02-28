@@ -138,7 +138,8 @@ export default function CreateRecordScreen() {
         }
     }, [router]);
 
-    const styles = useMemo(() => StyleSheet.create({
+    const styles = useMemo(() => {
+        return StyleSheet.create({
         container: {
             flex: 1,
             backgroundColor: colors.background,
@@ -199,10 +200,11 @@ export default function CreateRecordScreen() {
             borderTopColor: colors.border,
             backgroundColor: colors.background,
         },
-    }), [colors]);
+        });
+    }, [colors]);
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                     <IconSymbol name="chevron.left" size={24} color={colors.text} />

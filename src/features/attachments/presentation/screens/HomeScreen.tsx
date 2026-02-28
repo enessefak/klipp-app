@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SearchBar } from '@/components/SearchBar';
 import { ThemedText } from '@/components/themed-text';
@@ -24,6 +24,7 @@ const PAGE_SIZE = 20;
 export function HomeScreen() {
     const { user } = useAuth();
     const { language, colors } = useSettings();
+    const insets = useSafeAreaInsets();
     const router = useRouter();
     const { selectionVersion } = usePicker();
     const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -115,7 +116,7 @@ export function HomeScreen() {
         },
         listContent: {
             padding: 16,
-            paddingBottom: 100,
+            paddingBottom: 100 + (insets.bottom || 0),
             flexGrow: 1,
         },
         center: {
@@ -135,7 +136,7 @@ export function HomeScreen() {
         },
         fab: {
             position: 'absolute',
-            bottom: 100,
+            bottom: 100 + (insets.bottom || 0),
             right: 24,
             width: 64,
             height: 64,
@@ -149,7 +150,7 @@ export function HomeScreen() {
             shadowRadius: 8,
             elevation: 5,
         },
-    }), [colors]);
+    }), [colors, insets.bottom]);
 
     const fetchAttachments = useCallback(async (isRefresh = false, cursor?: string, currentFilters?: AttachmentFilters, currentSearch?: string) => {
         try {

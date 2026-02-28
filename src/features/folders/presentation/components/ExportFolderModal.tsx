@@ -134,9 +134,9 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
                 <View style={styles.overlay}>
                     <TouchableWithoutFeedback>
                         <View style={styles.container}>
-                            <ThemedText style={styles.title}>Dışa Aktar</ThemedText>
+                            <ThemedText style={styles.title}>{i18n.t('folders.export_modal.title')}</ThemedText>
                             <ThemedText style={{ color: colors.subtext, marginBottom: 8 }}>
-                                Lütfen kullanmak istediğiniz şablonu seçin.
+                                {i18n.t('folders.export_modal.description')}
                             </ThemedText>
 
                             {loading ? (
@@ -171,7 +171,7 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
                                     style={{ flex: 1 }}
                                 />
                                 <Button
-                                    title="İndir"
+                                    title={i18n.t('folders.export_modal.download')}
                                     onPress={handleExport}
                                     style={{ flex: 1 }}
                                     disabled={!selectedTemplateId}

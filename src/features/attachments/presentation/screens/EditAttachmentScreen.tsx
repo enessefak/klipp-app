@@ -419,11 +419,9 @@ export default function EditAttachmentScreen() {
             ]);
         } catch (error: any) {
             console.error('Failed to update attachment:', error);
-            if (error?.status === 403 || error?.message?.includes('Forbidden')) {
-                Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.error_permission'));
-            } else {
-                Alert.alert(i18n.t('receipts.detail.actions.error_save'));
-            }
+            // 403 subscription errors are handled by global interceptor in apiConfig.ts
+            if (error?.response?.status === 403 || error?.status === 403) return;
+            Alert.alert(i18n.t('receipts.detail.actions.error_save'));
         } finally {
             setSubmitting(false);
         }

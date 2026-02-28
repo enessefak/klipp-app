@@ -88,7 +88,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
             return;
         }
         if (activeTab === 'group' && !selectedGroup) {
-            setErrorMsg('Lütfen bir grup seçin');
+            setErrorMsg(i18n.t('sharing.modal.error_select_group'));
             return;
         }
 
@@ -112,7 +112,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
             try {
                 const detailedGroup = await groupRepository.getGroupDetails(selectedGroup.id);
                 if (!detailedGroup.members || detailedGroup.members.length === 0) {
-                    setErrorMsg('Bu grupta üye yok.');
+                    setErrorMsg(i18n.t('sharing.modal.error_no_members'));
                     setSharing(false);
                     return;
                 }
@@ -157,7 +157,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
             }, 1500);
         } else {
             setErrorMsg(activeTab === 'group'
-                ? `${failCount} kişi ile paylaşılamadı.`
+                ? i18n.t('sharing.modal.error_group_share_failed', { count: failCount })
                 : i18n.t('sharing.modal.error_generic')
             );
         }
@@ -499,7 +499,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
 
     const renderGroupSelect = () => (
         <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold" style={[styles.label, { paddingHorizontal: 16 }]}>Grup Seçin</ThemedText>
+            <ThemedText type="defaultSemiBold" style={[styles.label, { paddingHorizontal: 16 }]}>{i18n.t('sharing.modal.select_group')}</ThemedText>
             <FlatList
                 data={groups}
                 keyExtractor={(item) => item.id}
@@ -518,7 +518,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                         </View>
                         <View style={styles.userInfo}>
                             <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
-                            <ThemedText style={styles.userEmail}>{item.memberCount} Üye</ThemedText>
+                            <ThemedText style={styles.userEmail}>{item.memberCount} {i18n.t('sharing.modal.member_count')}</ThemedText>
                         </View>
                         {selectedGroup?.id === item.id && (
                             <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
@@ -527,7 +527,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                 )}
                 ListEmptyComponent={
                     <View style={styles.noResultContainer}>
-                        <ThemedText style={styles.noResultText}>Henüz hiç grubunuz yok.</ThemedText>
+                        <ThemedText style={styles.noResultText}>{i18n.t('sharing.modal.no_groups')}</ThemedText>
                     </View>
                 }
             />
@@ -565,8 +565,8 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                         <View style={styles.tabContainer}>
                             <SegmentedControl
                                 segments={[
-                                    { key: 'person', label: 'Kişi' },
-                                    { key: 'group', label: 'Grup' }
+                                    { key: 'person', label: i18n.t('sharing.modal.tab_person') },
+                                    { key: 'group', label: i18n.t('sharing.modal.tab_group') }
                                 ]}
                                 selectedKey={activeTab}
                                 onSelect={(key) => setActiveTab(key as any)}

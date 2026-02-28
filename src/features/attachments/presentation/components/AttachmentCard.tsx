@@ -233,14 +233,15 @@ export function AttachmentCard({
         rightSection: {
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 4,
+            marginLeft: 4,
         },
         moreButton: {
-            width: 32,
-            height: 32,
-            borderRadius: 16,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: 'center',
             justifyContent: 'center',
+            backgroundColor: colors.border + '40',
         },
         // Menu modal styles
         menuOverlay: {
@@ -322,7 +323,7 @@ export function AttachmentCard({
     };
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={hasActions ? handleMorePress : undefined} activeOpacity={0.7}>
             <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
                 <IconSymbol name={icon} size={24} color={color} />
             </View>
@@ -362,18 +363,17 @@ export function AttachmentCard({
                 </View>
             </View>
 
-            <View style={styles.rightSection}>
-                {showMoreButton && hasActions && (
+            {showMoreButton && hasActions && (
+                <View style={styles.rightSection}>
                     <TouchableOpacity
                         style={styles.moreButton}
                         onPress={handleMorePress}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                         <IconSymbol name="ellipsis" size={18} color={colors.gray} />
                     </TouchableOpacity>
-                )}
-                <IconSymbol name="chevron.right" size={16} color={colors.subtext} />
-            </View>
+                </View>
+            )}
 
             {/* Android Menu Modal */}
             <Modal

@@ -1,6 +1,7 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ChatService } from '@/src/infrastructure/api/generated/services/ChatService';
+import i18n from '@/src/infrastructure/localization/i18n';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -19,7 +20,7 @@ export default function ChatScreen() {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 'welcome',
-            text: 'Merhaba! Size nasıl yardımcı olabilirim?',
+            text: i18n.t('chat.welcome'),
             sender: 'bot',
         },
     ]);
@@ -139,7 +140,7 @@ export default function ChatScreen() {
                 ...prev,
                 {
                     id: (Date.now() + 1).toString(),
-                    text: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
+                    text: i18n.t('chat.error'),
                     sender: 'bot',
                 },
             ]);
@@ -229,8 +230,8 @@ export default function ChatScreen() {
                         </Text>
                         <Text style={{ color: theme.primary, fontWeight: '500' }}>
                             {item.action.type === 'OPEN_RESOURCE'
-                                ? (item.action.payload.resourceType === 'FOLDER' ? 'Klasörü Aç' : 'Belgeyi Aç')
-                                : 'Klasör Oluştur'
+                                ? (item.action.payload.resourceType === 'FOLDER' ? i18n.t('chat.actions.open_folder') : i18n.t('chat.actions.open_document'))
+                                : i18n.t('chat.actions.create_folder')
                             }
                         </Text>
                     </TouchableOpacity>
@@ -250,7 +251,7 @@ export default function ChatScreen() {
                     <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
                         <IconSymbol name="xmark" size={24} color={theme.text} />
                     </TouchableOpacity>
-                    <Text style={{ fontSize: 18, fontWeight: '600', marginLeft: 16, color: theme.text }}>Klipp Asistan</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '600', marginLeft: 16, color: theme.text }}>{i18n.t('chat.title')}</Text>
                 </View>
 
                 <FlatList
@@ -291,7 +292,7 @@ export default function ChatScreen() {
                         }}
                         value={inputValue}
                         onChangeText={setInputValue}
-                        placeholder="Bir şeyler sorun..."
+                        placeholder={i18n.t('chat.placeholder')}
                         placeholderTextColor={theme.mutedForeground}
                         multiline
                     />

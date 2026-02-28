@@ -23,16 +23,16 @@ globalAxios.interceptors.response.use(
             // Show alert if message is provided
             if (data?.message) {
                 Alert.alert(
-                    'Abonelik Gerekli',
-                    data.message,
+                    i18n.t('subscription.required.title'),
+                    data.message + '\n\n' + i18n.t('subscription.required.subtitle'),
                     [
                         {
-                            text: 'İptal',
+                            text: i18n.t('subscription.required.cancel'),
                             style: 'cancel',
                             onPress: () => console.log('Subscription cancelled')
                         },
                         {
-                            text: 'Abone Ol',
+                            text: i18n.t('subscription.required.cta'),
                             style: 'default',
                             onPress: () => {
                                 console.log('Navigating to paywall from interceptor');

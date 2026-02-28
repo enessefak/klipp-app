@@ -143,6 +143,7 @@ export const tr = {
             loading: 'Giriş yapılıyor...',
             footerText: "Hesabınız yok mu?",
             footerLink: 'Kaydol',
+            orDivider: 'veya',
             errorGeneric: 'Giriş başarısız. Bilgilerinizi kontrol edin.',
             forgotPasswordLink: 'Şifremi Unuttum',
             forgotPasswordTitle: 'Şifre Sıfırlama',
@@ -168,6 +169,7 @@ export const tr = {
             footerText: 'Zaten hesabınız var mı?',
             footerLink: 'Giriş Yap',
             errorGeneric: 'Kayıt başarısız. Lütfen tekrar deneyin.',
+            orDivider: 'veya',
         },
         resetPassword: {
             title: 'Şifreyi sıfırla',
@@ -310,6 +312,9 @@ export const tr = {
                 error_delete: 'Belge silinemedi',
                 error_save: 'Değişiklikler kaydedilemedi',
                 error_permission: 'Bu işlem için yetkiniz yok',
+                error_opening_file: 'Dosya açılamadı',
+                pdf_android_hint: 'PDF önizleme bu cihazda desteklenmiyor. Dosyayı harici bir uygulama ile açabilirsiniz.',
+                open_external: 'Harici Uygulamada Aç',
                 coming_soon: 'Düzenleme özelliği yakında eklenecek.',
             }
         },
@@ -534,6 +539,22 @@ export const tr = {
             edit: 'Düzenle',
             delete: 'Sil',
         },
+        delete_confirm: {
+            title: 'Klasörü Sil',
+            message: '"{{name}}" klasörünü ve içeriğini silmek istediğinize emin misiniz?',
+            error: 'Klasör silinemedi',
+            attachment_message: '"{{name}}" belgesini silmek istediğinize emin misiniz?',
+            attachment_error: 'Belge silinemedi',
+        },
+        export_messages: {
+            failed: 'Dışa aktarma başarısız oldu.',
+            error: 'Dışa aktarma sırasında bir hata oluştu.',
+        },
+        export_modal: {
+            title: 'Dışa Aktar',
+            description: 'Lütfen kullanmak istediğiniz şablonu seçin.',
+            download: 'İndir',
+        },
         settings: {
             title: 'Klasör Ayarları',
             doc_types_title: 'Belge Türlerini Kısıtla',
@@ -581,8 +602,27 @@ export const tr = {
             share_button: 'Paylaş',
             error_email: 'Geçerli bir e-posta adresi girin',
             error_select_user: 'Lütfen bir kullanıcı seçin',
-            error_generic: 'Paylaşım başarısız oldu'
+            error_select_group: 'Lütfen bir grup seçin',
+            error_no_members: 'Bu grupta üye yok.',
+            error_group_share_failed: '{{count}} kişi ile paylaşılamadı.',
+            error_generic: 'Paylaşım başarısız oldu',
+            tab_person: 'Kişi',
+            tab_group: 'Grup',
+            select_group: 'Grup Seçin',
+            no_groups: 'Henüz hiç grubunuz yok.',
+            member_count: 'Üye',
         }
+    },
+    chat: {
+        title: 'Klipp Asistan',
+        welcome: 'Merhaba! Size nasıl yardımcı olabilirim?',
+        error: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
+        placeholder: 'Bir şeyler sorun...',
+        actions: {
+            open_folder: 'Klasörü Aç',
+            open_document: 'Belgeyi Aç',
+            create_folder: 'Klasör Oluştur',
+        },
     },
     filters: {
         title: 'Filtreler',
@@ -620,6 +660,7 @@ export const tr = {
     },
     attachments: {
         addFile: 'Dosya Ekle',
+        deleteConfirmation: 'Bu dosyayı silmek istediğinizden emin misiniz?',
         categoryLabel: 'Kategori',
         selectCategory: 'Kategori Seçiniz',
         fields: {
@@ -917,6 +958,13 @@ export const tr = {
             providerInfo: '{{provider}} üzerinden yönetiliyor',
             close: 'Kapat',
             openWeb: 'Web Panelini Aç',
+        },
+        required: {
+            title: 'Abonelik Gerekli',
+            message: 'Ücretsiz kullanım limitiniz dolmuştur. Devam etmek için lütfen aboneliğinizi yükseltin.',
+            cta: 'Abone Ol — İlk 1 Ay Ücretsiz',
+            subtitle: 'İstediğin zaman iptal et, taahhüt yok.',
+            cancel: 'Vazgeç',
         },
     },
     tabs: {

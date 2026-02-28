@@ -64,10 +64,6 @@ export class OCRService {
 
             const response = await AiService.postAiScanDocument(requestPayload);
 
-            console.log("------------------- [AI SERVICE RESPONSE START] -------------------")
-            console.log(JSON.stringify(response, null, 2))
-            console.log("------------------- [AI SERVICE RESPONSE END] -------------------")
-
             const data = (response as any).data || response;
 
             let extractedDetails = data.extractedDetails || {};
@@ -88,7 +84,6 @@ export class OCRService {
 
                     if (cleanText.startsWith('{')) {
                         const rawJson = JSON.parse(cleanText);
-                        console.log('Parsed rawText JSON fallback:', rawJson);
 
                         if (rawJson.documentType) {
                             suggestedType = {

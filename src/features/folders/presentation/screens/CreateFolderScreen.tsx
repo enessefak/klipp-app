@@ -303,7 +303,9 @@ export function CreateFolderScreen() {
             router.back();
         } catch (error: any) {
             console.error('Failed to save folder:', error);
-            const message = error.body?.message || error.message || 'İşlem başarısız oldu.';
+            // 403 subscription errors are handled by global interceptor in apiConfig.ts
+            if (error?.response?.status === 403 || error?.status === 403) return;
+            const message = error.body?.message || error.message || i18n.t('common.error');
             Alert.alert(i18n.t('common.error'), message);
         } finally {
             setIsLoading(false);

@@ -10,6 +10,7 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 // Splash screen'i font yüklenene kadar göster
@@ -20,9 +21,12 @@ function RootLayoutContent() {
   const { language, colors } = useSettings();
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   const hideChatBubble = pathname?.includes('/subscription/paywall');
   const canShowChatBubble = isAuthenticated && !hideChatBubble;
+  const chatButtonBottom = 100 + Math.max(insets.bottom, 16);
+  const chatButtonLeft = Math.max(insets.left, 20);
 
   // Push notification listener - registers token with backend when authenticated
   usePushNotifications(isAuthenticated);
@@ -79,7 +83,7 @@ function RootLayoutContent() {
         />
       </Stack>
       {canShowChatBubble && (
-        <View style={{ position: 'absolute', bottom: 100, left: 20, zIndex: 999 }} pointerEvents="box-none">
+        <View style={{ position: 'absolute', bottom: chatButtonBottom, left: chatButtonLeft, zIndex: 999 }} pointerEvents="box-none">
           <TouchableOpacity
             onPress={() => router.push('/chat')}
             style={{

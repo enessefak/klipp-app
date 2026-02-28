@@ -2,7 +2,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './themed-text';
 
 interface SearchBarProps {
@@ -58,7 +58,7 @@ export function SearchBar({
             backgroundColor: colors.inputBackground,
             borderRadius: 12,
             paddingHorizontal: 12,
-            paddingVertical: 10,
+            paddingVertical: Platform.OS === 'android' ? 6 : 10,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.05,
@@ -74,6 +74,7 @@ export function SearchBar({
             flex: 1,
             fontSize: 16,
             color: colors.text,
+            ...(Platform.OS === 'android' && { paddingVertical: 4 }),
         },
         clearButton: {
             padding: 4,

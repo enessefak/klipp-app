@@ -214,7 +214,7 @@ export function SignUpScreen() {
 
                 <View style={styles.dividerContainer}>
                     <View style={styles.divider} />
-                    <ThemedText style={styles.dividerText}>veya</ThemedText>
+                    <ThemedText style={styles.dividerText}>{i18n.t('auth.signup.orDivider')}</ThemedText>
                     <View style={styles.divider} />
                 </View>
 

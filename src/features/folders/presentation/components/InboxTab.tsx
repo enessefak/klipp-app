@@ -166,11 +166,10 @@ export function InboxTab({
                 </View>
                 <View style={{ flex: 1 }}>
                     <ThemedText style={styles.emailText}>
-                        Kayıtlı e-posta adresinizden ({' '}
+                        {i18n.t('inbox.email_instruction')} ({' '}
                         <ThemedText style={styles.emailHighlight}>{userEmail}</ThemedText>
-                        {' '}) {' '}
+                        {' '}) {i18n.t('inbox.to')}{' '}
                         <ThemedText style={styles.emailHighlight}>inbox@klipphq.com</ThemedText>
-                        {' '}adresine mail gönderin.
                     </ThemedText>
                 </View>
                 <TouchableOpacity
@@ -192,20 +191,20 @@ export function InboxTab({
                         <View style={styles.bulletItem}>
                             <View style={styles.bulletDot} />
                             <ThemedText style={styles.bulletText}>
-                                Aynı türdeki ekler (örn. 3 resim) tek bir belgede birleştirilir.
+                                {i18n.t('inbox.default_behavior')}
                             </ThemedText>
                         </View>
                         <View style={styles.bulletItem}>
                             <View style={styles.bulletDot} />
                             <ThemedText style={styles.bulletText}>
-                                Ekleri ayrı belgeler olarak kaydetmek için konu satırına{' '}
-                                <ThemedText style={styles.codeText}>#split</ThemedText> ekleyin.
+                                {i18n.t('inbox.split_behavior')}{' '}
+                                <ThemedText style={styles.codeText}>#split</ThemedText> {i18n.t('inbox.split_behavior_end')}
                             </ThemedText>
                         </View>
                         <View style={styles.bulletItem}>
                             <View style={styles.bulletDot} />
                             <ThemedText style={styles.bulletText}>
-                                Farklı dosya türleri (PDF+JPG) her zaman ayrı işlenir.
+                                {i18n.t('inbox.mixed_files')}
                             </ThemedText>
                         </View>
                     </View>

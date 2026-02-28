@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SearchBar } from '@/components/SearchBar';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -38,6 +38,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
     const router = useRouter();
     const params = useLocalSearchParams<{ id: string }>();
     const parentId = propParentId || params.id || undefined;
+    const insets = useSafeAreaInsets();
 
     // Tab state - only show tabs on root level
     const [activeTab, setActiveTab] = useState<TabKey>('myFolders');
@@ -99,7 +100,9 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
 
     const activeFilterCount = Object.keys(filters).length + Object.keys(folderFilters).length;
 
-    const styles = useMemo(() => StyleSheet.create({
+    const styles = useMemo(() => {
+        const bottomInset = insets.bottom || 0;
+        return StyleSheet.create({
         container: {
             flex: 1,
             backgroundColor: colors.background,
@@ -126,7 +129,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
             alignItems: 'center',
         },
         scrollContent: {
-            paddingBottom: 100,
+            paddingBottom: 100 + bottomInset,
         },
         emptyContainer: {
             alignItems: 'center',
@@ -135,7 +138,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
         },
         fab: {
             position: 'absolute',
-            bottom: 100,
+            bottom: 100 + bottomInset,
             right: 24,
             width: 64,
             height: 64,
@@ -315,7 +318,8 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
             color: colors.gray,
             marginTop: 2,
         },
-    }), [colors]);
+        });
+    }, [colors, insets.bottom]);
 
     // Load shared folders on mount (only for root level)
     useEffect(() => {
@@ -685,7 +689,7 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={parentId ? [] : ['top']}>
+        <SafeAreaView style={styles.container} edges={parentId ? ['bottom'] : ['top', 'bottom']}>
             <View style={styles.header}>
                 {!parentId && (
                     <View style={styles.tabContainer}>

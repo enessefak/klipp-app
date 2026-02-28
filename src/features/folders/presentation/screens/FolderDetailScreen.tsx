@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -40,6 +40,7 @@ export function FolderDetailScreen() {
     const { colors } = useSettings();
     const router = useRouter();
     const { user } = useAuth();
+    const insets = useSafeAreaInsets();
 
     const params = useLocalSearchParams<{ id: string; shared?: string }>();
     const folderId = params.id;
@@ -152,22 +153,22 @@ export function FolderDetailScreen() {
 
             const success = await FileDownloadService.downloadAndShare(url, filename);
             if (!success) {
-                Alert.alert(i18n.t('common.error'), 'Dışa aktarma başarısız oldu.');
+                Alert.alert(i18n.t('common.error'), i18n.t('folders.export_messages.failed'));
             }
         } catch (error) {
             console.error('Export failed', error);
-            Alert.alert(i18n.t('common.error'), 'Dışa aktarma sırasında bir hata oluştu.');
+            Alert.alert(i18n.t('common.error'), i18n.t('folders.export_messages.error'));
         }
     };
 
     const handleDelete = () => {
         Alert.alert(
-            'Klasörü Sil',
-            `"${currentFolder?.name}" klasörünü ve içeriğini silmek istediğinize emin misiniz ? `,
+            i18n.t('folders.delete_confirm.title'),
+            i18n.t('folders.delete_confirm.message', { name: currentFolder?.name }),
             [
-                { text: 'Vazgeç', style: 'cancel' },
+                { text: i18n.t('common.actions.cancel'), style: 'cancel' },
                 {
-                    text: 'Sil',
+                    text: i18n.t('common.actions.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -182,7 +183,7 @@ export function FolderDetailScreen() {
                                 router.back();
                                 return;
                             }
-                            Alert.alert('Hata', 'Klasör silinemedi');
+                            Alert.alert(i18n.t('errors.error'), i18n.t('folders.delete_confirm.error'));
                         }
                     }
                 }
@@ -235,7 +236,7 @@ export function FolderDetailScreen() {
     const handleDeleteAttachment = (attachment: Attachment) => {
         Alert.alert(
             i18n.t('attachments.actions.delete'),
-            `"${attachment.title}" belgesini silmek istediğinize emin misiniz?`,
+            i18n.t('folders.delete_confirm.attachment_message', { name: attachment.title }),
             [
                 { text: i18n.t('common.actions.cancel'), style: 'cancel' },
                 {
@@ -246,7 +247,7 @@ export function FolderDetailScreen() {
                             await AttachmentService.deleteAttachment(attachment.id);
                             refresh();
                         } catch (err) {
-                            Alert.alert(i18n.t('common.error'), 'Belge silinemedi');
+                            Alert.alert(i18n.t('common.error'), i18n.t('folders.delete_confirm.attachment_error'));
                         }
                     }
                 }
@@ -258,6 +259,7 @@ export function FolderDetailScreen() {
     const pendingShares = folderShares.filter(s => s.status === 'pending');
 
 
+    const bottomOffset = insets.bottom || 0;
     const styles = useMemo(() => StyleSheet.create({
         container: {
             flex: 1,
@@ -269,7 +271,7 @@ export function FolderDetailScreen() {
             alignItems: 'center',
         },
         listContent: {
-            paddingBottom: 100,
+            paddingBottom: 100 + bottomOffset,
         },
         headerSection: {
             marginBottom: 8,
@@ -565,7 +567,7 @@ export function FolderDetailScreen() {
         },
         fab: {
             position: 'absolute',
-            bottom: 100,
+            bottom: 100 + bottomOffset,
             right: 24,
             width: 56,
             height: 56,
@@ -591,7 +593,7 @@ export function FolderDetailScreen() {
         },
         fabMenu: {
             position: 'absolute',
-            bottom: 170,
+            bottom: 170 + bottomOffset,
             right: 24,
             zIndex: 101,
             gap: 12,
@@ -636,7 +638,7 @@ export function FolderDetailScreen() {
             color: colors.primary,
             fontSize: 14,
         },
-    }), [colors]);
+    }), [colors, bottomOffset]);
 
 
     const FolderHeader = () => {

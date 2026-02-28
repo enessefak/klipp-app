@@ -63,6 +63,7 @@ export const de = {
             loading: 'Anmeldung läuft...',
             footerText: "Sie haben kein Konto?",
             footerLink: 'Registrieren',
+            orDivider: 'oder',
             errorGeneric: 'Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten.',
             forgotPasswordLink: 'Passwort vergessen?',
             forgotPasswordTitle: 'Passwort zurücksetzen',
@@ -88,6 +89,7 @@ export const de = {
             footerText: 'Sie haben bereits ein Konto?',
             footerLink: 'Anmelden',
             errorGeneric: 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
+            orDivider: 'oder',
         },
         resetPassword: {
             title: 'Passwort zurücksetzen',
@@ -230,6 +232,9 @@ export const de = {
                 error_delete: 'Dokument konnte nicht gelöscht werden',
                 error_save: 'Änderungen konnten nicht gespeichert werden',
                 error_permission: 'Sie haben keine Berechtigung',
+                error_opening_file: 'Datei konnte nicht geöffnet werden',
+                pdf_android_hint: 'Die PDF-Vorschau wird auf diesem Gerät nicht unterstützt. Sie können die Datei mit einer externen App öffnen.',
+                open_external: 'In externer App öffnen',
                 coming_soon: 'Bearbeitung wird bald verfügbar sein.',
             }
         },
@@ -483,6 +488,22 @@ export const de = {
             edit: 'Bearbeiten',
             delete: 'Löschen',
         },
+        delete_confirm: {
+            title: 'Ordner löschen',
+            message: 'Möchten Sie den Ordner "{{name}}" und seinen gesamten Inhalt wirklich löschen?',
+            error: 'Ordner konnte nicht gelöscht werden',
+            attachment_message: 'Möchten Sie das Dokument "{{name}}" wirklich löschen?',
+            attachment_error: 'Dokument konnte nicht gelöscht werden',
+        },
+        export_messages: {
+            failed: 'Export fehlgeschlagen.',
+            error: 'Beim Export ist ein Fehler aufgetreten.',
+        },
+        export_modal: {
+            title: 'Exportieren',
+            description: 'Bitte wählen Sie die gewünschte Vorlage aus.',
+            download: 'Herunterladen',
+        },
         settings: {
             title: 'Ordnereinstellungen',
             doc_types_title: 'Dokumenttypen beschränken',
@@ -530,8 +551,27 @@ export const de = {
             share_button: 'Teilen',
             error_email: 'Bitte geben Sie eine gültige E-Mail-Adresse ein',
             error_select_user: 'Bitte wählen Sie einen Benutzer aus',
-            error_generic: 'Teilen fehlgeschlagen'
+            error_select_group: 'Bitte wählen Sie eine Gruppe aus',
+            error_no_members: 'Diese Gruppe hat keine Mitglieder.',
+            error_group_share_failed: 'Teilen mit {{count}} Personen fehlgeschlagen.',
+            error_generic: 'Teilen fehlgeschlagen',
+            tab_person: 'Person',
+            tab_group: 'Gruppe',
+            select_group: 'Gruppe auswählen',
+            no_groups: 'Sie haben noch keine Gruppen.',
+            member_count: 'Mitglieder',
         }
+    },
+    chat: {
+        title: 'Klipp Assistent',
+        welcome: 'Hallo! Wie kann ich Ihnen helfen?',
+        error: 'Entschuldigung, ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+        placeholder: 'Fragen Sie etwas...',
+        actions: {
+            open_folder: 'Ordner öffnen',
+            open_document: 'Dokument öffnen',
+            create_folder: 'Ordner erstellen',
+        },
     },
     filters: {
         title: 'Filter',
@@ -568,6 +608,7 @@ export const de = {
     },
     attachments: {
         addFile: 'Datei hinzufügen',
+        deleteConfirmation: 'Möchten Sie diese Datei wirklich löschen?',
         categoryLabel: 'Kategorie',
         selectCategory: 'Kategorie auswählen',
         fields: {
@@ -849,7 +890,14 @@ export const de = {
         status: {
             free_plan: 'Kostenloser Plan (Nicht abonniert)',
             premium_plan: 'Premium-Plan',
-        }
+        },
+        required: {
+            title: 'Abonnement erforderlich',
+            message: 'Ihr kostenloses Nutzungslimit ist erreicht. Bitte upgraden Sie, um fortzufahren.',
+            cta: 'Abonnieren — Erster Monat kostenlos',
+            subtitle: 'Jederzeit kündbar, keine Verpflichtung.',
+            cancel: 'Nicht jetzt',
+        },
     },
     tabs: {
         details: 'Details',

@@ -112,8 +112,6 @@ export function useScanForm() {
     // --- Helpers ---
 
     const getTypeIdByOcrKey = (ocrTypeKey: string): string | undefined => {
-        console.log('[getTypeIdByOcrKey] Trying to match key:', ocrTypeKey);
-
         const ocrKeyToNameMap: Record<string, string[]> = {
             'warranty_document': ['Garanti Belgesi', 'Warranty', 'warranty'],
             'invoice': ['Fatura', 'Invoice', 'invoice'],
@@ -132,17 +130,14 @@ export function useScanForm() {
             'vehicle_document': ['Araç Belgesi', 'Vehicle Document', 'vehicle_document'],
         };
         const possibleNames = ocrKeyToNameMap[ocrTypeKey] || [ocrTypeKey];
-        console.log('[getTypeIdByOcrKey] Possible names:', possibleNames);
 
         for (const name of possibleNames) {
             const found = attachmentTypes?.find?.(t => {
                 const nameMatch = t.name.toLowerCase() === name.toLowerCase();
                 const idMatch = t.id.toLowerCase() === name.toLowerCase();
-                // console.log(`Checking vs ${t.name} (${t.id}): nameMatch=${nameMatch}, idMatch=${idMatch}`);
                 return nameMatch || idMatch;
             });
             if (found) {
-                console.log('[getTypeIdByOcrKey] Found match:', found.id);
                 return found.id;
             }
         }
@@ -151,7 +146,6 @@ export function useScanForm() {
             t.name.toLowerCase().includes(ocrTypeKey.replace('_', ' ')) ||
             ocrTypeKey.toLowerCase().includes(t.name.toLowerCase())
         );
-        if (foundPartial) console.log('[getTypeIdByOcrKey] Found partial match:', foundPartial.id);
 
         return foundPartial?.id;
     };
@@ -265,18 +259,9 @@ export function useScanForm() {
                 }
             } catch (error: any) {
                 console.error('ScanScreen submit error:', error);
-                if (error?.body?.code === 'SUBSCRIPTION_REQUIRED') {
-                    Alert.alert(
-                        'Abonelik Gerekli',
-                        'Ücretsiz kullanım limitiniz dolmuştur. Devam etmek için lütfen aboneliğinizi yükseltin.',
-                        [
-                            { text: 'Vazgeç', style: 'cancel' },
-                            { text: 'Premium Al', onPress: () => router.push('/(tabs)/profile') }
-                        ]
-                    );
-                } else {
-                    Alert.alert(i18n.t('receipts.scan.save_error.title'), i18n.t('receipts.scan.save_error.message'));
-                }
+                // 403 subscription errors are handled by global interceptor in apiConfig.ts
+                if (error?.response?.status === 403 || error?.status === 403) return;
+                Alert.alert(i18n.t('receipts.scan.save_error.title'), i18n.t('receipts.scan.save_error.message'));
             }
         }, onError)();
     };

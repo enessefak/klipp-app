@@ -63,6 +63,7 @@ export const en = {
             loading: 'Signing in...',
             footerText: "Don't have an account?",
             footerLink: 'Sign Up',
+            orDivider: 'or',
             errorGeneric: 'Login failed. Please check your credentials.',
             forgotPasswordLink: 'Forgot password?',
             forgotPasswordTitle: 'Reset password',
@@ -88,6 +89,7 @@ export const en = {
             footerText: 'Already have an account?',
             footerLink: 'Sign In',
             errorGeneric: 'Registration failed. Please try again.',
+            orDivider: 'or',
         },
         resetPassword: {
             title: 'Reset password',
@@ -230,6 +232,9 @@ export const en = {
                 error_delete: 'Failed to delete document',
                 error_save: 'Failed to save changes', // Added
                 error_permission: 'You do not have permission', // Added
+                error_opening_file: 'Failed to open file',
+                pdf_android_hint: 'PDF preview is not supported on this device. You can open the file with an external app.',
+                open_external: 'Open in External App',
                 coming_soon: 'Editing will be available soon.',
             }
         },
@@ -463,6 +468,22 @@ export const en = {
             edit: 'Edit',
             delete: 'Delete',
         },
+        delete_confirm: {
+            title: 'Delete Folder',
+            message: 'Are you sure you want to delete the folder "{{name}}" and all its contents?',
+            error: 'Failed to delete folder',
+            attachment_message: 'Are you sure you want to delete the document "{{name}}"?',
+            attachment_error: 'Failed to delete document',
+        },
+        export_messages: {
+            failed: 'Export failed.',
+            error: 'An error occurred during export.',
+        },
+        export_modal: {
+            title: 'Export',
+            description: 'Please select the template you want to use.',
+            download: 'Download',
+        },
         settings: {
             title: 'Folder Settings',
             doc_types_title: 'Restrict Document Types',
@@ -510,8 +531,27 @@ export const en = {
             share_button: 'Share',
             error_email: 'Please enter a valid email',
             error_select_user: 'Please select a user',
-            error_generic: 'Sharing failed'
+            error_select_group: 'Please select a group',
+            error_no_members: 'This group has no members.',
+            error_group_share_failed: 'Failed to share with {{count}} people.',
+            error_generic: 'Sharing failed',
+            tab_person: 'Person',
+            tab_group: 'Group',
+            select_group: 'Select Group',
+            no_groups: 'You have no groups yet.',
+            member_count: 'Members',
         }
+    },
+    chat: {
+        title: 'Klipp Assistant',
+        welcome: 'Hello! How can I help you?',
+        error: 'Sorry, an error occurred. Please try again.',
+        placeholder: 'Ask something...',
+        actions: {
+            open_folder: 'Open Folder',
+            open_document: 'Open Document',
+            create_folder: 'Create Folder',
+        },
     },
     filters: {
         title: 'Filters',
@@ -549,6 +589,7 @@ export const en = {
     },
     attachments: {
         addFile: 'Add File',
+        deleteConfirmation: 'Are you sure you want to delete this file?',
         categoryLabel: 'Category',
         selectCategory: 'Select Category',
         fields: {
@@ -842,6 +883,13 @@ export const en = {
             providerInfo: 'Managed via {{provider}}',
             close: 'Close',
             openWeb: 'Open Web Dashboard',
+        },
+        required: {
+            title: 'Subscription Required',
+            message: 'You have reached your free usage limit. Please upgrade to continue.',
+            cta: 'Subscribe — First Month Free',
+            subtitle: 'Cancel anytime, no commitment.',
+            cancel: 'Not Now',
         },
     },
     tabs: {

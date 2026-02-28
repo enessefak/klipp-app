@@ -1,5 +1,6 @@
 // Fallback for using MaterialIcons on Android and web.
 
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
@@ -14,6 +15,13 @@ type IconMapping = Record<string, ComponentProps<typeof MaterialIcons>['name']>;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  'arrow.down': 'arrow-downward',
+  'arrow.down.circle': 'arrow-circle-down',
+  'arrow.down.doc': 'file-download',
+  'arrow.down.left': 'south-west',
+  'arrow.up': 'arrow-upward',
+  'arrow.up.left.and.arrow.down.right': 'open-in-full',
+  'arrow.up.right': 'north-east',
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'plus.circle.fill': 'add-circle',
@@ -22,44 +30,62 @@ const MAPPING = {
   'magnifyingglass': 'search',
   'slider.horizontal.3': 'tune',
   'folder.fill': 'folder',
+  'folder': 'folder',
   'text.justify.left': 'description',
   'lock.fill': 'lock',
   'ellipsis': 'more-horiz',
   'folder.badge.plus': 'create-new-folder',
   'gear': 'settings',
+  'gearshape.fill': 'settings',
   'paperclip': 'attach-file',
   'viewfinder': 'center-focus-strong',
   'doc.fill': 'description',
+  'doc': 'insert-drive-file',
   'doc.text.fill': 'article',
   'doc.plaintext.fill': 'notes',
   'receipt': 'receipt',
+  'hare.fill': 'speed',
+  'doc.text': 'description',
+  'doc.badge.plus': 'note-add',
+  'doc.on.doc': 'content-copy',
+  'doc.questionmark': 'help-outline',
   'shield.fill': 'shield',
   'heart.text.square.fill': 'favorite',
   'calendar': 'calendar-today',
-  'doc.text': 'description',
   'clock': 'access-time',
+  'qrcode': 'qr-code',
+  'bell.slash.fill': 'notifications-off',
   'xmark.circle.fill': 'cancel',
   'xmark': 'close',
   'person.fill': 'person',
+  'person.2.fill': 'people',
+  'person.2.slash.fill': 'group-off',
+  'person.3.fill': 'groups',
+  'person.badge.plus': 'person-add',
+  'person.badge.minus': 'person-remove',
+  'person.slash.fill': 'person-off',
   'person.circle.fill': 'account-circle',
   'bell.fill': 'notifications',
   'globe': 'language',
   'moon.fill': 'dark-mode',
   'icloud': 'cloud',
+  'eye.fill': 'visibility',
   'arrow.down.circle.fill': 'download',
   'questionmark.circle.fill': 'help',
   'envelope.fill': 'email',
   'star.fill': 'star',
+  'star.circle.fill': 'stars',
   'rectangle.portrait.and.arrow.right': 'logout',
   'trash.fill': 'delete',
+  'trash': 'delete',
   'pencil': 'edit',
   'qrcode.viewfinder': 'qr-code-scanner',
   'desktopcomputer': 'computer',
   'laptopcomputer': 'laptop',
   'iphone': 'smartphone',
   'camera.fill': 'camera-alt',
-  'trash': 'delete',
   'chevron.left': 'chevron-left',
+  'g.circle.fill': 'google',
   // Additional folder icons
   'briefcase.fill': 'work',
   'briefcase': 'work',
@@ -74,21 +100,34 @@ const MAPPING = {
   'person.text.rectangle': 'badge',
   'circle': 'radio-button-unchecked',
   'checkmark.circle.fill': 'check-circle',
+  'checkmark.circle': 'check-circle',
   'checkmark.seal.fill': 'verified',
   'checkmark': 'check',
   'plus': 'add',
   'sparkles': 'auto-awesome',
-  'doc.badge.plus': 'note-add',
   'chevron.up': 'expand-less',
   'chevron.down': 'expand-more',
   'folder.fill.badge.person.crop': 'folder-shared',
+  'square.and.arrow.down': 'file-download',
+  'square.and.arrow.up': 'share',
+  'line.3.horizontal.decrease': 'filter-list',
+  'list.bullet.rectangle': 'format-list-bulleted',
+  'message.fill': 'chat-bubble',
+  'photo': 'photo',
+  'exclamationmark.triangle': 'warning',
+  'lock.shield': 'admin-panel-settings',
+  'bell.badge.fill': 'notifications-active',
   // Lucide icon names from backend templates
   'folder-user': 'folder-shared',
   'id-card': 'badge',
   'file-text': 'description',
   'graduation-cap': 'school',
   'heart-pulse': 'favorite',
-} as IconMapping;
+} as unknown as IconMapping;
+
+const BRAND_MAPPING: Record<string, ComponentProps<typeof FontAwesome6>['name']> = {
+  'g.circle.fill': 'google',
+};
 
 export type IconSymbolName = keyof typeof MAPPING | string;
 
@@ -110,6 +149,12 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
+  const brandIcon = BRAND_MAPPING[name as keyof typeof BRAND_MAPPING];
+
+  if (brandIcon) {
+    return <FontAwesome6 color={color} size={size} name={brandIcon} style={style} />;
+  }
+
   const mappedIcon = MAPPING[name as keyof typeof MAPPING] || 'folder';
   return <MaterialIcons color={color} size={size} name={mappedIcon} style={style} />;
 }
