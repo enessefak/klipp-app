@@ -56,7 +56,7 @@ const withInfoPlistLocalization = (config) => {
                 isa: 'PBXFileReference',
                 lastKnownFileType: 'text.plist.strings',
                 name: locale,
-                path: `${locale}.lproj/InfoPlist.strings`,
+                path: `${projectName}/${locale}.lproj/InfoPlist.strings`,
                 sourceTree: '"<group>"',
             };
             fileRefSection[fileRefCommentKey] = `InfoPlist.strings`;

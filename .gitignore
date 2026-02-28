@@ -33,7 +33,6 @@ yarn-error.*
 # Credentials (APNs keys, certificates)
 credentials/
 credentials.json
-google-services.json
 
 # local env files
 .env
