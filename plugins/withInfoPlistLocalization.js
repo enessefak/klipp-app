@@ -97,12 +97,31 @@ const withInfoPlistLocalization = (config) => {
             }
         }
 
-        // Add to main group
+        // Add to the project name group (e.g. "Klipp") so paths resolve relative to ios/Klipp/
         const mainGroupId = project.getFirstProject().firstProject.mainGroup;
         const groups = project.hash.project.objects['PBXGroup'];
         const mainGroup = groups[mainGroupId];
+
+        // Find the child group matching the project name (e.g. "Klipp")
+        let projectGroupId = null;
         if (mainGroup && mainGroup.children) {
-            mainGroup.children.push({ value: variantGroupId, comment: 'InfoPlist.strings' });
+            for (const child of mainGroup.children) {
+                const childGroup = groups[child.value];
+                if (childGroup && childGroup.name === projectName) {
+                    projectGroupId = child.value;
+                    break;
+                }
+                // Some projects use path instead of name
+                if (childGroup && childGroup.path === projectName) {
+                    projectGroupId = child.value;
+                    break;
+                }
+            }
+        }
+
+        const targetGroup = projectGroupId ? groups[projectGroupId] : mainGroup;
+        if (targetGroup && targetGroup.children) {
+            targetGroup.children.push({ value: variantGroupId, comment: 'InfoPlist.strings' });
         }
 
         return config;
