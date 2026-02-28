@@ -18,9 +18,9 @@ module.exports = {
             associatedDomains: ['applinks:klipphq.com'],
             infoPlist: {
                 ITSAppUsesNonExemptEncryption: false,
-                NSCameraUsageDescription: 'Belge ve fiş taramak için kamera izni gereklidir.',
-                NSPhotoLibraryUsageDescription: 'Galeriden belge seçmek için fotoğraf izni gereklidir.',
-                NSMicrophoneUsageDescription: 'Video kaydı için mikrofon izni gereklidir.',
+                NSCameraUsageDescription: 'Camera access is required to scan documents and receipts.',
+                NSPhotoLibraryUsageDescription: 'Photo library access is required to select documents from gallery.',
+                NSMicrophoneUsageDescription: 'Microphone access is required for video recording.',
             },
         },
         android: {
@@ -92,6 +92,7 @@ module.exports = {
             ],
             'expo-iap',
             './plugins/withPodfileDeploymentTarget',
+            './plugins/withInfoPlistLocalization',
             [
                 '@react-native-google-signin/google-signin',
                 {
