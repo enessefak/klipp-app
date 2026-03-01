@@ -12,11 +12,11 @@ const i18n = new I18n({
 });
 
 // Set the locale once at the beginning of your app.
-const deviceLanguage = getLocales()[0]?.languageCode ?? 'tr';
+const deviceLanguage = getLocales()[0]?.languageCode ?? 'en';
 i18n.locale = deviceLanguage;
 
 // When a value is missing from a language it'll fallback to another language with the key present.
 i18n.enableFallback = true;
-i18n.defaultLocale = 'tr';
+i18n.defaultLocale = 'en';
 
 export default i18n;
