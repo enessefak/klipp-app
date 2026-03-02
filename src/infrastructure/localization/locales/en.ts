@@ -716,7 +716,8 @@ export const en = {
             languages: {
                 tr: 'Türkçe',
                 en: 'English',
-                de: 'Deutsch'
+                de: 'Deutsch',
+                es: 'Español'
             },
             web: 'WEB',
             webLogin: 'Web Login',

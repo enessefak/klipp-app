@@ -788,7 +788,8 @@ export const tr = {
             languages: {
                 tr: 'Türkçe',
                 en: 'English',
-                de: 'Almanca'
+                de: 'Almanca',
+                es: 'İspanyolca'
             },
             web: 'WEB',
             webLogin: "Web'e Giriş Yap",

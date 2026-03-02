@@ -2,7 +2,7 @@ const { withXcodeProject } = require('@expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
 
-const LOCALES = ['en', 'tr', 'de'];
+const LOCALES = ['en', 'tr', 'de', 'es'];
 
 /**
  * Config plugin to add localized InfoPlist.strings files for iOS permission descriptions.
