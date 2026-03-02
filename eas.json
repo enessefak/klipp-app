@@ -12,6 +12,7 @@
       },
     },
     "preview": {
+      "environment": "preview",
       "distribution": "store",
       "ios": {
         "credentialsSource": "remote"
@@ -19,6 +20,7 @@
       "channel": "preview"
     },
     "production": {
+      "environment": "production",
       "distribution": "store",
       "autoIncrement": true,
       "ios": {
