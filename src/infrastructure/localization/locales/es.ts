@@ -137,6 +137,7 @@ export const es = {
             upgrade: 'Mejorar',
             grant_permission: 'Conceder Permiso',
             download: 'Descargar',
+            export: 'Exportar',
             create: 'Crear',
             add: 'Añadir',
             move: 'Mover',

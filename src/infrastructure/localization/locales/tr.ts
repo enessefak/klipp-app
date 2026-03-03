@@ -217,6 +217,7 @@ export const tr = {
             grant_permission: 'İzin Ver',
             select_date: 'Tarih Seç',
             download: 'İndir',
+            export: 'Dışa Aktar',
             create: 'Oluştur',
             add: 'Ekle',
             move: 'Taşı',
