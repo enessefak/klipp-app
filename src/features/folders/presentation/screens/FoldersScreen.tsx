@@ -623,16 +623,26 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                                 </View>
                                 <View style={[
                                     styles.permissionBadge,
-                                    { backgroundColor: folder.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
+                                    { backgroundColor: (
+                                        folder.permission === 'EDIT' ? colors.success :
+                                        folder.permission === 'CREATE' ? colors.warning :
+                                        folder.permission === 'FULL' ? colors.error :
+                                        colors.primary
+                                    ) + '20' }
                                 ]}>
                                     <ThemedText style={[
                                         styles.permissionText,
-                                        { color: folder.permission === 'EDIT' ? colors.success : colors.primary }
-                                    ]}>
-                                        {folder.permission === 'EDIT'
-                                            ? i18n.t('folders.picker.permissions.edit')
-                                            : i18n.t('folders.picker.permissions.view')
+                                        { color:
+                                            folder.permission === 'EDIT' ? colors.success :
+                                            folder.permission === 'CREATE' ? colors.warning :
+                                            folder.permission === 'FULL' ? colors.error :
+                                            colors.primary
                                         }
+                                    ]}>
+                                        {folder.permission === 'EDIT' ? i18n.t('folders.picker.permissions.edit') :
+                                         folder.permission === 'CREATE' ? i18n.t('folders.picker.permissions.create') :
+                                         folder.permission === 'FULL' ? i18n.t('folders.picker.permissions.full') :
+                                         i18n.t('folders.picker.permissions.view')}
                                     </ThemedText>
                                 </View>
                                 {isPending ? (

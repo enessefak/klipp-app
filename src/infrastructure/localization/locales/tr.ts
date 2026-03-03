@@ -472,7 +472,9 @@ export const tr = {
             shared_badge: 'Paylaşılan',
             permissions: {
                 view: 'Görüntüle',
-                edit: 'Düzenle'
+                edit: 'Düzenle',
+                create: 'Oluştur',
+                full: 'Tam Erişim',
             },
             icon: 'Klasör İkonu',
             icon_placeholder: 'İkon Seçin',
@@ -555,6 +557,16 @@ export const tr = {
             description: 'Lütfen kullanmak istediğiniz şablonu seçin.',
             download: 'İndir',
         },
+        import_modal: {
+            title: 'Klasöre İçe Aktar',
+            description: 'Belgeleri içe aktarmak için JSON veya XML dosyası yükleyin.',
+            pick_file: 'Dosya seçmek için dokunun',
+            note: 'İçe aktarma, yeni belge kayıtları oluşturur. Sistem ayarlarına bağlı olarak yinelenen fatura numaraları oluşabilir.',
+            action: 'İçe Aktar',
+            success_title: 'İçe Aktarma Başarılı',
+            success_message: '{{count}} belge başarıyla içe aktarıldı.',
+            error: 'İçe aktarma sırasında bir hata oluştu.',
+        },
         settings: {
             title: 'Klasör Ayarları',
             doc_types_title: 'Belge Türlerini Kısıtla',
@@ -583,6 +595,11 @@ export const tr = {
         }
     },
     sharing: {
+        errors: {
+            share_failed: 'Paylaşım başarısız oldu',
+            load_failed: 'Paylaşılan klasörler yüklenemedi',
+            load_shared_by_me_failed: 'Paylaştığınız klasörler yüklenemedi',
+        },
         modal: {
             title: 'Klasör Paylaş',
             cancel: 'İptal',
@@ -1028,6 +1045,7 @@ export const tr = {
         cancel: 'İptal',
         error_load: 'Gruplar yüklenirken bir hata oluştu',
         error_create: 'Grup oluşturulamadı',
+        manage: 'Grupları Yönet',
     },
     folder_settings: {
         requires_approval: 'Onay Gerektirsin',
@@ -1062,6 +1080,7 @@ export const tr = {
         error_reject_reason: 'Lütfen reddetme sebebi giriniz',
         error_approve: 'Belge onaylanırken bir hata oluştu',
         error_reject: 'Belge reddedilirken bir hata oluştu',
+        pending_info: 'Belge inceleme bekliyor. Lütfen inceleyicinin kararını bekleyiniz.',
     },
     categories: {
         title: 'Kategoriler',

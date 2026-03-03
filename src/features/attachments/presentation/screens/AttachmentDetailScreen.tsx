@@ -12,7 +12,6 @@ import {
     Platform,
     Pressable,
     ScrollView,
-    Share,
     StyleSheet,
     TextInput,
     TouchableOpacity,
@@ -196,7 +195,7 @@ export function AttachmentDetailScreen() {
             setFiles(filesWithFullUrl);
         } catch (err) {
             console.error('Failed to load attachment:', err);
-            setError('Belge yüklenemedi');
+            setError(i18n.t('receipts.detail.actions.error_load'));
         } finally {
             setLoading(false);
         }
@@ -206,25 +205,18 @@ export function AttachmentDetailScreen() {
 
     const handleShare = async () => {
         setShowActionMenu(false);
-        try {
-            const message = `${attachment?.title}\n${attachment?.description || ''}\n${i18n.t('receipts.detail.amount')}: ${attachment?.details?.amount ? `${attachment.details.amount} ${attachment.details.currency || 'TRY'}` : '-'}\n${i18n.t('receipts.detail.date')}: ${attachment?.documentDate ? new Date(attachment.documentDate).toLocaleDateString(i18n.locale === 'tr' ? 'tr-TR' : 'en-US') : '-'}`;
-
-            await Share.share({
-                message,
-                title: attachment?.title,
-            });
-        } catch (err) {
-            console.error('Share error:', err);
+        const file = files[currentFileIndex] ?? files[0];
+        if (!file) {
+            Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.no_file'));
+            return;
         }
+        await FileDownloadService.downloadAndShare(file.url, file.filename);
     };
 
     const handleEdit = () => {
         setShowActionMenu(false);
-        if (isShared && attachment?.permission === 'VIEW') {
-            Alert.alert(
-                i18n.t('common.error'),
-                i18n.t('receipts.detail.actions.error_permission')
-            );
+        if (!attachment?.permissions?.canEdit) {
+            Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.error_permission'));
             return;
         }
         router.push(`/attachment/edit/${id}`);
@@ -294,23 +286,16 @@ export function AttachmentDetailScreen() {
                 {
                     options: [
                         i18n.t('receipts.detail.actions.cancel'),
-                        i18n.t('receipts.detail.actions.share'),
                         i18n.t('attachments.actions.move_to_folder'),
-                        i18n.t('receipts.detail.actions.edit'),
                         i18n.t('common.actions.download'),
-                        i18n.t('receipts.detail.actions.delete')
                     ],
-                    destructiveButtonIndex: 5,
                     cancelButtonIndex: 0,
                     title: i18n.t('receipts.detail.actions.menu_title'),
                 },
                 (buttonIndex) => {
                     switch (buttonIndex) {
-                        case 1: handleShare(); break;
-                        case 2: handleMoveToFolder(); break;
-                        case 3: handleEdit(); break;
-                        case 4: handleDownload(); break;
-                        case 5: handleDelete(); break;
+                        case 1: handleMoveToFolder(); break;
+                        case 2: handleDownload(); break;
                     }
                 }
             );
@@ -1387,8 +1372,8 @@ export function AttachmentDetailScreen() {
                                                     attachment.status === 'REJECTED' ? colors.error : '#FF9800',
                                                 fontWeight: '600'
                                             }}>
-                                                {attachment.status === 'APPROVED' ? 'Onaylandı' :
-                                                    attachment.status === 'REJECTED' ? 'Reddedildi' : 'Onay Bekliyor'}
+                                                {attachment.status === 'APPROVED' ? i18n.t('approval.status_approved') :
+                                                    attachment.status === 'REJECTED' ? i18n.t('approval.status_rejected') : i18n.t('approval.status_pending')}
                                             </ThemedText>
                                         </View>
                                     )}
@@ -1449,16 +1434,7 @@ export function AttachmentDetailScreen() {
                         <View style={styles.actionsContainer}>
                             <TouchableOpacity
                                 style={styles.actionButton}
-                                onPress={() => {
-                                    if (files.length > 0 && files[0].url) {
-                                        Share.share({
-                                            url: files[0].url,
-                                            title: attachment.title,
-                                        });
-                                    } else {
-                                        Alert.alert(i18n.t('common.error'), i18n.t('receipts.detail.actions.no_file'));
-                                    }
-                                }}
+                                onPress={handleShare}
                             >
                                 <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
                                 <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
@@ -1480,7 +1456,7 @@ export function AttachmentDetailScreen() {
                                 }}>
                                     <IconSymbol name="clock.fill" size={16} color="#FF9800" />
                                     <ThemedText style={{ fontSize: 13, color: '#FF9800', flex: 1 }}>
-                                        {i18n.t('approval.pending_info', { defaultValue: 'Belge inceleme bekliyor. Muhasebecinin kararını bekleyiniz.' })}
+                                        {i18n.t('approval.pending_info')}
                                     </ThemedText>
                                 </View>
                             ) : attachment.permissions?.canEdit !== false ? (
@@ -1489,16 +1465,7 @@ export function AttachmentDetailScreen() {
                                         styles.actionButton,
                                         !attachment.permissions?.canEdit && { opacity: 0.5 }
                                     ]}
-                                    onPress={() => {
-                                        if (!attachment.permissions?.canEdit) {
-                                            Alert.alert(
-                                                i18n.t('common.error'),
-                                                i18n.t('receipts.detail.actions.error_permission')
-                                            );
-                                            return;
-                                        }
-                                        router.push(`/attachment/edit/${attachment.id}`);
-                                    }}
+                                    onPress={handleEdit}
                                 >
                                     <IconSymbol name="pencil" size={20} color={colors.primary} />
                                     <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
@@ -1606,11 +1573,6 @@ export function AttachmentDetailScreen() {
                     <View style={styles.actionMenuContainer}>
                         <ThemedText type="subtitle" style={styles.actionMenuTitle}>{i18n.t('receipts.detail.actions.menu_title')}</ThemedText>
 
-                        <TouchableOpacity style={styles.actionMenuItem} onPress={handleShare}>
-                            <IconSymbol name="square.and.arrow.up" size={22} color={colors.text} />
-                            <ThemedText style={styles.actionMenuText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
-                        </TouchableOpacity>
-
                         <TouchableOpacity style={styles.actionMenuItem} onPress={handleMoveToFolder}>
                             <IconSymbol name="folder" size={22} color={colors.text} />
                             <ThemedText style={styles.actionMenuText}>{i18n.t('attachments.actions.move_to_folder')}</ThemedText>
@@ -1620,20 +1582,6 @@ export function AttachmentDetailScreen() {
                             <IconSymbol name="arrow.down.circle" size={22} color={colors.text} />
                             <ThemedText style={styles.actionMenuText}>{i18n.t('common.actions.download')}</ThemedText>
                         </TouchableOpacity>
-
-                        {attachment?.permission !== 'VIEW' && (
-                            <TouchableOpacity style={styles.actionMenuItem} onPress={handleEdit}>
-                                <IconSymbol name="pencil" size={22} color={colors.text} />
-                                <ThemedText style={styles.actionMenuText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
-                            </TouchableOpacity>
-                        )}
-
-                        {(attachment?.permission === 'FULL' || attachment?.isOwner) && (
-                            <TouchableOpacity style={[styles.actionMenuItem, styles.deleteMenuItem]} onPress={() => { handleDelete(); setShowActionMenu(false); }}>
-                                <IconSymbol name="trash" size={22} color={colors.error} />
-                                <ThemedText style={[styles.actionMenuText, styles.deleteText]}>{i18n.t('receipts.detail.actions.delete')}</ThemedText>
-                            </TouchableOpacity>
-                        )}
 
                         <TouchableOpacity style={[styles.actionMenuItem, styles.cancelMenuItem]} onPress={() => setShowActionMenu(false)}>
                             <ThemedText style={styles.cancelText}>{i18n.t('common.actions.cancel')}</ThemedText>

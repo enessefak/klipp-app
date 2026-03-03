@@ -17,7 +17,7 @@ import { FileDownloadService } from '@/src/features/attachments/application/File
 import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
-import { ImportEInvoiceModal } from '@/src/features/e-invoices/presentation/components/ImportEInvoiceModal';
+import { ImportFolderModal } from '../components/ImportFolderModal';
 import { useGroups } from '@/src/features/groups/presentation/hooks/useGroups';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharingService } from '@/src/features/sharing/data/SharingService';
@@ -144,12 +144,23 @@ export function FolderDetailScreen() {
     );
 
 
-    const handleExport = async (templateId?: string) => {
-        if (!folderId) return;
+    const handleExport = async (format?: string) => {
+        if (!folderId || !format) return;
         try {
             const baseUrl = OpenAPI.BASE;
-            const url = `${baseUrl} /folders/${folderId}/export?format=excel${templateId ? `&templateId=${templateId}` : ''}`;
-            const filename = `${currentFolder?.name || 'folder'} _export.xlsx`;
+            const url = `${baseUrl}/export/attachments?folderId=${folderId}&format=${format}`;
+
+            const extensionMap: Record<string, string> = {
+                TR_EXCEL: 'xlsx',
+                EXCEL: 'xlsx',
+                CSV: 'csv',
+                JSON: 'json',
+                XML: 'zip',
+                PDF: 'pdf',
+                DE_DATEV: 'zip',
+            };
+            const ext = extensionMap[format] ?? 'bin';
+            const filename = `${currentFolder?.name || 'folder'}_export.${ext}`;
 
             const success = await FileDownloadService.downloadAndShare(url, filename);
             if (!success) {
@@ -831,14 +842,26 @@ export function FolderDetailScreen() {
                                                         <View style={styles.shareStatus}>
                                                             <View style={[
                                                                 styles.permissionBadge,
-                                                                { backgroundColor: share.permission === 'EDIT' ? colors.success + '20' : colors.primary + '20' }
+                                                                { backgroundColor: (
+                                                                    share.permission === 'EDIT' ? colors.success :
+                                                                    share.permission === 'CREATE' ? colors.warning :
+                                                                    share.permission === 'FULL' ? colors.error :
+                                                                    colors.primary
+                                                                ) + '20' }
                                                             ]}>
                                                                 <ThemedText style={[
                                                                     styles.permissionText,
-                                                                    { color: share.permission === 'EDIT' ? colors.success : colors.primary }
+                                                                    { color:
+                                                                        share.permission === 'EDIT' ? colors.success :
+                                                                        share.permission === 'CREATE' ? colors.warning :
+                                                                        share.permission === 'FULL' ? colors.error :
+                                                                        colors.primary
+                                                                    }
                                                                 ]}>
                                                                     {share.permission === 'VIEW' ? i18n.t('folders.sharing.roles.viewer') :
-                                                                        share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') : share.permission}
+                                                                     share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') :
+                                                                     share.permission === 'CREATE' ? i18n.t('folders.sharing.roles.create') :
+                                                                     i18n.t('folders.sharing.roles.full')}
                                                                 </ThemedText>
                                                             </View>
                                                             {share.status === 'pending' && (
@@ -868,14 +891,14 @@ export function FolderDetailScreen() {
                                             ) : groups.length === 0 ? (
                                                 <View style={{ alignItems: 'center', paddingVertical: 16 }}>
                                                     <ThemedText style={styles.noSharesText}>
-                                                        Henüz grup oluşturmadınız
+                                                        {i18n.t('sharing.modal.no_groups')}
                                                     </ThemedText>
                                                     <TouchableOpacity
                                                         style={[styles.addShareButton, { marginTop: 8 }]}
                                                         onPress={() => router.push('/groups')}
                                                     >
                                                         <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
-                                                        <ThemedText style={styles.addShareText}>Grup Oluştur</ThemedText>
+                                                        <ThemedText style={styles.addShareText}>{i18n.t('groups.create')}</ThemedText>
                                                     </TouchableOpacity>
                                                 </View>
                                             ) : (
@@ -894,7 +917,7 @@ export function FolderDetailScreen() {
                                                                     {group.name}
                                                                 </ThemedText>
                                                                 <ThemedText style={styles.groupMemberCount}>
-                                                                    {group.memberCount} üye
+                                                                    {i18n.t('groups.member_count', { count: group.memberCount })}
                                                                 </ThemedText>
                                                             </View>
                                                             <IconSymbol name="chevron.right" size={16} color={colors.gray} />
@@ -905,7 +928,7 @@ export function FolderDetailScreen() {
                                                         onPress={() => router.push('/groups')}
                                                     >
                                                         <IconSymbol name="gearshape.fill" size={20} color={colors.primary} />
-                                                        <ThemedText style={styles.addShareText}>Grupları Yönet</ThemedText>
+                                                        <ThemedText style={styles.addShareText}>{i18n.t('groups.manage')}</ThemedText>
                                                     </TouchableOpacity>
                                                 </>
                                             )}
@@ -1074,11 +1097,11 @@ export function FolderDetailScreen() {
                 onSuccess={() => refresh()}
             />
 
-            <ImportEInvoiceModal
+            <ImportFolderModal
                 visible={isImportModalVisible}
                 onClose={() => setIsImportModalVisible(false)}
                 onSuccess={() => refresh()}
-                initialFolderId={folderId}
+                folderId={folderId!}
             />
 
             {/* FAB Button: show for owners AND guests with at least CREATE permission */}

@@ -58,6 +58,7 @@ export function EditShareModal({ visible, onClose, share, onUpdate, onRemove }: 
                             onClose();
                         } catch (error) {
                             Alert.alert(i18n.t('common.error'), i18n.t('folders.sharing.actions.remove_error'));
+                        } finally {
                             setLoading(false);
                         }
                     }

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import i18n from '@/src/infrastructure/localization/i18n';
 import { SharingService } from '../data/SharingService';
 import {
     CreateShareDTO,
@@ -47,7 +48,7 @@ export function useFolderSharing() {
             return share;
         } catch (err: any) {
             console.error('Failed to share folder:', err);
-            setError(err?.body?.message || 'Paylaşım başarısız oldu');
+            setError(err?.body?.message || i18n.t('sharing.errors.share_failed'));
             return null;
         } finally {
             setLoading(false);
@@ -89,7 +90,7 @@ export function useFolderSharing() {
 
         } catch (err) {
             console.error('Failed to load shared folders:', err);
-            setError('Paylaşılan klasörler yüklenemedi');
+            setError(i18n.t('sharing.errors.load_failed'));
         } finally {
             setLoading(false);
             setLoadingMoreSharedWithMe(false);
@@ -107,7 +108,7 @@ export function useFolderSharing() {
             setSharedByMe(shares);
         } catch (err) {
             console.error('Failed to load my shares:', err);
-            setError('Paylaştığınız klasörler yüklenemedi');
+            setError(i18n.t('sharing.errors.load_shared_by_me_failed'));
         } finally {
             setLoading(false);
         }
