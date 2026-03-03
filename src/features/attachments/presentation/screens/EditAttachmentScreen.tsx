@@ -395,7 +395,7 @@ export default function EditAttachmentScreen() {
                 documentDate: data.documentDate.toISOString(),
                 attachmentTypeId: data.attachmentTypeId,
                 folderId: data.folderId,
-                categoryId: data.categoryId,
+                categoryId: data.categoryId || undefined,
                 description: data.description,
                 details: mergedDetails,
             } as any);

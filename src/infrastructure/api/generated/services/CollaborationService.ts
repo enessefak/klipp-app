@@ -75,6 +75,45 @@ export class CollaborationService {
         });
     }
     /**
+     * Update a comment
+     * @param id
+     * @param requestBody
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static patchCollaborationComments(
+        id: string,
+        requestBody: {
+            text: string;
+        },
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            id: string;
+            text: string;
+            userId: string;
+            attachmentId: string;
+            createdAt: string;
+            updatedAt: string;
+            user?: {
+                id: string;
+                name: string;
+                email?: string;
+            };
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/collaboration/comments/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * Delete a comment
      * @param id
      * @returns any Default Response

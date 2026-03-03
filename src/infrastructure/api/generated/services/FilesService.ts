@@ -17,6 +17,7 @@ export class FilesService {
         requestBody: {
             filename: string;
             contentType: string;
+            attachmentId?: string;
         },
     ): CancelablePromise<{
         success: boolean;
