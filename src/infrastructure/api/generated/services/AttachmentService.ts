@@ -223,7 +223,7 @@ export class AttachmentService {
      */
     public static postAttachments(
         requestBody: {
-            folderId?: string;
+            folderId?: ('root' | string);
             categoryId?: string;
             attachmentTypeId: string;
             title: string;
@@ -587,7 +587,7 @@ export class AttachmentService {
     public static putAttachments(
         id: string,
         requestBody?: {
-            folderId?: string;
+            folderId?: ('root' | string);
             categoryId?: string;
             attachmentTypeId?: string;
             title?: string;

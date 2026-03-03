@@ -13,6 +13,7 @@ interface FolderAddMenuSheetProps {
     onCreatePersonnelFile: () => void;
     onImportPress?: () => void;
     folderId?: string;
+    canCreateFolder?: boolean; // false for guests without FULL permission
 }
 
 interface MenuOption {
@@ -31,17 +32,18 @@ export function FolderAddMenuSheet({
     onCreatePersonnelFile,
     onImportPress,
     folderId,
+    canCreateFolder = true,
 }: FolderAddMenuSheetProps) {
     const { colors } = useSettings();
     const router = useRouter();
 
     const menuOptions: MenuOption[] = useMemo(() => [
-        // Folder options
-        {
+        // Folder options (only shown if user can create sub-folders)
+        ...(canCreateFolder ? [{
             key: 'folder',
             icon: 'folder.badge.plus',
             label: i18n.t('folders.createFolder'),
-            section: 'folder',
+            section: 'folder' as const,
             onPress: () => {
                 onClose();
                 onCreateFolder();
@@ -51,12 +53,12 @@ export function FolderAddMenuSheet({
             key: 'personnel',
             icon: 'person.crop.rectangle.stack',
             label: i18n.t('folders.createPersonnelFile'),
-            section: 'folder',
+            section: 'folder' as const,
             onPress: () => {
                 onClose();
                 onCreatePersonnelFile();
             },
-        },
+        }] : []),
         // Document options
         {
             key: 'scan',

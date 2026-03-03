@@ -391,14 +391,15 @@ export function ProfileScreen() {
         if (Platform.OS === 'ios') {
             ActionSheetIOS.showActionSheetWithOptions(
                 {
-                    options: ['Türkçe', 'English', 'Deutsch', i18n.t('profile.settings.cancel')],
-                    cancelButtonIndex: 3,
+                    options: ['Türkçe', 'English', 'Deutsch', 'Español', i18n.t('profile.settings.cancel')],
+                    cancelButtonIndex: 4,
                     title: i18n.t('profile.settings.language'),
                 },
                 (buttonIndex) => {
                     if (buttonIndex === 0) setLanguage('tr');
                     else if (buttonIndex === 1) setLanguage('en');
                     else if (buttonIndex === 2) setLanguage('de');
+                    else if (buttonIndex === 3) setLanguage('es');
                 }
             );
         } else {
@@ -409,6 +410,7 @@ export function ProfileScreen() {
                     { text: 'Türkçe', onPress: () => setLanguage('tr') },
                     { text: 'English', onPress: () => setLanguage('en') },
                     { text: 'Deutsch', onPress: () => setLanguage('de') },
+                    { text: 'Español', onPress: () => setLanguage('es') },
                     { text: i18n.t('profile.settings.cancel'), style: 'cancel' },
                 ]
             );

@@ -114,6 +114,7 @@ export const FolderRepository = {
                 color: folder.color,
                 parentId: folder.parentId || undefined,
                 createdAt: folder.createdAt,
+                permission: folder.permission,
                 owner: {
                     id: folder.userId,
                     name: '', // Not returned by API for getFolderById

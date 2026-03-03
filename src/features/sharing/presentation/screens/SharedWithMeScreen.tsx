@@ -223,7 +223,7 @@ export function SharedWithMeScreen() {
     }, [rejectShare, handleRefresh, activeTab]);
 
     const handleOpenFolder = useCallback((folderId: string) => {
-        router.push(`/shared/${folderId}`);
+        router.push(`/shared/${folderId}?shared=true`);
     }, [router]);
 
     const renderItem = ({ item }: { item: SharedFolder }) => {

@@ -57,7 +57,7 @@ export class AiService {
              */
             mimeType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | 'application/pdf';
             attachmentTypeId?: string;
-            folderId?: string;
+            folderId?: ('root' | string);
         },
     ): CancelablePromise<{
         success: boolean;

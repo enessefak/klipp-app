@@ -1464,25 +1464,46 @@ export function AttachmentDetailScreen() {
                                 <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.share')}</ThemedText>
                             </TouchableOpacity>
 
-                            <TouchableOpacity
-                                style={[
-                                    styles.actionButton,
-                                    (isShared && attachment.permission === 'VIEW') && { opacity: 0.5 }
-                                ]}
-                                onPress={() => {
-                                    if (isShared && attachment.permission === 'VIEW') {
-                                        Alert.alert(
-                                            i18n.t('common.error'),
-                                            i18n.t('receipts.detail.actions.error_permission')
-                                        );
-                                        return;
-                                    }
-                                    router.push(`/attachment/edit/${attachment.id}`);
-                                }}
-                            >
-                                <IconSymbol name="pencil" size={20} color={colors.primary} />
-                                <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
-                            </TouchableOpacity>
+                            {/* Maker-checker: show PENDING info banner instead of edit button when under review */}
+                            {attachment.status === 'PENDING' && !attachment.permissions?.canApprove ? (
+                                <View style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    backgroundColor: '#FF980015',
+                                    borderColor: '#FF980040',
+                                    borderWidth: 1,
+                                    borderRadius: 8,
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 10,
+                                    marginBottom: 4,
+                                }}>
+                                    <IconSymbol name="clock.fill" size={16} color="#FF9800" />
+                                    <ThemedText style={{ fontSize: 13, color: '#FF9800', flex: 1 }}>
+                                        {i18n.t('approval.pending_info', { defaultValue: 'Belge inceleme bekliyor. Muhasebecinin kararını bekleyiniz.' })}
+                                    </ThemedText>
+                                </View>
+                            ) : attachment.permissions?.canEdit !== false ? (
+                                <TouchableOpacity
+                                    style={[
+                                        styles.actionButton,
+                                        !attachment.permissions?.canEdit && { opacity: 0.5 }
+                                    ]}
+                                    onPress={() => {
+                                        if (!attachment.permissions?.canEdit) {
+                                            Alert.alert(
+                                                i18n.t('common.error'),
+                                                i18n.t('receipts.detail.actions.error_permission')
+                                            );
+                                            return;
+                                        }
+                                        router.push(`/attachment/edit/${attachment.id}`);
+                                    }}
+                                >
+                                    <IconSymbol name="pencil" size={20} color={colors.primary} />
+                                    <ThemedText style={styles.actionText}>{i18n.t('receipts.detail.actions.edit')}</ThemedText>
+                                </TouchableOpacity>
+                            ) : null}
 
                             {attachment.permissions?.canRequestApproval && (
                                 <TouchableOpacity

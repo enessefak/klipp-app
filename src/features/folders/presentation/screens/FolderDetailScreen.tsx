@@ -192,7 +192,11 @@ export function FolderDetailScreen() {
     };
 
     const handlePressFolder = (folder: Folder) => {
-        router.push(`/folders/${folder.id}`);
+        if (isSharedFolder) {
+            router.push(`/folders/${folder.id}?shared=true`);
+        } else {
+            router.push(`/folders/${folder.id}`);
+        }
     };
 
     const handlePressAttachment = (attachment: Attachment) => {
@@ -216,7 +220,7 @@ export function FolderDetailScreen() {
         if (!isSharedFolder) {
             loadFolderShares();
         }
-    }, [refresh, isSharedFolder]);
+    }, [refresh, isSharedFolder, loadFolderShares]);
 
     const handleMoveAttachment = (attachment: Attachment) => {
         // Navigate to folder picker and handle move
@@ -1061,6 +1065,7 @@ export function FolderDetailScreen() {
                 onCreatePersonnelFile={() => setIsPersonnelModalVisible(true)}
                 onImportPress={() => setIsImportModalVisible(true)}
                 folderId={folderId}
+                canCreateFolder={!isSharedFolder || currentFolder?.owner?.id === user?.id || currentFolder?.permission === 'FULL'}
             />
 
             <CreatePersonnelFolderModal
@@ -1076,8 +1081,8 @@ export function FolderDetailScreen() {
                 initialFolderId={folderId}
             />
 
-            {/* FAB Button */}
-            {(!isSharedFolder || currentFolder?.owner?.id === user?.id) && (
+            {/* FAB Button: show for owners AND guests with at least CREATE permission */}
+            {(!isSharedFolder || currentFolder?.owner?.id === user?.id || ['CREATE', 'FULL'].includes(currentFolder?.permission ?? '')) && (
                 <TouchableOpacity
                     style={styles.fab}
                     onPress={() => setIsAddMenuVisible(true)}
