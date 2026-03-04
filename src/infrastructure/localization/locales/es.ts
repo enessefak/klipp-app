@@ -351,8 +351,8 @@ export const es = {
         }
     },
     folder_settings: {
-        requires_approval: 'Requiere Aprobación',
-        is_confidential: 'Carpeta Confidencial',
+        requires_approval: 'Flujo de Aprobación',
+        is_confidential: 'Modo Confidencial',
         allowed_transaction_types: 'Transacciones Permitidas',
         transaction_types: {
             income: 'Ingreso',
@@ -500,10 +500,10 @@ export const es = {
             doc_types_title: 'Restringir Tipos de Documento',
             doc_types_desc: 'Solo los tipos de documento seleccionados pueden añadirse a esta carpeta.',
             transaction_types: 'Tipos de Transacción',
-            requires_approval: 'Requiere Aprobación',
-            requires_approval_desc: 'Los documentos subidos a esta carpeta requieren aprobación antes de ser finalizados.',
-            is_confidential: 'Carpeta Confidencial',
-            is_confidential_desc: 'Solo el creador y administradores pueden ver los archivos de esta carpeta.',
+            requires_approval: 'Flujo de Aprobación',
+            requires_approval_desc: 'Los documentos subidos por usuarios compartidos requieren su aprobación. No pueden editarse ni eliminarse hasta ser aprobados.',
+            is_confidential: 'Modo Confidencial',
+            is_confidential_desc: 'Cada usuario solo puede ver sus propios archivos subidos. Todos los archivos son visibles únicamente para usted y los administradores.',
             type_restriction: 'Restricción de Tipo',
             select_icon: 'Seleccionar Icono',
             select_color: 'Seleccionar Color',

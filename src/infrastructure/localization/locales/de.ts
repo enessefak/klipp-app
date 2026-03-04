@@ -357,8 +357,8 @@ export const de = {
         }
     },
     folder_settings: {
-        requires_approval: 'Genehmigung erforderlich',
-        is_confidential: 'Vertraulicher Ordner',
+        requires_approval: 'Genehmigungsworkflow',
+        is_confidential: 'Vertraulichkeitsmodus',
         allowed_transaction_types: 'Erlaubte Transaktionen',
         transaction_types: {
             income: 'Einnahme',
@@ -522,10 +522,10 @@ export const de = {
             doc_types_title: 'Dokumenttypen beschränken',
             doc_types_desc: 'Nur ausgewählte Dokumenttypen können zu diesem Ordner hinzugefügt werden.',
             transaction_types: 'Transaktionstypen',
-            requires_approval: 'Genehmigung erforderlich',
-            requires_approval_desc: 'In diesen Ordner hochgeladene Dokumente erfordern eine Genehmigung, bevor sie finalisiert werden.',
-            is_confidential: 'Vertraulicher Ordner',
-            is_confidential_desc: 'Nur der Ersteller und Administratoren können Dateien in diesem Ordner sehen.',
+            requires_approval: 'Genehmigungsworkflow',
+            requires_approval_desc: 'Von freigegebenen Nutzern hochgeladene Dokumente erfordern Ihre Genehmigung. Sie können erst nach der Genehmigung bearbeitet oder gelöscht werden.',
+            is_confidential: 'Vertraulichkeitsmodus',
+            is_confidential_desc: 'Jeder Nutzer sieht nur seine eigenen hochgeladenen Dateien. Alle Dateien sind nur für Sie und Admins sichtbar.',
             type_restriction: 'Typbeschränkung',
             select_icon: 'Symbol auswählen',
             select_color: 'Farbe auswählen',

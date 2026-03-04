@@ -353,8 +353,8 @@ export const en = {
         }
     },
     folder_settings: {
-        requires_approval: 'Require Approval',
-        is_confidential: 'Confidential Folder',
+        requires_approval: 'Approval Workflow',
+        is_confidential: 'Confidentiality Mode',
         allowed_transaction_types: 'Allowed Transactions',
         transaction_types: {
             income: 'Income',
@@ -502,10 +502,10 @@ export const en = {
             doc_types_title: 'Restrict Document Types',
             doc_types_desc: 'Only selected document types can be added to this folder.',
             transaction_types: 'Transaction Types',
-            requires_approval: 'Require Approval',
-            requires_approval_desc: 'Documents uploaded to this folder require approval before being finalized.',
-            is_confidential: 'Confidential Folder',
-            is_confidential_desc: 'Only the creator and admins can see files in this folder.',
+            requires_approval: 'Approval Workflow',
+            requires_approval_desc: 'Documents uploaded by shared users require your approval. They cannot be edited or deleted until approved.',
+            is_confidential: 'Confidentiality Mode',
+            is_confidential_desc: 'Each user can only see their own uploaded files. All files are visible only to you and admins.',
             type_restriction: 'Type Restriction',
             select_icon: 'Select Icon',
             select_color: 'Select Color',

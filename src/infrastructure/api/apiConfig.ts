@@ -10,6 +10,8 @@ import { OpenAPI } from './generated/core/OpenAPI';
 
 const globalAxios = axios;
 
+let subscriptionAlertShowing = false;
+
 globalAxios.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -20,8 +22,13 @@ globalAxios.interceptors.response.use(
         if (status === 403 && (data?.error === 'subscription_required' || data?.error === 'subscription_required_guest')) {
             console.log('[API] Subscription Required Triggered');
 
+            if (subscriptionAlertShowing) {
+                return Promise.reject(error);
+            }
+
             // Show alert if message is provided
             if (data?.message) {
+                subscriptionAlertShowing = true;
                 Alert.alert(
                     i18n.t('subscription.required.title'),
                     data.message + '\n\n' + i18n.t('subscription.required.subtitle'),
@@ -29,15 +36,18 @@ globalAxios.interceptors.response.use(
                         {
                             text: i18n.t('subscription.required.cancel'),
                             style: 'cancel',
-                            onPress: () => console.log('Subscription cancelled')
+                            onPress: () => {
+                                subscriptionAlertShowing = false;
+                                console.log('Subscription cancelled');
+                            }
                         },
                         {
                             text: i18n.t('subscription.required.cta'),
                             style: 'default',
                             onPress: () => {
+                                subscriptionAlertShowing = false;
                                 console.log('Navigating to paywall from interceptor');
                                 try {
-                                    // Use replace to avoid stacking if already there, or push
                                     router.push('/subscription/paywall');
                                 } catch (err) {
                                     console.error('Navigation error:', err);

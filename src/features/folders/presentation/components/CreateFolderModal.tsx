@@ -56,7 +56,6 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
     const [name, setName] = useState('');
     const [selectedIcon, setSelectedIcon] = useState(FALLBACK_ICONS[0]);
     const [selectedColor, setSelectedColor] = useState(FALLBACK_COLORS[0]);
-    const [requiresApproval, setRequiresApproval] = useState(false);
     const [isConfidential, setIsConfidential] = useState(false);
     const [allowedTransactionTypes, setAllowedTransactionTypes] = useState<string[]>([]);
 
@@ -100,7 +99,6 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
                 setName(initialData.name);
                 setSelectedIcon(initialData.icon);
                 setSelectedColor(initialData.color);
-                setRequiresApproval(initialData.requiresApproval || false);
                 setIsConfidential(initialData.isConfidential || false);
                 setAllowedTransactionTypes(initialData.allowedTransactionTypes || []);
 
@@ -257,7 +255,6 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
             icon: selectedIcon,
             color: selectedColor,
             parentId: parentId,
-            requiresApproval,
             isConfidential,
             allowedTransactionTypes,
             allowedTypeIds: restrictDocTypes ? allowedTypeIds : []
@@ -317,15 +314,6 @@ export function CreateFolderModal({ visible, onClose, onSubmit, parentId, initia
                 {/* Restrictions Section */}
                 <View style={styles.section}>
                     <ThemedText style={{ fontWeight: '600', marginBottom: 4 }}>Kısıtlamalar</ThemedText>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <ThemedText style={{ fontSize: 14 }}>Onay Gerektir</ThemedText>
-                        <Switch
-                            value={requiresApproval}
-                            onValueChange={setRequiresApproval}
-                            trackColor={{ false: colors.border, true: colors.primary }}
-                        />
-                    </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <ThemedText style={{ fontSize: 14 }}>Gizli Klasör</ThemedText>

@@ -4,6 +4,7 @@ import {
     FlatList,
     Modal,
     StyleSheet,
+    Switch,
     TextInput,
     TouchableOpacity,
     View,
@@ -18,6 +19,8 @@ import { Group } from '@/src/features/groups/domain/Group';
 import { useGroups } from '@/src/features/groups/presentation/hooks/useGroups';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import i18n from '@/src/infrastructure/localization/i18n';
+import { FolderRepository } from '@/src/features/folders/infrastructure/FolderRepository';
+import { Folder } from '@/src/features/folders/domain/Folder';
 import { SearchedUser, SharePermission } from '../../domain/FolderShare';
 import { useFolderSharing } from '../useFolderSharing';
 
@@ -49,11 +52,68 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [searched, setSearched] = useState(false);
 
+    // Folder approval settings
+    const [folderData, setFolderData] = useState<Folder | null>(null);
+    const [updatingApproval, setUpdatingApproval] = useState(false);
+    const [updatingConfidential, setUpdatingConfidential] = useState(false);
+
     useEffect(() => {
         if (visible && activeTab === 'group' && groups.length === 0) {
             refreshGroups();
         }
     }, [visible, activeTab]);
+
+    useEffect(() => {
+        if (visible) {
+            FolderRepository.getFolderById(folderId).then(setFolderData).catch(() => {});
+        }
+    }, [visible, folderId]);
+
+    const handleToggleRequiresApproval = async (value: boolean) => {
+        if (!folderData) return;
+        const prev = folderData.requiresApproval ?? false;
+        setFolderData({ ...folderData, requiresApproval: value });
+        setUpdatingApproval(true);
+        try {
+            await FolderRepository.updateFolder(folderId, {
+                name: folderData.name,
+                icon: folderData.icon || 'folder.fill',
+                color: folderData.color || '#4DABF7',
+                parentId: folderData.parentId || null,
+                requiresApproval: value,
+                isConfidential: folderData.isConfidential ?? false,
+                allowedTransactionTypes: (folderData.allowedTransactionTypes || []) as any,
+                allowedTypeIds: folderData.allowedTypeIds || [],
+            });
+        } catch {
+            setFolderData({ ...folderData, requiresApproval: prev });
+        } finally {
+            setUpdatingApproval(false);
+        }
+    };
+
+    const handleToggleIsConfidential = async (value: boolean) => {
+        if (!folderData) return;
+        const prev = folderData.isConfidential ?? false;
+        setFolderData({ ...folderData, isConfidential: value });
+        setUpdatingConfidential(true);
+        try {
+            await FolderRepository.updateFolder(folderId, {
+                name: folderData.name,
+                icon: folderData.icon || 'folder.fill',
+                color: folderData.color || '#4DABF7',
+                parentId: folderData.parentId || null,
+                requiresApproval: folderData.requiresApproval ?? false,
+                isConfidential: value,
+                allowedTransactionTypes: (folderData.allowedTransactionTypes || []) as any,
+                allowedTypeIds: folderData.allowedTypeIds || [],
+            });
+        } catch {
+            setFolderData({ ...folderData, isConfidential: prev });
+        } finally {
+            setUpdatingConfidential(false);
+        }
+    };
 
     const handleEmailChange = useCallback((text: string) => {
         setEmail(text);
@@ -171,6 +231,7 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
         setSuccess(false);
         setErrorMsg(null);
         setSearched(false);
+        setFolderData(null);
         onClose();
     };
 
@@ -550,6 +611,40 @@ export function ShareFolderModal({ visible, onClose, folderId, folderName }: Sha
                 <View style={styles.folderInfo}>
                     <IconSymbol name="folder.fill" size={32} color={colors.primary} />
                     <ThemedText type="defaultSemiBold" style={styles.folderName}>{folderName}</ThemedText>
+                </View>
+
+                {/* Sharing Settings */}
+                <View style={[styles.folderInfo, { borderTopWidth: 0 }]}>
+                    <View style={{ flex: 1 }}>
+                        <ThemedText type="defaultSemiBold" style={{ fontSize: 15 }}>
+                            {i18n.t('folders.settings.requires_approval')}
+                        </ThemedText>
+                        <ThemedText style={{ fontSize: 12, color: colors.textLight, marginTop: 2 }}>
+                            {i18n.t('folders.settings.requires_approval_desc')}
+                        </ThemedText>
+                    </View>
+                    <Switch
+                        value={folderData?.requiresApproval ?? false}
+                        disabled={updatingApproval || !folderData}
+                        onValueChange={handleToggleRequiresApproval}
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                    />
+                </View>
+                <View style={[styles.folderInfo, { borderTopWidth: 0 }]}>
+                    <View style={{ flex: 1 }}>
+                        <ThemedText type="defaultSemiBold" style={{ fontSize: 15 }}>
+                            {i18n.t('folders.settings.is_confidential')}
+                        </ThemedText>
+                        <ThemedText style={{ fontSize: 12, color: colors.textLight, marginTop: 2 }}>
+                            {i18n.t('folders.settings.is_confidential_desc')}
+                        </ThemedText>
+                    </View>
+                    <Switch
+                        value={folderData?.isConfidential ?? false}
+                        disabled={updatingConfidential || !folderData}
+                        onValueChange={handleToggleIsConfidential}
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                    />
                 </View>
 
                 {success ? (

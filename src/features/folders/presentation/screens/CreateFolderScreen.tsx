@@ -63,8 +63,6 @@ export function CreateFolderScreen() {
     const [name, setName] = useState(params.name || '');
     const [selectedIcon, setSelectedIcon] = useState(params.icon || ICONS[0]);
     const [selectedColor, setSelectedColor] = useState(params.color || COLORS[0]);
-    const [requiresApproval, setRequiresApproval] = useState(false);
-    const [isConfidential, setIsConfidential] = useState(false);
     const [allowedTransactionTypes, setAllowedTransactionTypes] = useState<string[]>([]);
 
     // Restriction State
@@ -89,8 +87,6 @@ export function CreateFolderScreen() {
             setName(folder.name);
             setSelectedIcon(folder.icon || ICONS[0]);
             setSelectedColor(folder.color || COLORS[0]);
-            setRequiresApproval(folder.requiresApproval || false);
-            setIsConfidential(folder.isConfidential || false);
             setAllowedTransactionTypes(folder.allowedTransactionTypes || []);
 
             const hasRestrictions = (folder.allowedTypeIds?.length ?? 0) > 0;
@@ -274,8 +270,6 @@ export function CreateFolderScreen() {
             icon: selectedIcon,
             color: selectedColor,
             parentId: parentId,
-            requiresApproval,
-            isConfidential,
             allowedTransactionTypes,
             allowedTypeIds: restrictDocTypes ? allowedTypeIds : []
         };
@@ -362,39 +356,6 @@ export function CreateFolderScreen() {
                         ]}
                     />
                 ))}
-            </View>
-
-            <ThemedText style={styles.label}>{i18n.t('folders.settings.restrictions')}</ThemedText>
-            <View style={styles.section}>
-                <View style={styles.switchRow}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                        <ThemedText style={{ fontSize: 16 }}>{i18n.t('folders.settings.requires_approval')}</ThemedText>
-                        <ThemedText style={{ fontSize: 12, color: colors.textLight, marginTop: 2 }}>
-                            {i18n.t('folders.settings.requires_approval_desc')}
-                        </ThemedText>
-                    </View>
-                    <Switch
-                        value={requiresApproval}
-                        onValueChange={setRequiresApproval}
-                        trackColor={{ false: colors.border, true: colors.primary }}
-                    />
-                </View>
-
-                <View style={{ height: 1, backgroundColor: colors.border }} />
-
-                <View style={styles.switchRow}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                        <ThemedText style={{ fontSize: 16 }}>{i18n.t('folders.settings.is_confidential')}</ThemedText>
-                        <ThemedText style={{ fontSize: 12, color: colors.textLight, marginTop: 2 }}>
-                            {i18n.t('folders.settings.is_confidential_desc')}
-                        </ThemedText>
-                    </View>
-                    <Switch
-                        value={isConfidential}
-                        onValueChange={setIsConfidential}
-                        trackColor={{ false: colors.border, true: colors.primary }}
-                    />
-                </View>
             </View>
 
             <ThemedText style={styles.label}>{i18n.t('folders.settings.transaction_types')}</ThemedText>
