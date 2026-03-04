@@ -741,6 +741,8 @@ export const es = {
             urlCopied: 'URL Copiada',
             activeSessions: 'Sesiones Activas',
             contactError: 'No se pudo abrir la app de correo. Intenta de nuevo.',
+            terms: 'Términos de Uso',
+            privacy: 'Política de Privacidad',
         },
         company: {
             title: 'Detalles de Empresa y Facturación',
@@ -883,6 +885,8 @@ export const es = {
         status: {
             free_plan: 'Plan Gratuito (Sin Suscripción)',
             premium_plan: 'Plan Premium',
+            cancelled_plan: 'Cancelado • Activo hasta {{date}}',
+            manage: 'Gestionar',
         },
         providers: {
             web: 'Panel Web',

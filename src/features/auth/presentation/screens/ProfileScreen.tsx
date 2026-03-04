@@ -150,7 +150,7 @@ const WEB_LOGIN_URL = 'https://klipphq.com/auth/login?redirect=%2Fdashboard';
 
 export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
-    const { isPro, hasExternalSubscription, externalSubscription, refreshSubscriptionStatus } = useRevenueCat();
+    const { isPro, hasExternalSubscription, externalSubscription, refreshSubscriptionStatus, rcSubscription } = useRevenueCat();
     const router = useRouter();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const { unreadCount, refreshUnreadCount } = useNotifications();
@@ -546,9 +546,10 @@ export function ProfileScreen() {
 
     const formattedPlan = useMemo(() => formatSubscriptionPlan(externalSubscription?.planId), [externalSubscription?.planId]);
     const providerKey = useMemo(() => resolveSubscriptionProviderKey(externalSubscription?.provider), [externalSubscription?.provider]);
-    const providerLabel = i18n.t(`subscription.providers.${providerKey}`);
+    const providerLabel = useMemo(() => i18n.t(`subscription.providers.${providerKey}`), [providerKey]);
     const isWebManaged = providerKey === 'web' || providerKey === 'lemonsqueezy';
-    const externalDescriptionKey = isWebManaged ? 'subscription.external.webDescription' : 'subscription.external.description';
+
+    const isCancelledPro = isPro && rcSubscription?.willRenew === false;
 
     const externalSubtitleParts = useMemo(() => {
         if (!hasExternalSubscription) return [] as string[];
@@ -560,44 +561,47 @@ export function ProfileScreen() {
         return parts;
     }, [formattedPlan, hasExternalSubscription, providerLabel]);
 
-    const subscriptionTitle = hasExternalSubscription
+    const subscriptionTitle = useMemo(() => hasExternalSubscription
         ? 'Klipp Pro (Web)'
-        : (isPro ? 'Klipp Pro' : i18n.t('subscription.title'));
+        : (isPro ? 'Klipp Pro' : i18n.t('subscription.title')),
+    [hasExternalSubscription, isPro]);
 
-    const subscriptionSubtitle = hasExternalSubscription
-        ? externalSubtitleParts.join(' • ')
-        : (isPro ? i18n.t('subscription.status.premium_plan') : i18n.t('subscription.status.free_plan'));
+    const subscriptionSubtitle = useMemo(() => {
+        if (hasExternalSubscription) return externalSubtitleParts.join(' • ');
+        if (isCancelledPro) {
+            const expiry = rcSubscription?.expirationDate
+                ? new Date(rcSubscription.expirationDate).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' })
+                : null;
+            return i18n.t('subscription.status.cancelled_plan', { date: expiry ?? '' });
+        }
+        return isPro ? i18n.t('subscription.status.premium_plan') : i18n.t('subscription.status.free_plan');
+    }, [hasExternalSubscription, isCancelledPro, isPro, externalSubtitleParts, rcSubscription]);
 
     const subscriptionCtaLabel = hasExternalSubscription
         ? (isWebManaged ? i18n.t('subscription.external.openWeb') : i18n.t('subscription.external.close'))
-        : (isPro ? 'Manage' : i18n.t('common.actions.upgrade'));
+        : (isPro ? i18n.t('subscription.status.manage') : i18n.t('common.actions.upgrade'));
 
     const handleSubscriptionPress = () => {
         if (hasExternalSubscription) {
             const buttons = [
                 {
                     text: i18n.t('subscription.external.close'),
-                    onPress: () => {
-                        refreshSubscriptionStatus(true);
-                    },
+                    onPress: () => { refreshSubscriptionStatus(true); },
                 },
             ];
-
             if (isWebManaged) {
                 buttons.unshift({
                     text: i18n.t('subscription.external.openWeb'),
                     onPress: () => Linking.openURL(WEB_LOGIN_URL),
                 });
             }
-
             Alert.alert(
                 i18n.t('subscription.external.title'),
-                i18n.t(externalDescriptionKey, { provider: providerLabel }),
+                i18n.t(isWebManaged ? 'subscription.external.webDescription' : 'subscription.external.description', { provider: providerLabel }),
                 buttons,
             );
             return;
         }
-
         router.push(isPro ? '/subscription/customer-center' : '/subscription/paywall');
     };
 
@@ -771,6 +775,18 @@ export function ProfileScreen() {
                         title={i18n.t('profile.settings.contact')}
                         subtitle="info@klipphq.com"
                         onPress={handleContactPress}
+                    />
+                    <SettingItem
+                        icon="doc.text.fill"
+                        iconColor="#8E8E93"
+                        title={i18n.t('profile.settings.terms')}
+                        onPress={() => Linking.openURL('https://klipphq.com/terms')}
+                    />
+                    <SettingItem
+                        icon="hand.raised.fill"
+                        iconColor="#8E8E93"
+                        title={i18n.t('profile.settings.privacy')}
+                        onPress={() => Linking.openURL('https://klipphq.com/kvkk')}
                     />
                     {/* <SettingItem
                         icon="star.fill"

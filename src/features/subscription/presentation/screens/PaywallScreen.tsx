@@ -12,6 +12,8 @@ import RevenueCatUI from 'react-native-purchases-ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const WEB_DASHBOARD_URL = 'https://klipphq.com/auth/login?redirect=%2Fdashboard';
+const TERMS_URL = 'https://klipphq.com/terms';
+const PRIVACY_URL = 'https://klipphq.com/kvkk';
 
 export function PaywallScreen() {
     const router = useRouter();
@@ -41,7 +43,7 @@ export function PaywallScreen() {
         : 'subscription.external.description';
 
     useEffect(() => {
-        refreshSubscriptionStatus(true);
+        refreshSubscriptionStatus(false);
     }, [refreshSubscriptionStatus]);
 
     const handleClose = () => {
@@ -81,29 +83,44 @@ export function PaywallScreen() {
         }
     };
 
+    const renderLegalFooter = () => (
+        <View style={styles.legalFooter}>
+            <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)} accessibilityRole="link">
+                <ThemedText style={styles.legalLink}>{i18n.t('subscription.actions.terms')}</ThemedText>
+            </TouchableOpacity>
+            <ThemedText style={styles.legalSeparator}>•</ThemedText>
+            <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
+                <ThemedText style={styles.legalLink}>{i18n.t('subscription.actions.privacy')}</ThemedText>
+            </TouchableOpacity>
+        </View>
+    );
+
     const renderFallback = () => (
-        <View style={styles.fallback}>
-            {isBusy ? (
-                <>
-                    <ActivityIndicator color="#fff" />
-                    <ThemedText style={styles.loadingText}>{i18n.t('subscription.states.loading')}</ThemedText>
-                </>
-            ) : (
-                <>
-                    <View style={styles.fallbackBadge}>
-                        <IconSymbol name="hare.fill" size={28} color="#4A90E2" />
-                    </View>
-                    <ThemedText style={styles.fallbackTitle}>{i18n.t('subscription.states.offeringsUnavailable')}</ThemedText>
-                    <ThemedText style={styles.fallbackSubtitle}>{i18n.t('subscription.poweredBy.subtitle')}</ThemedText>
-                    <Button
-                        title={i18n.t('subscription.actions.retry')}
-                        onPress={handleRetry}
-                        loading={isRefreshing}
-                        disabled={isRefreshing}
-                        style={styles.retryButton}
-                    />
-                </>
-            )}
+        <View style={styles.fallbackContainer}>
+            <View style={styles.fallback}>
+                {isBusy ? (
+                    <>
+                        <ActivityIndicator color="#fff" />
+                        <ThemedText style={styles.loadingText}>{i18n.t('subscription.states.loading')}</ThemedText>
+                    </>
+                ) : (
+                    <>
+                        <View style={styles.fallbackBadge}>
+                            <IconSymbol name="hare.fill" size={28} color="#4A90E2" />
+                        </View>
+                        <ThemedText style={styles.fallbackTitle}>{i18n.t('subscription.states.offeringsUnavailable')}</ThemedText>
+                        <ThemedText style={styles.fallbackSubtitle}>{i18n.t('subscription.poweredBy.subtitle')}</ThemedText>
+                        <Button
+                            title={i18n.t('subscription.actions.retry')}
+                            onPress={handleRetry}
+                            loading={isRefreshing}
+                            disabled={isRefreshing}
+                            style={styles.retryButton}
+                        />
+                    </>
+                )}
+            </View>
+            {renderLegalFooter()}
         </View>
     );
 
@@ -143,6 +160,8 @@ export function PaywallScreen() {
                     style={styles.externalButton}
                 />
 
+                {renderLegalFooter()}
+
                 <TouchableOpacity
                     style={[styles.closeButton, { top: insets.top + 12 }]}
                     onPress={handleClose}
@@ -172,10 +191,7 @@ export function PaywallScreen() {
                         onRestoreError={handlePurchaseError}
                         onDismiss={handleClose}
                     />
-                    <View style={styles.poweredBy} pointerEvents="none">
-                        <IconSymbol name="hare.fill" size={14} color="#4A90E2" />
-                        <ThemedText style={styles.poweredByText}>{i18n.t('subscription.poweredBy.title')}</ThemedText>
-                    </View>
+                    {renderLegalFooter()}
                 </>
             ) : (
                 renderFallback()
@@ -214,6 +230,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.45)',
         zIndex: 2,
     },
+    fallbackContainer: {
+        flex: 1,
+    },
     fallback: {
         flex: 1,
         alignItems: 'center',
@@ -245,23 +264,6 @@ const styles = StyleSheet.create({
     },
     retryButton: {
         alignSelf: 'stretch',
-    },
-    poweredBy: {
-        position: 'absolute',
-        bottom: 32,
-        alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 18,
-        paddingVertical: 8,
-        borderRadius: 24,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-    },
-    poweredByText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '500',
     },
     externalCard: {
         backgroundColor: 'rgba(255,255,255,0.05)',
@@ -295,5 +297,22 @@ const styles = StyleSheet.create({
     },
     externalButton: {
         alignSelf: 'stretch',
+    },
+    legalFooter: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 12,
+        gap: 8,
+        backgroundColor: '#050505',
+    },
+    legalLink: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        textDecorationLine: 'underline',
+    },
+    legalSeparator: {
+        color: 'rgba(255,255,255,0.3)',
+        fontSize: 12,
     },
 });

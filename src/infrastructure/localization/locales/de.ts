@@ -764,6 +764,8 @@ export const de = {
             urlCopied: 'URL kopiert',
             activeSessions: 'Aktive Sitzungen',
             contactError: 'E-Mail-App konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.',
+            terms: 'Nutzungsbedingungen',
+            privacy: 'Datenschutzrichtlinie',
         },
         company: {
             title: 'Firmen- & Rechnungsdetails',
@@ -909,6 +911,8 @@ export const de = {
         status: {
             free_plan: 'Kostenloser Plan (Nicht abonniert)',
             premium_plan: 'Premium-Plan',
+            cancelled_plan: 'Gekündigt • Aktiv bis {{date}}',
+            manage: 'Verwalten',
         },
         required: {
             title: 'Abonnement erforderlich',

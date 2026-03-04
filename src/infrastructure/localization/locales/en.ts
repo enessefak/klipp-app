@@ -744,6 +744,8 @@ export const en = {
             urlCopied: 'URL Copied',
             activeSessions: 'Active Sessions',
             contactError: 'Unable to open email app. Please try again.',
+            terms: 'Terms of Use',
+            privacy: 'Privacy Policy',
         },
         company: {
             title: 'Company & Billing Details',
@@ -886,6 +888,8 @@ export const en = {
         status: {
             free_plan: 'Free Plan (Not Subscribed)',
             premium_plan: 'Premium Plan',
+            cancelled_plan: 'Cancelled • Active until {{date}}',
+            manage: 'Manage',
         },
         providers: {
             web: 'Web Dashboard',

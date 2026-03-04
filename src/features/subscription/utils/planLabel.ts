@@ -15,8 +15,8 @@ export function resolveSubscriptionProviderKey(provider?: string | null): Subscr
 
     if (normalized.includes('web')) return 'web';
     if (normalized.includes('lemon')) return 'lemonsqueezy';
-    if (normalized.includes('apple')) return 'apple';
-    if (normalized.includes('google')) return 'google';
+    if (normalized.includes('apple') || normalized === 'app_store') return 'apple';
+    if (normalized.includes('google') || normalized === 'android' || normalized === 'google_play') return 'google';
 
     return 'generic';
 }

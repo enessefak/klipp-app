@@ -816,6 +816,8 @@ export const tr = {
             urlCopied: 'Adres Kopyalandı',
             activeSessions: 'Oturumlar',
             contactError: 'E-posta uygulaması açılamadı. Lütfen tekrar deneyin.',
+            terms: 'Kullanım Koşulları',
+            privacy: 'Gizlilik Politikası',
         },
         company: {
             title: 'Şirket / Fatura Bilgileri',
@@ -961,6 +963,8 @@ export const tr = {
         status: {
             free_plan: 'Ücretsiz Plan (Abone Değil)',
             premium_plan: 'Premium Plan',
+            cancelled_plan: 'İptal Edildi • {{date}} tarihine kadar aktif',
+            manage: 'Yönet',
         },
         providers: {
             web: 'Web Paneli',

@@ -4,6 +4,11 @@ import { Platform } from 'react-native';
 import Purchases, { CustomerInfo, LOG_LEVEL, PurchasesOfferings } from 'react-native-purchases';
 import { SubscriptionRepository } from '@/src/features/subscription/data/SubscriptionRepository';
 
+interface RcSubscriptionInfo {
+    willRenew: boolean;
+    expirationDate: string | null;
+}
+
 interface RevenueCatContextType {
     isPro: boolean;
     customerInfo: CustomerInfo | null;
@@ -14,6 +19,7 @@ interface RevenueCatContextType {
     refreshSubscriptionStatus: (forceSync?: boolean) => Promise<ExternalSubscriptionStatus | null>;
     hasExternalSubscription: boolean;
     externalSubscription: ExternalSubscriptionStatus | null;
+    rcSubscription: RcSubscriptionInfo | null;
 }
 
 interface ExternalSubscriptionStatus {
@@ -37,6 +43,7 @@ export const RevenueCatProvider = ({ children, userId }: { children: React.React
     const [isLoading, setIsLoading] = useState(true);
     const [hasExternalSubscription, setHasExternalSubscription] = useState(false);
     const [externalSubscription, setExternalSubscription] = useState<ExternalSubscriptionStatus | null>(null);
+    const [rcSubscription, setRcSubscription] = useState<RcSubscriptionInfo | null>(null);
 
     const revenueCatEntitlementRef = useRef(false);
     const backendSubscriptionRef = useRef(false);
@@ -113,8 +120,9 @@ export const RevenueCatProvider = ({ children, userId }: { children: React.React
     }, []);
 
     const checkEntitlements = (info: CustomerInfo) => {
-        const hasPro = Boolean(info.entitlements.active['pro_access']);
-        updateProStatus(hasPro, undefined);
+        const entitlement = info.entitlements.active['pro_access'];
+        updateProStatus(Boolean(entitlement), undefined);
+        setRcSubscription(entitlement ? { willRenew: entitlement.willRenew, expirationDate: entitlement.expirationDate } : null);
     };
 
     const syncBackendSubscription = useCallback(async (forceSync = false): Promise<ExternalSubscriptionStatus | null> => {
@@ -135,8 +143,9 @@ export const RevenueCatProvider = ({ children, userId }: { children: React.React
                 subscriptionEndDate: result?.subscriptionEndDate || null,
             };
 
+            const isNativeProvider = normalized.provider === 'app_store' || normalized.provider === 'android' || normalized.provider === 'google_play';
             setExternalSubscription(normalized);
-            setHasExternalSubscription(normalized.isValid);
+            setHasExternalSubscription(normalized.isValid && !isNativeProvider);
             updateProStatus(undefined, normalized.isValid);
             return normalized;
         } catch (error) {
@@ -151,6 +160,7 @@ export const RevenueCatProvider = ({ children, userId }: { children: React.React
         } else {
             setExternalSubscription(null);
             setHasExternalSubscription(false);
+            setRcSubscription(null);
             updateProStatus(false, false);
         }
     }, [syncBackendSubscription, updateProStatus, userId]);
@@ -189,6 +199,7 @@ export const RevenueCatProvider = ({ children, userId }: { children: React.React
                 refreshSubscriptionStatus: syncBackendSubscription,
                 hasExternalSubscription,
                 externalSubscription,
+                rcSubscription,
             }}
         >
             {children}
