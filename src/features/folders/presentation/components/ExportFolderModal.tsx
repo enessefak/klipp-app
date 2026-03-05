@@ -4,6 +4,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { ExportService } from '@/src/infrastructure/api/generated/services/ExportService';
 import i18n from '@/src/infrastructure/localization/i18n';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
@@ -33,7 +34,10 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
     const loadTemplates = async () => {
         try {
             setLoading(true);
-            const response = await ExportService.getExportFormats();
+            const [response, savedFormat] = await Promise.all([
+                ExportService.getExportFormats(),
+                AsyncStorage.getItem('export_preferred_format'),
+            ]);
             const data = (response as any).data || response;
 
             if (Array.isArray(data)) {
@@ -42,7 +46,6 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
                     name: item.name
                 })));
             } else {
-                // Fallback hardcoded
                 setTemplates([
                     { id: 'TR_EXCEL', name: 'Excel (TR)' },
                     { id: 'DE_DATEV', name: 'DATEV (DE)' },
@@ -52,9 +55,12 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
                     { id: 'EXCEL', name: 'Standard Excel' }
                 ]);
             }
+
+            if (savedFormat) {
+                setSelectedTemplateId(savedFormat);
+            }
         } catch (error) {
             console.error('Failed to load templates', error);
-            // Fallback
             setTemplates([
                 { id: 'TR_EXCEL', name: 'Excel (TR)' },
                 { id: 'DE_DATEV', name: 'DATEV (DE)' },
@@ -119,6 +125,9 @@ export function ExportFolderModal({ visible, onClose, onExport }: ExportFolderMo
     }), [colors]);
 
     const handleExport = () => {
+        if (selectedTemplateId) {
+            AsyncStorage.setItem('export_preferred_format', selectedTemplateId).catch(() => {});
+        }
         onExport(selectedTemplateId);
         onClose();
     };

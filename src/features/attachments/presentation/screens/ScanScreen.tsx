@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Alert, View } from 'react-native';
+import i18n from '@/src/infrastructure/localization/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useScanForm } from '@/src/features/attachments/presentation/hooks/useScanForm';
@@ -38,6 +39,21 @@ export function ScanScreen() {
     const scanLogic = useScanLogic({
         onOcrSuccess: (ocrResult, file) => {
             scanForm.actions.populateFormFromOcr(ocrResult, file);
+        },
+        onOcrError: (error: any) => {
+            const errorCode = error?.body?.error || error?.code;
+            const apiMessage = error?.body?.message;
+            if (errorCode === 'attachment_type_not_allowed') {
+                Alert.alert(
+                    i18n.t('common.error'),
+                    apiMessage || i18n.t('folders.restrictions.type_not_allowed')
+                );
+            } else if (errorCode === 'transaction_type_not_allowed') {
+                Alert.alert(
+                    i18n.t('common.error'),
+                    apiMessage || i18n.t('folders.restrictions.transaction_type_not_allowed')
+                );
+            }
         }
     });
 
@@ -49,6 +65,20 @@ export function ScanScreen() {
     }, [initialFolderId]);
 
     const selectedFolderId = scanForm.form.watch('folderId');
+
+    const selectedFolder = useMemo(() =>
+        folders.find(f => f.id === selectedFolderId),
+        [folders, selectedFolderId]
+    );
+
+    const allowedTypeLabels = useMemo(() => {
+        const ids = selectedFolder?.allowedTypeIds;
+        if (!ids?.length) return null;
+        return scanForm.state.attachmentTypes
+            .filter((t: any) => ids.includes(t.id))
+            .map((t: any) => t.label || t.name)
+            .join(', ');
+    }, [selectedFolder, scanForm.state.attachmentTypes]);
 
     const handleMethodSelect = React.useCallback((method: 'scan' | 'camera' | 'gallery' | 'file') => {
         if (method === 'scan') scanLogic.scanDocument(selectedFolderId);
@@ -134,6 +164,8 @@ export function ScanScreen() {
                     onClose={handleClose}
                     insets={insets}
                     styles={styles}
+                    allowedTypeIds={selectedFolder?.allowedTypeIds}
+                    allowedTransactionTypes={selectedFolder?.allowedTransactionTypes}
                 />
             );
         }
@@ -146,6 +178,7 @@ export function ScanScreen() {
                     onClose={handleClose}
                     insets={insets}
                     styles={styles}
+                    allowedTypeLabels={allowedTypeLabels}
                 />
             );
         }

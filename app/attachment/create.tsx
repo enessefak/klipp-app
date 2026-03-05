@@ -18,7 +18,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Touchabl
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface FormData {
-    folderId: string;
+    folderId: string | null;
     attachmentTypeId: string;
     title: string;
     documentDate: Date;
@@ -40,7 +40,7 @@ export default function CreateRecordScreen() {
 
     const { control, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<FormData>({
         defaultValues: {
-            folderId: initialFolderId || '',
+            folderId: initialFolderId || null,
             attachmentTypeId: '',
             title: '',
             documentDate: new Date(),
@@ -48,9 +48,24 @@ export default function CreateRecordScreen() {
         }
     });
 
+    const watchedFolderId = watch('folderId');
     const watchedTypeId = watch('attachmentTypeId');
     const watchedDetails = watch('details');
     const watchedDocumentDate = watch('documentDate');
+
+    const selectedFolder = useMemo(() =>
+        folders.find(f => f.id === watchedFolderId),
+        [folders, watchedFolderId]
+    );
+
+    const allowedTypeLabels = useMemo(() => {
+        const ids = selectedFolder?.allowedTypeIds;
+        if (!ids?.length) return null;
+        return attachmentTypes
+            .filter(t => ids.includes(t.id))
+            .map(t => t.label || t.name)
+            .join(', ');
+    }, [selectedFolder, attachmentTypes]);
 
     // Get selected type and its dynamic fields
     const selectedType = useMemo(() => {
@@ -114,7 +129,7 @@ export default function CreateRecordScreen() {
         setIsSubmitting(true);
         try {
             const dto: CreateAttachmentDTO = {
-                folderId: data.folderId,
+                folderId: data.folderId ?? undefined,
                 attachmentTypeId: data.attachmentTypeId,
                 title: data.title.trim(),
                 documentDate: data.documentDate.toISOString(),
@@ -244,7 +259,7 @@ export default function CreateRecordScreen() {
                             <Controller
                                 control={control}
                                 name="folderId"
-                                rules={{ required: i18n.t('manualRecord.folderRequired') }}
+                                rules={{ validate: v => v !== undefined || i18n.t('manualRecord.folderRequired') }}
                                 render={({ field: { onChange, value } }) => (
                                     <FormField error={errors.folderId?.message}>
                                         <FolderSelector
@@ -291,6 +306,16 @@ export default function CreateRecordScreen() {
                                 )}
                             />
 
+                            {/* Allowed types info banner */}
+                            {allowedTypeLabels && (
+                                <View style={{ backgroundColor: colors.primary + '15', borderRadius: 10, padding: 12, marginBottom: 4, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                                    <IconSymbol name="info.circle.fill" size={15} color={colors.primary} style={{ marginTop: 1 }} />
+                                    <ThemedText style={{ fontSize: 13, color: colors.primary, flex: 1, lineHeight: 18 }}>
+                                        {i18n.t('folders.restrictions.allowed_types_info', { types: allowedTypeLabels })}
+                                    </ThemedText>
+                                </View>
+                            )}
+
                             {/* Attachment Type Selector */}
                             <Controller
                                 control={control}
@@ -304,6 +329,8 @@ export default function CreateRecordScreen() {
                                             currentType={selectedType}
                                             placeholder={i18n.t('manualRecord.selectType')}
                                             disabled={typesLoading}
+                                            allowedTypeIds={selectedFolder?.allowedTypeIds}
+                                            allowedTransactionTypes={selectedFolder?.allowedTransactionTypes as string[] | undefined}
                                         />
                                     </FormField>
                                 )}

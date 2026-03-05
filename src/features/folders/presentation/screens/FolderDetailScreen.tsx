@@ -18,13 +18,11 @@ import { AttachmentService } from '@/src/features/attachments/data/AttachmentSer
 import { Attachment } from '@/src/features/attachments/domain/Attachment';
 import { useAuth } from '@/src/features/auth/presentation/useAuth';
 import { ImportFolderModal } from '../components/ImportFolderModal';
-import { useGroups } from '@/src/features/groups/presentation/hooks/useGroups';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { SharingService } from '@/src/features/sharing/data/SharingService';
-import { FolderShare } from '@/src/features/sharing/domain/FolderShare';
-import { EditShareModal } from '@/src/features/sharing/presentation/components/EditShareModal';
 import { ShareFolderModal } from '@/src/features/sharing/presentation/components/ShareFolderModal';
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
+import { ExportService } from '@/src/infrastructure/api/generated/services/ExportService';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Folder } from '../../domain/Folder';
 import { FolderRepository } from '../../infrastructure/FolderRepository';
@@ -48,34 +46,16 @@ export function FolderDetailScreen() {
 
     const { folders, attachments, loading, refresh, createFolder, updateFolder, deleteFolder } = useFolders(folderId, { isSharedFolder });
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null);
-    const [folderShares, setFolderShares] = useState<FolderShare[]>([]);
-    const [sharesLoading, setSharingLoading] = useState(false);
+    const [shareCount, setShareCount] = useState(0);
     const [isExportModalVisible, setIsExportModalVisible] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
-    const [showShareDetails, setShowShareDetails] = useState(false);
-    const [selectedShare, setSelectedShare] = useState<FolderShare | null>(null);
     const [allFolders, setAllFolders] = useState<Folder[]>([]);
     const [activeTab, setActiveTab] = useState<'belgeler' | 'efatura'>('belgeler');
-    const [sharingTab, setSharingTab] = useState<'persons' | 'groups'>('persons');
 
     // Add menu and modal states
     const [isAddMenuVisible, setIsAddMenuVisible] = useState(false);
     const [isPersonnelModalVisible, setIsPersonnelModalVisible] = useState(false);
     const [isImportModalVisible, setIsImportModalVisible] = useState(false);
-
-    // Groups
-    const { groups, loading: groupsLoading, refresh: refreshGroups } = useGroups();
-
-    const handleUpdateShare = async (shareId: string, permission: FolderShare['permission']) => {
-        await SharingService.updateSharePermission(shareId, permission);
-        loadFolderShares();
-    };
-
-    const handleRemoveShare = async (shareId: string) => {
-        await SharingService.removeShare(shareId);
-        loadFolderShares();
-    };
-
 
     // Load all folders for breadcrumb navigation
     useEffect(() => {
@@ -106,65 +86,62 @@ export function FolderDetailScreen() {
         }
     };
 
-    const loadFolderShares = useCallback(async () => {
-        try {
-            setSharingLoading(true);
-            const shares = await SharingService.getFolderShares(folderId!);
-            setFolderShares(shares);
-        } catch (err: any) {
-            // If folder is not found, we probably already handled it in loadFolderInfo or it's deleted.
-            // Suppress 404 log to avoid noise.
-            if (err.status === 404 || err.body?.message === 'Folder not found') {
-                return;
-            }
-            console.error(`Failed to load folder shares for folderId ${folderId}: `, JSON.stringify(err, null, 2), err);
-        } finally {
-            setSharingLoading(false);
-        }
-    }, [folderId]);
-
     // Load current folder info
     useEffect(() => {
         if (folderId) {
             loadFolderInfo();
-            // Only load shares if this is NOT a shared folder (we own it)
-            if (!isSharedFolder) {
-                loadFolderShares();
-            }
         }
-    }, [folderId, isSharedFolder, loadFolderShares]);
+    }, [folderId]);
 
     useFocusEffect(
         useCallback(() => {
             refresh();
-            if (!isSharedFolder) {
-                loadFolderShares();
+            if (folderId && !isSharedFolder) {
+                SharingService.getFolderShares(folderId)
+                    .then(shares => setShareCount(shares.length))
+                    .catch(() => {});
             }
-        }, [folderId, isSharedFolder, loadFolderShares])
+        }, [folderId, isSharedFolder])
     );
 
 
     const handleExport = async (format?: string) => {
         if (!folderId || !format) return;
         try {
-            const baseUrl = OpenAPI.BASE;
-            const url = `${baseUrl}/export/attachments?folderId=${folderId}&format=${format}`;
+            const countResponse = await ExportService.getExportCount(folderId);
+            const total = countResponse?.data?.count ?? 0;
 
-            const extensionMap: Record<string, string> = {
-                TR_EXCEL: 'xlsx',
-                EXCEL: 'xlsx',
-                CSV: 'csv',
-                JSON: 'json',
-                XML: 'zip',
-                PDF: 'pdf',
-                DE_DATEV: 'zip',
+            const doExport = async () => {
+                const baseUrl = OpenAPI.BASE;
+                const url = `${baseUrl}/export/attachments?folderId=${folderId}&format=${format}`;
+                const extensionMap: Record<string, string> = {
+                    TR_EXCEL: 'xlsx',
+                    EXCEL: 'xlsx',
+                    CSV: 'csv',
+                    JSON: 'json',
+                    XML: 'zip',
+                    PDF: 'pdf',
+                    DE_DATEV: 'zip',
+                };
+                const ext = extensionMap[format] ?? 'bin';
+                const filename = `${currentFolder?.name || 'folder'}_export.${ext}`;
+                const success = await FileDownloadService.downloadAndShare(url, filename);
+                if (!success) {
+                    Alert.alert(i18n.t('common.error'), i18n.t('folders.export_messages.failed'));
+                }
             };
-            const ext = extensionMap[format] ?? 'bin';
-            const filename = `${currentFolder?.name || 'folder'}_export.${ext}`;
 
-            const success = await FileDownloadService.downloadAndShare(url, filename);
-            if (!success) {
-                Alert.alert(i18n.t('common.error'), i18n.t('folders.export_messages.failed'));
+            if (total > 100) {
+                Alert.alert(
+                    i18n.t('folders.export_messages.limit_title'),
+                    i18n.t('folders.export_messages.limit_message', { total, limit: 100 }),
+                    [
+                        { text: i18n.t('common.actions.cancel'), style: 'cancel' },
+                        { text: i18n.t('common.actions.continue'), onPress: doExport },
+                    ]
+                );
+            } else {
+                await doExport();
             }
         } catch (error) {
             console.error('Export failed', error);
@@ -228,10 +205,7 @@ export function FolderDetailScreen() {
 
     const handleRefresh = useCallback(() => {
         refresh();
-        if (!isSharedFolder) {
-            loadFolderShares();
-        }
-    }, [refresh, isSharedFolder, loadFolderShares]);
+    }, [refresh]);
 
     const handleMoveAttachment = (attachment: Attachment) => {
         // Navigate to folder picker and handle move
@@ -269,10 +243,6 @@ export function FolderDetailScreen() {
             ]
         );
     };
-
-    const acceptedShares = folderShares.filter(s => s.status === 'accepted');
-    const pendingShares = folderShares.filter(s => s.status === 'pending');
-
 
     const bottomOffset = insets.bottom || 0;
     const styles = useMemo(() => StyleSheet.create({
@@ -329,6 +299,12 @@ export function FolderDetailScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 4,
+        },
+        shareStat: {
+            backgroundColor: colors.primary + '15',
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 8,
         },
         statText: {
             fontSize: 13,
@@ -703,6 +679,14 @@ export function FolderDetailScreen() {
                                 <IconSymbol name="doc.fill" size={14} color={colors.gray} />
                                 <ThemedText style={styles.statText}>{attachments.length} {i18n.t('folders.stats.document')}</ThemedText>
                             </View>
+                            {shareCount > 0 && !isSharedFolder && (
+                                <View style={[styles.stat, styles.shareStat]}>
+                                    <IconSymbol name="person.2.fill" size={13} color={colors.primary} />
+                                    <ThemedText style={[styles.statText, { color: colors.primary, fontWeight: '600' }]}>
+                                        {shareCount}
+                                    </ThemedText>
+                                </View>
+                            )}
                         </View>
                     </View>
                 </View>
@@ -748,209 +732,6 @@ export function FolderDetailScreen() {
                         </View>
                     </View>
                 )}
-
-                {/* Sharing Section - Only for owned folders */}
-                {
-                    currentFolder?.owner?.id === user?.id && (
-                        <TouchableOpacity
-                            style={styles.sharingSection}
-                            onPress={() => setShowShareDetails(!showShareDetails)}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.sharingHeader}>
-                                <View style={styles.sharingTitleRow}>
-                                    <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
-                                    <ThemedText type="defaultSemiBold" style={styles.sharingTitle}>
-                                        {i18n.t('folders.sharing.title')}
-                                    </ThemedText>
-                                </View>
-                                <View style={styles.sharingBadges}>
-                                    {acceptedShares.length > 0 && (
-                                        <View style={styles.shareBadge}>
-                                            <ThemedText style={styles.shareBadgeText}>
-                                                {acceptedShares.length} {i18n.t('folders.sharing.person_count')}
-                                            </ThemedText>
-                                        </View>
-                                    )}
-                                    {pendingShares.length > 0 && (
-                                        <View style={[styles.shareBadge, styles.pendingBadge]}>
-                                            <ThemedText style={[styles.shareBadgeText, styles.pendingText]}>
-                                                {pendingShares.length} {i18n.t('folders.sharing.pending_count')}
-                                            </ThemedText>
-                                        </View>
-                                    )}
-                                    <IconSymbol
-                                        name={showShareDetails ? 'chevron.up' : 'chevron.down'}
-                                        size={16}
-                                        color={colors.gray}
-                                    />
-                                </View>
-                            </View>
-
-                            {/* Share Details */}
-                            {showShareDetails && (
-                                <View style={styles.shareDetailsList}>
-                                    {/* Tabs for Persons / Groups */}
-                                    <View style={styles.sharingTabsContainer}>
-                                        <TouchableOpacity
-                                            style={[styles.sharingTabButton, sharingTab === 'persons' && styles.sharingTabButtonActive]}
-                                            onPress={() => setSharingTab('persons')}
-                                        >
-                                            <ThemedText style={[styles.sharingTabText, sharingTab === 'persons' && styles.sharingTabTextActive]}>
-                                                👤 Kişiler ({folderShares.length})
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.sharingTabButton, sharingTab === 'groups' && styles.sharingTabButtonActive]}
-                                            onPress={() => setSharingTab('groups')}
-                                        >
-                                            <ThemedText style={[styles.sharingTabText, sharingTab === 'groups' && styles.sharingTabTextActive]}>
-                                                👥 Gruplar ({groups.length})
-                                            </ThemedText>
-                                        </TouchableOpacity>
-                                    </View>
-
-                                    {/* Persons Tab Content */}
-                                    {sharingTab === 'persons' && (
-                                        <>
-                                            {sharesLoading ? (
-                                                <ActivityIndicator size="small" color={colors.primary} />
-                                            ) : folderShares.length === 0 ? (
-                                                <ThemedText style={styles.noSharesText}>
-                                                    {i18n.t('folders.sharing.empty')}
-                                                </ThemedText>
-                                            ) : (
-                                                folderShares.map((share) => (
-                                                    <TouchableOpacity
-                                                        key={share.id}
-                                                        style={styles.shareItem}
-                                                        onPress={() => setSelectedShare(share)}
-                                                    >
-                                                        <View style={styles.shareAvatar}>
-                                                            <ThemedText style={styles.shareAvatarText}>
-                                                                {share.sharedWith.name.charAt(0).toUpperCase()}
-                                                            </ThemedText>
-                                                        </View>
-                                                        <View style={styles.shareInfo}>
-                                                            <ThemedText type="defaultSemiBold" style={styles.shareName}>
-                                                                {share.sharedWith.name}
-                                                            </ThemedText>
-                                                            <ThemedText style={styles.shareEmail}>
-                                                                {share.sharedWith.email}
-                                                            </ThemedText>
-                                                        </View>
-                                                        <View style={styles.shareStatus}>
-                                                            <View style={[
-                                                                styles.permissionBadge,
-                                                                { backgroundColor: (
-                                                                    share.permission === 'EDIT' ? colors.success :
-                                                                    share.permission === 'CREATE' ? colors.warning :
-                                                                    share.permission === 'FULL' ? colors.error :
-                                                                    colors.primary
-                                                                ) + '20' }
-                                                            ]}>
-                                                                <ThemedText style={[
-                                                                    styles.permissionText,
-                                                                    { color:
-                                                                        share.permission === 'EDIT' ? colors.success :
-                                                                        share.permission === 'CREATE' ? colors.warning :
-                                                                        share.permission === 'FULL' ? colors.error :
-                                                                        colors.primary
-                                                                    }
-                                                                ]}>
-                                                                    {share.permission === 'VIEW' ? i18n.t('folders.sharing.roles.viewer') :
-                                                                     share.permission === 'EDIT' ? i18n.t('folders.sharing.roles.editor') :
-                                                                     share.permission === 'CREATE' ? i18n.t('folders.sharing.roles.create') :
-                                                                     i18n.t('folders.sharing.roles.full')}
-                                                                </ThemedText>
-                                                            </View>
-                                                            {share.status === 'pending' && (
-                                                                <View style={styles.statusPending}>
-                                                                    <ThemedText style={styles.statusPendingText}>{i18n.t('folders.sharing.status.pending')}</ThemedText>
-                                                                </View>
-                                                            )}
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                ))
-                                            )}
-                                            <TouchableOpacity
-                                                style={styles.addShareButton}
-                                                onPress={() => setShareModalVisible(true)}
-                                            >
-                                                <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
-                                                <ThemedText style={styles.addShareText}>{i18n.t('folders.sharing.add_person')}</ThemedText>
-                                            </TouchableOpacity>
-                                        </>
-                                    )}
-
-                                    {/* Groups Tab Content */}
-                                    {sharingTab === 'groups' && (
-                                        <>
-                                            {groupsLoading ? (
-                                                <ActivityIndicator size="small" color={colors.primary} />
-                                            ) : groups.length === 0 ? (
-                                                <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-                                                    <ThemedText style={styles.noSharesText}>
-                                                        {i18n.t('sharing.modal.no_groups')}
-                                                    </ThemedText>
-                                                    <TouchableOpacity
-                                                        style={[styles.addShareButton, { marginTop: 8 }]}
-                                                        onPress={() => router.push('/groups')}
-                                                    >
-                                                        <IconSymbol name="plus.circle.fill" size={20} color={colors.primary} />
-                                                        <ThemedText style={styles.addShareText}>{i18n.t('groups.create')}</ThemedText>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            ) : (
-                                                <>
-                                                    {groups.map((group) => (
-                                                        <TouchableOpacity
-                                                            key={group.id}
-                                                            style={styles.groupItem}
-                                                            onPress={() => router.push(`/groups/${group.id}`)}
-                                                        >
-                                                            <View style={styles.groupAvatar}>
-                                                                <IconSymbol name="person.3.fill" size={16} color={colors.white} />
-                                                            </View>
-                                                            <View style={styles.groupInfo}>
-                                                                <ThemedText type="defaultSemiBold" style={styles.groupName}>
-                                                                    {group.name}
-                                                                </ThemedText>
-                                                                <ThemedText style={styles.groupMemberCount}>
-                                                                    {i18n.t('groups.member_count', { count: group.memberCount })}
-                                                                </ThemedText>
-                                                            </View>
-                                                            <IconSymbol name="chevron.right" size={16} color={colors.gray} />
-                                                        </TouchableOpacity>
-                                                    ))}
-                                                    <TouchableOpacity
-                                                        style={styles.addShareButton}
-                                                        onPress={() => router.push('/groups')}
-                                                    >
-                                                        <IconSymbol name="gearshape.fill" size={20} color={colors.primary} />
-                                                        <ThemedText style={styles.addShareText}>{i18n.t('groups.manage')}</ThemedText>
-                                                    </TouchableOpacity>
-                                                </>
-                                            )}
-                                        </>
-                                    )}
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    )
-                }
-
-                {/* Shared folder indicator */}
-                {
-                    isSharedFolder && (
-                        <View style={styles.sharedIndicator}>
-                            <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
-                            <ThemedText style={styles.sharedIndicatorText}>
-                                {i18n.t('folders.sharing.shared_with_you')}
-                            </ThemedText>
-                        </View>
-                    )
-                }
 
                 {/* Subfolders List */}
                 {folders && folders.length > 0 && (
@@ -1063,22 +844,11 @@ export function FolderDetailScreen() {
             {currentFolder && (
                 <ShareFolderModal
                     visible={shareModalVisible}
-                    onClose={() => {
-                        setShareModalVisible(false);
-                        loadFolderShares();
-                    }}
+                    onClose={() => setShareModalVisible(false)}
                     folderId={currentFolder.id}
                     folderName={currentFolder.name}
                 />
             )}
-
-            <EditShareModal
-                visible={!!selectedShare}
-                onClose={() => setSelectedShare(null)}
-                share={selectedShare}
-                onUpdate={handleUpdateShare}
-                onRemove={handleRemoveShare}
-            />
 
             {/* Add Menu Sheet */}
             <FolderAddMenuSheet

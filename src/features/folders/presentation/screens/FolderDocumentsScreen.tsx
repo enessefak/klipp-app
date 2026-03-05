@@ -9,7 +9,7 @@ import { useFolders } from '@/src/features/folders/presentation/useFolders';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { usePicker } from '@/src/infrastructure/picker/PickerContext';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,6 +46,8 @@ export function FolderDocumentsScreen() {
 
     // Use backend filtering via useFolders hook
     const { attachments, loading, refresh } = useFolders(folderIdForFetch, { attachmentFilters: effectiveFilters });
+
+    useFocusEffect(useCallback(() => { refresh(); }, []));
 
     useEffect(() => {
         if (id && !isRoot) {

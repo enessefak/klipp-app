@@ -12,8 +12,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface FolderSelectorProps {
-    value: string;
-    onSelect: (folderId: string) => void;
+    value: string | null;
+    onSelect: (folderId: string | null) => void;
     label?: string;
     placeholder?: string;
     error?: string;
@@ -103,17 +103,17 @@ export function FolderSelector({
     // Fetch folder details if value is present
     useEffect(() => {
         if (value) {
-            loadFolderDetails();
+            loadFolderDetails(value);
         } else {
             setSelectedFolder(null);
         }
     }, [value]);
 
-    const loadFolderDetails = async () => {
+    const loadFolderDetails = async (folderId: string) => {
         try {
             // Try fetching specific folder first (works for owned folders and often shared ones)
             try {
-                const folder = await FolderRepository.getFolderById(value);
+                const folder = await FolderRepository.getFolderById(folderId);
                 if (folder) {
                     setSelectedFolder(folder);
                     return;
@@ -123,7 +123,7 @@ export function FolderSelector({
                 // or the API doesn't support getById for shared folders.
                 const sharedFolders = await SharingService.getSharedWithMe('accepted');
                 // manual mapping because SharingService returns SharedFolder, we need Folder type subset
-                const found = sharedFolders.find(f => f.id === value);
+                const found = sharedFolders.find(f => f.id === folderId);
                 if (found) {
                     setSelectedFolder({
                         id: found.id,
@@ -152,9 +152,7 @@ export function FolderSelector({
         if (disabled) return;
 
         setFolderCallback((folder) => {
-            if (folder) {
-                onSelect(folder.id);
-            }
+            onSelect(folder ? folder.id : null);
         });
 
         // @ts-ignore
@@ -182,7 +180,16 @@ export function FolderSelector({
                 disabled={disabled}
             >
                 <View style={styles.content}>
-                    {selectedFolder ? (
+                    {value === null ? (
+                        <View style={styles.selectedContent}>
+                            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+                                <IconSymbol name="house.fill" size={18} color={colors.primary} />
+                            </View>
+                            <ThemedText style={styles.valueText}>
+                                {I18nLocal.t('folders.picker.root_directory', { defaultValue: 'Ana Dizin' })}
+                            </ThemedText>
+                        </View>
+                    ) : selectedFolder ? (
                         <View style={styles.selectedContent}>
                             <View style={[styles.iconContainer, { backgroundColor: selectedFolder.color + '20' }]}>
                                 <ThemedText style={styles.iconEmoji}>{getIconDisplay(selectedFolder.icon)}</ThemedText>

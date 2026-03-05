@@ -24,6 +24,8 @@ interface AttachmentTypeSelectorProps {
     placeholder?: string;
     error?: string;
     disabled?: boolean;
+    allowedTypeIds?: string[];
+    allowedTransactionTypes?: string[];
 }
 
 export function AttachmentTypeSelector({
@@ -35,6 +37,8 @@ export function AttachmentTypeSelector({
     placeholder = I18nLocal.t('folders.picker.placeholder'),
     error,
     disabled = false,
+    allowedTypeIds,
+    allowedTransactionTypes,
 }: AttachmentTypeSelectorProps) {
     const router = useRouter();
     const { setTypeCallback } = usePicker();
@@ -125,7 +129,11 @@ export function AttachmentTypeSelector({
         // @ts-ignore
         router.push({
             pathname: '/picker/attachment-type',
-            params: { selectedId: value }
+            params: {
+                selectedId: value,
+                ...(allowedTypeIds?.length ? { allowedTypeIds: allowedTypeIds.join(',') } : {}),
+                ...(allowedTransactionTypes?.length ? { allowedTransactionTypes: allowedTransactionTypes.join(',') } : {}),
+            }
         });
     };
 

@@ -46,7 +46,7 @@ const editSchema = z.object({
     // amount: z.string().optional(),
     // currency: z.string(),
     attachmentTypeId: z.string().min(1, i18n.t('receipts.scan.validation.type_required')),
-    folderId: z.string().min(1, i18n.t('receipts.scan.validation.folder_required')),
+    folderId: z.string().min(1, i18n.t('receipts.scan.validation.folder_required')).nullable(),
     categoryId: z.string().optional(),
     documentDate: z.date(),
     details: z.record(z.string(), z.any()).optional(),

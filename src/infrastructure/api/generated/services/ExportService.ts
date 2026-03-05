@@ -107,4 +107,60 @@ export class ExportService {
             },
         });
     }
+    /**
+     * Count attachments matching the given filters
+     * @param folderId
+     * @param categoryId
+     * @param attachmentTypeId
+     * @param transactionType
+     * @param title
+     * @param search
+     * @param documentDateFrom
+     * @param documentDateTo
+     * @param includeShared
+     * @param includeSubfolders Set to "true" to include subfolders when folderId is present
+     * @param fieldMapping JSON string mapping fields (e.g. {"amount": "custom_price"})
+     * @param selectedFields JSON array of field keys to include (e.g. ["id", "amount"])
+     * @returns any Default Response
+     * @throws ApiError
+     */
+    public static getExportCount(
+        folderId?: string,
+        categoryId?: string,
+        attachmentTypeId?: string,
+        transactionType?: 'INCOME' | 'EXPENSE' | 'NEUTRAL',
+        title?: string,
+        search?: string,
+        documentDateFrom?: string,
+        documentDateTo?: string,
+        includeShared?: string,
+        includeSubfolders?: string,
+        fieldMapping?: string,
+        selectedFields?: string,
+    ): CancelablePromise<{
+        success: boolean;
+        message?: string;
+        data?: {
+            count: number;
+        };
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/export/count',
+            query: {
+                'folderId': folderId,
+                'categoryId': categoryId,
+                'attachmentTypeId': attachmentTypeId,
+                'transactionType': transactionType,
+                'title': title,
+                'search': search,
+                'documentDateFrom': documentDateFrom,
+                'documentDateTo': documentDateTo,
+                'includeShared': includeShared,
+                'includeSubfolders': includeSubfolders,
+                'fieldMapping': fieldMapping,
+                'selectedFields': selectedFields,
+            },
+        });
+    }
 }

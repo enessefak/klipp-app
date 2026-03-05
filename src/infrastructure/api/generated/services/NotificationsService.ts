@@ -25,7 +25,7 @@ export class NotificationsService {
         data?: {
             items: Array<{
                 id: string;
-                type: 'FOLDER_SHARE_INVITE' | 'FOLDER_SHARE_ACCEPTED' | 'FOLDER_SHARE_REJECTED' | 'SYSTEM';
+                type: 'FOLDER_SHARE_INVITE' | 'FOLDER_SHARE_ACCEPTED' | 'FOLDER_SHARE_REJECTED' | 'ATTACHMENT_APPROVED' | 'ATTACHMENT_REJECTED' | 'SYSTEM';
                 title: string;
                 body: string;
                 referenceId: string | null;

@@ -1557,7 +1557,6 @@ export function AttachmentDetailScreen() {
                 {activeTab === 'export' && (
                     <AttachmentExport
                         attachmentId={id!}
-                        fieldConfig={dynamicFields}
                     />
                 )}
             </View>

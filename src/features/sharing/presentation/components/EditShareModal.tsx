@@ -51,16 +51,10 @@ export function EditShareModal({ visible, onClose, share, onUpdate, onRemove }: 
                 {
                     text: i18n.t('common.actions.delete'),
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            setLoading(true);
-                            await onRemove(share.id);
-                            onClose();
-                        } catch (error) {
-                            Alert.alert(i18n.t('common.error'), i18n.t('folders.sharing.actions.remove_error'));
-                        } finally {
-                            setLoading(false);
-                        }
+                    onPress: () => {
+                        const shareId = share.id;
+                        onClose();
+                        onRemove(shareId);
                     }
                 }
             ]

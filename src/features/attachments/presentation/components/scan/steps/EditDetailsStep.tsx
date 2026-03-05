@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Control, Controller, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { Alert, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import { AttachmentTypeSelector } from '@/components/AttachmentTypeSelector';
 import { Button, DatePickerField, FormContainer, FormField, TextInput } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 
 import { FieldConfig } from '@/src/features/attachments/domain/AttachmentTypeFields';
 import { CustomFieldsList } from '@/src/features/attachments/presentation/components/scan/CustomFieldsList';
@@ -52,6 +54,8 @@ interface EditDetailsStepProps {
     onClose: () => void;
     insets: { top: number };
     styles: any;
+    allowedTypeIds?: string[];
+    allowedTransactionTypes?: string[];
 }
 
 export const EditDetailsStep = ({
@@ -82,10 +86,21 @@ export const EditDetailsStep = ({
     onClose,
     insets,
     styles,
+    allowedTypeIds,
+    allowedTransactionTypes,
 }: EditDetailsStepProps) => {
+    const { colors } = useSettings();
     const [showDetails, setShowDetails] = useState(true);
     const [showAddOptions, setShowAddOptions] = useState(false);
     const scrollViewRef = useRef<ScrollView>(null);
+
+    const allowedTypeLabels = useMemo(() => {
+        if (!allowedTypeIds?.length) return null;
+        return attachmentTypes
+            .filter(t => allowedTypeIds.includes(t.id))
+            .map(t => t.label || t.name)
+            .join(', ');
+    }, [allowedTypeIds, attachmentTypes]);
 
     useEffect(() => {
         if (!canAddMoreFiles) {
@@ -158,6 +173,16 @@ export const EditDetailsStep = ({
             )}
 
 
+            {/* Allowed types info banner */}
+            {allowedTypeLabels && (
+                <View style={{ backgroundColor: colors.primary + '15', borderRadius: 10, padding: 12, marginBottom: 4, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                    <IconSymbol name="info.circle.fill" size={15} color={colors.primary} style={{ marginTop: 1 }} />
+                    <ThemedText style={{ fontSize: 13, color: colors.primary, flex: 1, lineHeight: 18 }}>
+                        {i18n.t('folders.restrictions.allowed_types_info', { types: allowedTypeLabels })}
+                    </ThemedText>
+                </View>
+            )}
+
             {/* Type Selection */}
             <Controller
                 control={control}
@@ -179,6 +204,8 @@ export const EditDetailsStep = ({
                                 currentType={selectedType}
                                 placeholder={i18n.t('filters.sections.type_placeholder')}
                                 disabled={loadingTypes}
+                                allowedTypeIds={allowedTypeIds}
+                                allowedTransactionTypes={allowedTransactionTypes}
                             />
                         </FormField>
                     );

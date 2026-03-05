@@ -470,7 +470,7 @@ export const de = {
             actions: {
                 remove_access: 'Zugriff entfernen',
                 remove_title: 'Zugriff entfernen',
-                remove_message: 'Sind Sie sicher, dass Sie den Zugriff für {name} entfernen möchten?',
+                remove_message: 'Sind Sie sicher, dass Sie den Zugriff für {{name}} entfernen möchten?',
                 remove_error: 'Zugriff konnte nicht entfernt werden',
                 update_error: 'Berechtigung konnte nicht aktualisiert werden',
             },
@@ -571,6 +571,8 @@ export const de = {
             error_select_user: 'Bitte wählen Sie einen Benutzer aus',
             error_select_group: 'Bitte wählen Sie eine Gruppe aus',
             error_no_members: 'Diese Gruppe hat keine Mitglieder.',
+            error_no_eligible_members: 'Alle Gruppenmitglieder haben bereits Zugriff auf diesen Ordner.',
+            error_only_self_in_group: 'Sie sind das einzige Mitglied in dieser Gruppe. Fügen Sie zuerst Mitglieder hinzu.',
             error_group_share_failed: 'Teilen mit {{count}} Personen fehlgeschlagen.',
             error_generic: 'Teilen fehlgeschlagen',
             tab_person: 'Person',

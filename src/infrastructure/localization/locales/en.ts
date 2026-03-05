@@ -142,6 +142,8 @@ export const en = {
             add: 'Add',
             move: 'Move',
             tapToView: 'Tap to view',
+            continue: 'Continue',
+            remove: 'Remove',
         },
         confirm_action: 'Are you sure?',
         confirm_delete: '{{item}} will be deleted.',
@@ -363,6 +365,11 @@ export const en = {
         settings: 'Settings'
     },
     folders: {
+        restrictions: {
+            type_not_allowed: 'This document type is not allowed in this folder.',
+            transaction_type_not_allowed: 'This transaction type is not allowed in this folder.',
+            allowed_types_info: 'Only these types can be uploaded to this folder: {{types}}',
+        },
         titles: {
             create: 'New Folder',
             edit: 'Edit Folder'
@@ -450,7 +457,7 @@ export const en = {
             actions: {
                 remove_access: 'Remove Access',
                 remove_title: 'Remove Access',
-                remove_message: 'Are you sure you want to remove access for {name}?',
+                remove_message: 'Are you sure you want to remove access for {{name}}?',
                 remove_error: 'Failed to remove access',
                 update_error: 'Failed to update permission',
             },
@@ -481,6 +488,8 @@ export const en = {
         export_messages: {
             failed: 'Export failed.',
             error: 'An error occurred during export.',
+            limit_title: 'Document Limit',
+            limit_message: 'This folder has {{total}} documents, but only the first {{limit}} will be exported. Do you want to continue?',
         },
         export_modal: {
             title: 'Export',
@@ -489,10 +498,15 @@ export const en = {
         },
         import_modal: {
             title: 'Import to Folder',
-            description: 'Upload a JSON or XML file to import documents.',
+            description: 'Upload a JSON, XML or ZIP file to import documents.',
             pick_file: 'Tap to select file',
             note: 'Importing creates new document records. Duplicate invoice numbers may be created depending on system settings.',
             action: 'Import',
+            action_count: 'Import ({{count}})',
+            previewing: 'Analyzing documents...',
+            preview_title: 'Import Preview',
+            preview_count: '{{count}} document(s) will be imported',
+            preview_empty: 'No importable documents found.',
             success_title: 'Import Successful',
             success_message: '{{count}} document(s) imported successfully.',
             error: 'An error occurred during import.',
@@ -551,12 +565,21 @@ export const en = {
             error_select_user: 'Please select a user',
             error_select_group: 'Please select a group',
             error_no_members: 'This group has no members.',
+            error_no_eligible_members: 'All group members already have access to this folder.',
+            error_only_self_in_group: 'You are the only member in this group. Add members to the group first.',
             error_group_share_failed: 'Failed to share with {{count}} people.',
             error_generic: 'Sharing failed',
             tab_person: 'Person',
             tab_group: 'Group',
+            tab_persons: 'People',
+            tab_groups: 'Groups',
+            tab_settings: 'Settings',
+            back_to_persons: 'People',
+            filter_persons: 'Search name or email...',
+            add_group: 'Add Group',
             select_group: 'Select Group',
             no_groups: 'You have no groups yet.',
+            no_groups_cta: 'Create a group to easily share with multiple people at once.',
             member_count: 'Members',
         }
     },

@@ -27,7 +27,7 @@ interface AttachmentType {
 export default function AttachmentTypePickerScreen() {
     const { colors } = useSettings();
     const router = useRouter();
-    const { selectedId, allowedTypeIds } = useLocalSearchParams<{ selectedId?: string; allowedTypeIds?: string }>();
+    const { selectedId, allowedTypeIds, allowedTransactionTypes } = useLocalSearchParams<{ selectedId?: string; allowedTypeIds?: string; allowedTransactionTypes?: string }>();
     const { onTypeSelect } = usePicker();
 
     const [types, setTypes] = useState<AttachmentType[]>([]);
@@ -61,13 +61,24 @@ export default function AttachmentTypePickerScreen() {
             }
         }
 
+        // Filter by allowedTransactionTypes if present (NEUTRAL always allowed)
+        if (allowedTransactionTypes) {
+            const allowedTxTypes = allowedTransactionTypes.split(',');
+            if (allowedTxTypes.length > 0) {
+                currentTypes = currentTypes.filter(t => {
+                    const txType = (t as any).transactionType?.name || 'NEUTRAL';
+                    return txType === 'NEUTRAL' || allowedTxTypes.includes(txType);
+                });
+            }
+        }
+
         if (!searchQuery.trim()) return currentTypes;
         const lowerQuery = searchQuery.toLowerCase();
         return currentTypes.filter(t => {
             const label = getAttachmentTypeLabel(t.name).toLowerCase();
             return t.name.toLowerCase().includes(lowerQuery) || label.includes(lowerQuery);
         });
-    }, [types, searchQuery, allowedTypeIds]);
+    }, [types, searchQuery, allowedTypeIds, allowedTransactionTypes]);
 
     const handleSelect = (type: AttachmentType | null) => {
         onTypeSelect(type);

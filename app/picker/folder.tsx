@@ -505,7 +505,7 @@ export default function FolderPickerScreen() {
                                         : I18nLocal.t('folders.picker.select_folder_error', { defaultValue: 'Bir klasör seçin' }))
                                     : (currentFolder
                                         ? `"${currentFolder.name}" ${I18nLocal.t('common.actions.select', { defaultValue: 'Seç' })}`
-                                        : I18nLocal.t('folders.picker.all'))
+                                        : `${I18nLocal.t('folders.picker.root_directory', { defaultValue: 'Ana Dizin' })} ${I18nLocal.t('common.actions.select', { defaultValue: 'Seç' })}`)
                         }
                         onPress={() => {
                             if (isMoveMode) {

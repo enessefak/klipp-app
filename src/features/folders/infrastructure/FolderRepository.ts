@@ -81,6 +81,7 @@ export const FolderRepository = {
                 requiresApproval: dto.requiresApproval ?? false,
                 isConfidential: dto.isConfidential ?? false,
                 allowedTransactionTypes: (dto.allowedTransactionTypes || []) as any,
+                allowedTypeIds: (dto.allowedTypeIds || []) as any,
             });
 
 
@@ -115,6 +116,8 @@ export const FolderRepository = {
                 parentId: folder.parentId || undefined,
                 createdAt: folder.createdAt,
                 permission: folder.permission,
+                allowedTypeIds: folder.allowedTypeIds ?? [],
+                allowedTransactionTypes: (folder.allowedTransactionTypes ?? []) as any,
                 owner: {
                     id: folder.userId,
                     name: '', // Not returned by API for getFolderById
@@ -146,6 +149,7 @@ export const FolderRepository = {
                 requiresApproval: dto.requiresApproval ?? false,
                 isConfidential: dto.isConfidential ?? false,
                 allowedTransactionTypes: (dto.allowedTransactionTypes || []) as any,
+                allowedTypeIds: (dto.allowedTypeIds || []) as any,
             });
 
 

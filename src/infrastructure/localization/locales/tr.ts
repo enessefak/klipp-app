@@ -222,6 +222,8 @@ export const tr = {
             add: 'Ekle',
             move: 'Taşı',
             tapToView: 'Görüntülemek için dokunun',
+            continue: 'Devam Et',
+            remove: 'Kaldır',
         },
         units: {
             day: 'Gün',
@@ -434,6 +436,11 @@ export const tr = {
         },
     },
     folders: {
+        restrictions: {
+            type_not_allowed: 'Bu belge türü bu klasörde kullanılamaz.',
+            transaction_type_not_allowed: 'Bu işlem tipi bu klasörde kullanılamaz.',
+            allowed_types_info: 'Bu klasöre sadece şu türler yüklenebilir: {{types}}',
+        },
         titles: {
             create: 'Yeni Klasör',
             edit: 'Klasörü Düzenle'
@@ -521,7 +528,7 @@ export const tr = {
             actions: {
                 remove_access: 'Erişimi Kaldır',
                 remove_title: 'Erişimi Kaldır',
-                remove_message: '{name} kullanıcısının erişimini kaldırmak istiyor musunuz?',
+                remove_message: '{{name}} kullanıcısının erişimini kaldırmak istiyor musunuz?',
                 remove_error: 'Erişim kaldırılamadı',
                 update_error: 'Yetki güncellenemedi',
             },
@@ -552,6 +559,8 @@ export const tr = {
         export_messages: {
             failed: 'Dışa aktarma başarısız oldu.',
             error: 'Dışa aktarma sırasında bir hata oluştu.',
+            limit_title: 'Belge Limiti',
+            limit_message: 'Bu klasörde {{total}} belge var, ancak yalnızca ilk {{limit}} tanesi dışa aktarılacak. Devam etmek istiyor musunuz?',
         },
         export_modal: {
             title: 'Dışa Aktar',
@@ -560,10 +569,15 @@ export const tr = {
         },
         import_modal: {
             title: 'Klasöre İçe Aktar',
-            description: 'Belgeleri içe aktarmak için JSON veya XML dosyası yükleyin.',
+            description: 'Belgeleri içe aktarmak için JSON, XML veya ZIP dosyası yükleyin.',
             pick_file: 'Dosya seçmek için dokunun',
             note: 'İçe aktarma, yeni belge kayıtları oluşturur. Sistem ayarlarına bağlı olarak yinelenen fatura numaraları oluşabilir.',
             action: 'İçe Aktar',
+            action_count: 'İçe Aktar ({{count}})',
+            previewing: 'Belgeler analiz ediliyor...',
+            preview_title: 'İçe Aktarma Önizleme',
+            preview_count: '{{count}} belge içe aktarılacak',
+            preview_empty: 'İçe aktarılacak belge bulunamadı.',
             success_title: 'İçe Aktarma Başarılı',
             success_message: '{{count}} belge başarıyla içe aktarıldı.',
             error: 'İçe aktarma sırasında bir hata oluştu.',
@@ -622,12 +636,21 @@ export const tr = {
             error_select_user: 'Lütfen bir kullanıcı seçin',
             error_select_group: 'Lütfen bir grup seçin',
             error_no_members: 'Bu grupta üye yok.',
+            error_no_eligible_members: 'Gruptaki tüm üyeler zaten bu klasöre erişime sahip.',
+            error_only_self_in_group: 'Bu grupta sizden başka üye yok. Gruba üye ekleyin.',
             error_group_share_failed: '{{count}} kişi ile paylaşılamadı.',
             error_generic: 'Paylaşım başarısız oldu',
             tab_person: 'Kişi',
             tab_group: 'Grup',
+            tab_persons: 'Kişiler',
+            tab_groups: 'Gruplar',
+            tab_settings: 'Ayarlar',
+            back_to_persons: 'Kişiler',
+            filter_persons: 'İsim veya e-posta ara...',
+            add_group: 'Grup Ekle',
             select_group: 'Grup Seçin',
             no_groups: 'Henüz hiç grubunuz yok.',
+            no_groups_cta: 'Grup oluşturarak birden fazla kişiyle kolayca paylaşabilirsiniz.',
             member_count: 'Üye',
         }
     },

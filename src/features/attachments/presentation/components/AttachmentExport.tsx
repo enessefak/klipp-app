@@ -1,31 +1,32 @@
 import { FileDownloadService } from '@/src/features/attachments/application/FileDownloadService';
-import { AttachmentService } from '@/src/features/attachments/data/AttachmentService';
-import { EInvoiceSettingsRepository } from '@/src/features/e-invoices/data/EInvoiceSettingsRepository';
 import { useSettings } from '@/src/features/settings/presentation/SettingsContext';
 import { OpenAPI } from '@/src/infrastructure/api/generated/core/OpenAPI';
 import { ExportService } from '@/src/infrastructure/api/generated/services/ExportService';
-import { UserService } from '@/src/infrastructure/api/generated/services/UserService';
 import i18n from '@/src/infrastructure/localization/i18n';
 import { Ionicons } from '@expo/vector-icons';
-import { Href, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { FieldConfig } from '../../domain/AttachmentTypeFields';
 import { MissingCompanyInfoModal } from './MissingCompanyInfoModal';
 
 interface AttachmentExportProps {
     attachmentId: string;
-    fieldConfig?: FieldConfig[];
 }
 
 interface ExportFormat {
     code: string;
     name: string;
-    description?: string;
 }
 
-const GENERIC_FORMATS = ['JSON', 'CSV', 'XML', 'EXCEL', 'TR_EXCEL'];
+// Extension map — single source of truth, matches API format codes
+const FORMAT_EXT: Record<string, string> = {
+    UBL: 'xml', PEPPOL_BIS: 'xml', TR_UBL: 'xml',
+    DE_XRECHNUNG: 'xml', IT_FATTURAPA: 'xml', EU_UBL: 'xml', EU_CII: 'xml',
+    DE_ZUGFERD: 'pdf', FR_FACTURX: 'pdf',
+    PDF: 'pdf',
+    TR_EXCEL: 'xlsx', EXCEL: 'xlsx', DE_DATEV: 'csv',
+    JSON: 'json', XML: 'xml', CSV: 'csv',
+};
 
 const FORMAT_GROUPS = [
     {
@@ -46,11 +47,11 @@ const FORMAT_GROUPS = [
 ];
 
 const getFormatIcon = (code: string): string => {
-    if (code === 'PDF') return 'document-outline';
-    if (code === 'JSON' || code === 'EU_UBL') return 'code-slash-outline';
-    if (code === 'XML') return 'code-outline';
-    if (code === 'CSV') return 'list-outline';
-    if (code === 'EXCEL' || code === 'TR_EXCEL' || code === 'DE_DATEV') return 'grid-outline';
+    if (code === 'PDF' || code === 'DE_ZUGFERD' || code === 'FR_FACTURX') return 'document-outline';
+    if (code === 'JSON') return 'code-slash-outline';
+    if (code === 'XML' || code.endsWith('UBL') || code.endsWith('CII') || code.endsWith('XRECHNUNG') || code.endsWith('FATTURAPA')) return 'code-outline';
+    if (code === 'CSV' || code === 'DE_DATEV') return 'list-outline';
+    if (code === 'EXCEL' || code === 'TR_EXCEL') return 'grid-outline';
     return 'document-text-outline';
 };
 
@@ -74,17 +75,14 @@ const groupFormats = (formats: ExportFormat[]) => {
     return result;
 };
 
-export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId, fieldConfig = [] }) => {
-    const router = useRouter();
+export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId }) => {
     const [formats, setFormats] = useState<ExportFormat[]>([]);
     const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
-    const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set(['base', 'metadata']));
     const [showMissingModal, setShowMissingModal] = useState(false);
     const [missingFields, setMissingFields] = useState<string[]>([]);
     const [missingInfoMessage, setMissingInfoMessage] = useState<string | undefined>(undefined);
     const [loadingFormats, setLoadingFormats] = useState(true);
     const [exporting, setExporting] = useState(false);
-    const [showAdvanced, setShowAdvanced] = useState(false);
 
     const { colors } = useSettings();
 
@@ -92,24 +90,15 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
         loadFormats();
     }, []);
 
-    useEffect(() => {
-        if (selectedFormat && GENERIC_FORMATS.includes(selectedFormat)) {
-            setShowAdvanced(true);
-        } else {
-            setShowAdvanced(false);
-        }
-    }, [selectedFormat]);
-
     const loadFormats = async () => {
         try {
             const response = await ExportService.getExportFormats();
             if (response.success && response.data && response.data.length > 0) {
-                const mapped = response.data.map(f => ({
-                    code: f.code,
-                    name: f.name,
-                    description: f.extension,
-                }));
-                setFormats(mapped);
+                // Exclude bulk-only ZIP format from single attachment export
+                setFormats(response.data
+                    .filter(f => f.code !== 'ZIP')
+                    .map(f => ({ code: f.code, name: f.name }))
+                );
             } else {
                 throw new Error('No formats from API');
             }
@@ -137,134 +126,15 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
         }
     };
 
-    const checkCompanyInfo = async (format: string): Promise<{ proceed: boolean; source?: 'folder' | 'profile' }> => {
-        const officialFormats = ['TR_UBL', 'UBL', 'PEPPOL_BIS', 'DE_ZUGFERD', 'TR_EXCEL'];
-        if (!officialFormats.includes(format)) return { proceed: true, source: 'folder' };
-
-        try {
-            const attachment = await AttachmentService.getAttachmentById(attachmentId);
-            if (!attachment) return { proceed: true, source: 'folder' };
-            const folderId = attachment.folderId;
-
-            let folderSettings = null;
-            try {
-                if (folderId) {
-                    folderSettings = await EInvoiceSettingsRepository.getSettings(folderId);
-                }
-            } catch (e) {}
-
-            const hasFolderInfo = !!(folderSettings?.taxNumber && folderSettings?.companyName);
-
-            const userRes = await UserService.getUsersMe();
-            const profile = userRes.data;
-            const hasProfileInfo = !!(profile?.taxNumber && profile?.name);
-
-            return new Promise((resolve) => {
-                if (hasFolderInfo && hasProfileInfo) {
-                    Alert.alert(
-                        i18n.t('common.export_company_info.multiple_sources_title') || 'Multiple Company Info Found',
-                        i18n.t('common.export_company_info.multiple_sources_message') || 'Both Folder settings and your Profile contain company information. Which one would you like to use for this invoice?',
-                        [
-                            {
-                                text: i18n.t('common.export_company_info.use_folder') || 'Use Folder Info',
-                                style: 'default',
-                                onPress: () => resolve({ proceed: true, source: 'folder' }),
-                            },
-                            {
-                                text: i18n.t('common.export_company_info.use_profile') || 'Use Profile Info',
-                                style: 'default',
-                                onPress: () => resolve({ proceed: true, source: 'profile' }),
-                            },
-                            {
-                                text: i18n.t('common.actions.cancel'),
-                                style: 'cancel',
-                                onPress: () => resolve({ proceed: false }),
-                            },
-                        ]
-                    );
-                } else if (hasFolderInfo) {
-                    resolve({ proceed: true, source: 'folder' });
-                } else if (hasProfileInfo) {
-                    Alert.alert(
-                        i18n.t('common.export_company_info.use_profile_title'),
-                        i18n.t('common.export_company_info.use_profile_message'),
-                        [
-                            {
-                                text: i18n.t('common.export_company_info.add_to_folder'),
-                                style: 'default',
-                                onPress: () => {
-                                    router.push({
-                                        pathname: `/folders/edit/${folderId}`,
-                                        params: { initialTab: 'efatura' },
-                                    } as Href);
-                                    resolve({ proceed: false });
-                                },
-                            },
-                            {
-                                text: i18n.t('common.export_company_info.use_profile'),
-                                style: 'default',
-                                onPress: () => resolve({ proceed: true, source: 'profile' }),
-                            },
-                            {
-                                text: i18n.t('common.actions.cancel'),
-                                style: 'cancel',
-                                onPress: () => resolve({ proceed: false }),
-                            },
-                        ]
-                    );
-                } else {
-                    Alert.alert(
-                        i18n.t('common.export_company_info.missing_title'),
-                        i18n.t('common.export_company_info.missing_message'),
-                        [
-                            {
-                                text: i18n.t('common.export_company_info.add_to_folder'),
-                                style: 'default',
-                                onPress: () => {
-                                    router.push({
-                                        pathname: `/folders/edit/${folderId}`,
-                                        params: { initialTab: 'efatura' },
-                                    } as Href);
-                                    resolve({ proceed: false });
-                                },
-                            },
-                            {
-                                text: i18n.t('common.export_company_info.go_to_profile'),
-                                onPress: () => {
-                                    setShowMissingModal(true);
-                                    resolve({ proceed: false });
-                                },
-                            },
-                            {
-                                text: i18n.t('common.actions.cancel'),
-                                style: 'cancel',
-                                onPress: () => resolve({ proceed: false }),
-                            },
-                        ]
-                    );
-                }
-            });
-        } catch (error) {
-            return { proceed: true, source: 'folder' };
-        }
-    };
-
     const handleExport = async (format: string) => {
-        const checkResult = await checkCompanyInfo(format);
-        if (!checkResult.proceed) return;
-
-        const sourceParam = checkResult.source ? `&source=${checkResult.source}` : '';
         setExporting(true);
         try {
-            const isGeneric = GENERIC_FORMATS.includes(format);
-            const fieldsParam = isGeneric ? Array.from(selectedFields).join(',') : '';
-            const baseUrl = OpenAPI.BASE;
-            const selectedFieldsQuery = fieldsParam ? `&selectedFields=${fieldsParam}` : '';
-            const downloadUrl = `${baseUrl}/export/attachment/${attachmentId}?format=${format}${selectedFieldsQuery}${sourceParam}`;
+            const ext = FORMAT_EXT[format] || format.toLowerCase();
+            const downloadUrl = `${OpenAPI.BASE}/export/attachment/${attachmentId}?format=${format}`;
 
             await FileDownloadService.downloadAndShare(
                 downloadUrl,
-                `export_${attachmentId}.${format.toLowerCase().includes('json') ? 'json' : format.toLowerCase().includes('xml') ? 'xml' : format.toLowerCase()}`
+                `export_${attachmentId}.${ext}`
             );
         } catch (error: any) {
             const errBody = error.body || error;
@@ -285,7 +155,6 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
     }
 
     const grouped = groupFormats(formats);
-    const isGenericSelected = selectedFormat ? GENERIC_FORMATS.includes(selectedFormat) : false;
 
     return (
         <View style={{ flex: 1 }}>
@@ -337,65 +206,6 @@ export const AttachmentExport: React.FC<AttachmentExportProps> = ({ attachmentId
                         </View>
                     </View>
                 ))}
-
-                {isGenericSelected && (
-                    <View style={styles.advancedSection}>
-                        <TouchableOpacity
-                            style={[styles.advancedHeader, { borderBottomColor: colors.border }]}
-                            onPress={() => setShowAdvanced(!showAdvanced)}
-                        >
-                            <Text style={[styles.advancedTitle, { color: colors.text }]}>
-                                {i18n.t('advancedOptions') || 'Advanced Options'}
-                            </Text>
-                            <Ionicons name={showAdvanced ? 'chevron-up' : 'chevron-down'} size={20} color={colors.text} />
-                        </TouchableOpacity>
-
-                        {showAdvanced && (
-                            <View style={[styles.advancedContent, { backgroundColor: colors.card }]}>
-                                <View style={styles.optionRow}>
-                                    <Text style={{ color: colors.text }}>Base Info</Text>
-                                    <Switch
-                                        value={selectedFields.has('base')}
-                                        onValueChange={(val) => {
-                                            const newSet = new Set(selectedFields);
-                                            val ? newSet.add('base') : newSet.delete('base');
-                                            setSelectedFields(newSet);
-                                        }}
-                                        trackColor={{ false: '#767577', true: colors.primary }}
-                                    />
-                                </View>
-
-                                {fieldConfig.map((field) => (
-                                    <View key={field.key} style={styles.optionRow}>
-                                        <Text style={{ color: colors.text }}>{field.label}</Text>
-                                        <Switch
-                                            value={selectedFields.has(field.key)}
-                                            onValueChange={(val) => {
-                                                const newSet = new Set(selectedFields);
-                                                val ? newSet.add(field.key) : newSet.delete(field.key);
-                                                setSelectedFields(newSet);
-                                            }}
-                                            trackColor={{ false: '#767577', true: colors.primary }}
-                                        />
-                                    </View>
-                                ))}
-
-                                <View style={styles.optionRow}>
-                                    <Text style={{ color: colors.text }}>Include Audit Logs</Text>
-                                    <Switch
-                                        value={selectedFields.has('auditLogs')}
-                                        onValueChange={(val) => {
-                                            const newSet = new Set(selectedFields);
-                                            val ? newSet.add('auditLogs') : newSet.delete('auditLogs');
-                                            setSelectedFields(newSet);
-                                        }}
-                                        trackColor={{ false: '#767577', true: colors.primary }}
-                                    />
-                                </View>
-                            </View>
-                        )}
-                    </View>
-                )}
             </ScrollView>
 
             {selectedFormat && (
@@ -464,31 +274,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         textAlign: 'center',
         lineHeight: 16,
-    },
-    advancedSection: {
-        marginBottom: 16,
-    },
-    advancedHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    advancedTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    advancedContent: {
-        padding: 16,
-        marginTop: 8,
-        borderRadius: 8,
-    },
-    optionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
     },
     exportButtonContainer: {
         padding: 16,

@@ -404,26 +404,46 @@ export function CreateFolderScreen() {
 
                 {restrictDocTypes && (
                     <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
-                        {attachmentTypes.map(type => (
-                            <TouchableOpacity
-                                key={type.id}
-                                style={styles.checkboxRow}
-                                onPress={() => {
-                                    if (allowedTypeIds.includes(type.id)) {
-                                        setAllowedTypeIds(prev => prev.filter(id => id !== type.id));
-                                    } else {
-                                        setAllowedTypeIds(prev => [...prev, type.id]);
-                                    }
-                                }}
-                            >
-                                <IconSymbol
-                                    name={allowedTypeIds.includes(type.id) ? "checkmark.square.fill" : "square"}
-                                    size={20}
-                                    color={allowedTypeIds.includes(type.id) ? colors.primary : colors.textLight}
-                                />
-                                <ThemedText style={{ fontSize: 16 }}>{type.label}</ThemedText>
-                            </TouchableOpacity>
-                        ))}
+                        {(() => {
+                            const categoryOrder = ['FINANCIAL', 'INSURANCE', 'CONTRACT', 'IDENTITY', 'MEDICAL', 'VEHICLE', 'EDUCATION', 'PERSONNEL', 'OTHER'];
+                            const grouped: Record<string, typeof attachmentTypes> = {};
+                            for (const type of attachmentTypes) {
+                                const cat = (type as any).category || 'OTHER';
+                                if (!grouped[cat]) grouped[cat] = [];
+                                grouped[cat].push(type);
+                            }
+                            return categoryOrder
+                                .filter(cat => grouped[cat]?.length)
+                                .map(cat => (
+                                    <View key={cat} style={{ marginBottom: 16 }}>
+                                        <ThemedText style={{ fontSize: 11, fontWeight: '700', color: colors.textLight, letterSpacing: 0.8, marginBottom: 8, textTransform: 'uppercase' }}>
+                                            {i18n.t(`settings.documentTypes.form.categories.${cat}`)}
+                                        </ThemedText>
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 0 }}>
+                                            {grouped[cat].map(type => (
+                                                <TouchableOpacity
+                                                    key={type.id}
+                                                    style={[styles.checkboxRow, { width: '50%' }]}
+                                                    onPress={() => {
+                                                        if (allowedTypeIds.includes(type.id)) {
+                                                            setAllowedTypeIds(prev => prev.filter(id => id !== type.id));
+                                                        } else {
+                                                            setAllowedTypeIds(prev => [...prev, type.id]);
+                                                        }
+                                                    }}
+                                                >
+                                                    <IconSymbol
+                                                        name={allowedTypeIds.includes(type.id) ? "checkmark.square.fill" : "square"}
+                                                        size={20}
+                                                        color={allowedTypeIds.includes(type.id) ? colors.primary : colors.textLight}
+                                                    />
+                                                    <ThemedText style={{ fontSize: 14, flex: 1 }}>{type.label}</ThemedText>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                ));
+                        })()}
                     </View>
                 )}
             </View>

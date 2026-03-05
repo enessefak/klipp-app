@@ -448,7 +448,7 @@ export const es = {
             actions: {
                 remove_access: 'Eliminar Acceso',
                 remove_title: 'Eliminar Acceso',
-                remove_message: '¿Estás seguro de que deseas eliminar el acceso de {name}?',
+                remove_message: '¿Estás seguro de que deseas eliminar el acceso de {{name}}?',
                 remove_error: 'Error al eliminar acceso',
                 update_error: 'Error al actualizar permiso',
             },
@@ -549,6 +549,8 @@ export const es = {
             error_select_user: 'Selecciona un usuario',
             error_select_group: 'Selecciona un grupo',
             error_no_members: 'Este grupo no tiene miembros.',
+            error_no_eligible_members: 'Todos los miembros del grupo ya tienen acceso a esta carpeta.',
+            error_only_self_in_group: 'Eres el único miembro de este grupo. Agrega miembros al grupo primero.',
             error_group_share_failed: 'Error al compartir con {{count}} personas.',
             error_generic: 'Error al compartir',
             tab_person: 'Persona',

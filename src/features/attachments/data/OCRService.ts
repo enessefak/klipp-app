@@ -163,7 +163,12 @@ export class OCRService {
                 confidence: suggestedType?.confidence || 0,
             };
 
-        } catch (error) {
+        } catch (error: any) {
+            // Re-throw folder restriction errors so the UI can handle them properly
+            const errorCode = error?.body?.error || error?.code;
+            if (errorCode === 'attachment_type_not_allowed' || errorCode === 'transaction_type_not_allowed') {
+                throw error;
+            }
             console.error('OCR/AI Scan Error:', error);
             return {
                 rawText: '',
