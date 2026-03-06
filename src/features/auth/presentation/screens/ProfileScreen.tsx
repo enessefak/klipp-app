@@ -150,7 +150,7 @@ const WEB_LOGIN_URL = 'https://klipphq.com/auth/login?redirect=%2Fdashboard';
 
 export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
-    const { isPro, hasExternalSubscription, externalSubscription, refreshSubscriptionStatus, rcSubscription } = useRevenueCat();
+    const { isPro, hasExternalSubscription, externalSubscription, refreshSubscriptionStatus, rcSubscription, restorePurchases } = useRevenueCat();
     const router = useRouter();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const { unreadCount, refreshUnreadCount } = useNotifications();
@@ -170,6 +170,7 @@ export function ProfileScreen() {
 
     const [profileForm, setProfileForm] = useState<ProfileFormState>(() => buildProfileFormState(user));
     const [isSavingProfile, setIsSavingProfile] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
     const [isEditProfileModalVisible, setIsEditProfileModalVisible] = useState(false);
 
     const styles = useMemo(() => StyleSheet.create({
@@ -605,6 +606,22 @@ export function ProfileScreen() {
         router.push(isPro ? '/subscription/customer-center' : '/subscription/paywall');
     };
 
+    const handleRestore = async () => {
+        setIsRestoring(true);
+        try {
+            const info = await restorePurchases();
+            if (info === null) {
+                Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.alerts.restoreFailed'));
+            } else if (info.entitlements.active['pro_access']) {
+                Alert.alert(i18n.t('subscription.alerts.restoreSuccess'));
+            } else {
+                Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.alerts.restoreEmpty'));
+            }
+        } finally {
+            setIsRestoring(false);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={['top']} key={language}>
             {/* Header */}
@@ -654,6 +671,15 @@ export function ProfileScreen() {
                             </View>
                         }
                     />
+                    {!hasExternalSubscription && (
+                        <SettingItem
+                            icon="arrow.clockwise"
+                            iconColor="#8E8E93"
+                            title={i18n.t('subscription.actions.restore')}
+                            onPress={handleRestore}
+                            disabled={isRestoring}
+                        />
+                    )}
                 </SettingSection>
 
 

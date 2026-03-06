@@ -25,8 +25,10 @@ export function PaywallScreen() {
         refreshSubscriptionStatus,
         hasExternalSubscription,
         externalSubscription,
+        restorePurchases,
     } = useRevenueCat();
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
 
     const currentOffering = offerings?.current ?? null;
     const isBusy = isLoading || isRefreshing;
@@ -69,6 +71,23 @@ export function PaywallScreen() {
             router.replace('/subscription/customer-center');
         } else {
             Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.error.message'));
+        }
+    };
+
+    const handleRestore = async () => {
+        setIsRestoring(true);
+        try {
+            const info = await restorePurchases();
+            if (info === null) {
+                Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.alerts.restoreFailed'));
+            } else if (info.entitlements.active['pro_access']) {
+                Alert.alert(i18n.t('subscription.alerts.restoreSuccess'));
+                router.replace('/subscription/customer-center');
+            } else {
+                Alert.alert(i18n.t('subscription.error.title'), i18n.t('subscription.alerts.restoreEmpty'));
+            }
+        } finally {
+            setIsRestoring(false);
         }
     };
 
@@ -115,6 +134,14 @@ export function PaywallScreen() {
                             onPress={handleRetry}
                             loading={isRefreshing}
                             disabled={isRefreshing}
+                            style={styles.retryButton}
+                        />
+                        <Button
+                            title={i18n.t('subscription.actions.restore')}
+                            onPress={handleRestore}
+                            loading={isRestoring}
+                            disabled={isRestoring}
+                            variant="outline"
                             style={styles.retryButton}
                         />
                     </>
