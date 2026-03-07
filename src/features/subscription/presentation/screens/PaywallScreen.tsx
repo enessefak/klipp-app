@@ -218,7 +218,6 @@ export function PaywallScreen() {
                         onRestoreError={handlePurchaseError}
                         onDismiss={handleClose}
                     />
-                    {renderLegalFooter()}
                 </>
             ) : (
                 renderFallback()

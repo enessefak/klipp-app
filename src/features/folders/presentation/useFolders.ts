@@ -116,11 +116,12 @@ export function useFolders(parentId?: string, options?: UseFoldersOptions) {
         try {
             await FolderRepository.deleteFolder(id);
             setFolders(prev => prev.filter(f => f.id !== id));
+            fetchFolders();
         } catch (err) {
             console.error(err);
             throw err;
         }
-    }, []);
+    }, [fetchFolders]);
 
     const updateFolder = useCallback(async (id: string, data: CreateFolderDTO) => {
         try {
