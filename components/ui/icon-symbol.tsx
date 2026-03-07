@@ -123,6 +123,12 @@ const MAPPING = {
   'file-text': 'description',
   'graduation-cap': 'school',
   'heart-pulse': 'favorite',
+  'chart.bar.fill': 'bar-chart',
+  'chart.bar': 'bar-chart',
+  'arrow.up.right.circle': 'trending-up',
+  'arrow.down.right.circle': 'trending-down',
+  'car.fill': 'directions-car',
+  'creditcard.fill': 'credit-card',
 } as unknown as IconMapping;
 
 const BRAND_MAPPING: Record<string, ComponentProps<typeof FontAwesome6>['name']> = {

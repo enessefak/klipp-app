@@ -21,7 +21,6 @@ import { FolderRepository } from '../../infrastructure/FolderRepository';
 
 import { CreatePersonnelFolderModal } from '../components/CreatePersonnelFolderModal';
 import { FolderAddMenuSheet } from '../components/FolderAddMenuSheet';
-import { FolderCard } from '../components/FolderCard';
 import { FolderFilterBottomSheet } from '../components/FolderFilterBottomSheet';
 import { InboxTab } from '../components/InboxTab';
 import { useFolders } from '../useFolders';
@@ -219,12 +218,44 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
             marginHorizontal: 16,
             marginBottom: 12,
         },
-        // Folder Grid 
-        folderGrid: {
-            flexDirection: 'row',
-            flexWrap: 'wrap',
+        // Folder List
+        folderList: {
             paddingHorizontal: 16,
-            gap: 12,
+            gap: 8,
+        },
+        folderListItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 16,
+            backgroundColor: colors.card,
+            borderRadius: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            elevation: 2,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+        },
+        folderListIconContainer: {
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 16,
+        },
+        folderListInfo: {
+            flex: 1,
+        },
+        folderListName: {
+            fontSize: 16,
+            color: colors.text,
+        },
+        folderListMeta: {
+            fontSize: 12,
+            color: colors.textLight,
+            marginTop: 2,
         },
         emptyIcon: {
             marginBottom: 16,
@@ -484,20 +515,42 @@ export function FoldersScreen({ parentId: propParentId }: FoldersScreenProps) {
                         </View>
                     </View>
 
-                    {/* Folder Grid */}
-                    <View style={styles.folderGrid}>
-                        {filteredFolders.map((folder) => (
-                            <FolderCard
-                                key={folder.id}
-                                folder={folder}
-                                onPress={handlePressFolder}
-                                onShare={handleShareFolder}
-                                onExport={handleExportFolder}
-                                onEdit={handleEditFolder}
-                                onDelete={handleDeleteFolder}
-                                size="medium"
-                            />
-                        ))}
+                    {/* Folder List */}
+                    <View style={styles.folderList}>
+                        {filteredFolders.map((folder) => {
+                            const folderColor = folder.color || '#3B82F6';
+                            const metaParts: string[] = [];
+                            if (folder.childrenCount != null && folder.childrenCount > 0) {
+                                metaParts.push(`${folder.childrenCount} ${i18n.t('folders.subfolder_count')}`);
+                            }
+                            if (folder.attachmentCount != null && folder.attachmentCount > 0) {
+                                metaParts.push(`${folder.attachmentCount} ${i18n.t('folders.document_count')}`);
+                            }
+                            if (metaParts.length === 0) {
+                                metaParts.push(new Date(folder.createdAt).toLocaleDateString());
+                            }
+                            return (
+                                <TouchableOpacity
+                                    key={folder.id}
+                                    style={styles.folderListItem}
+                                    onPress={() => handlePressFolder(folder)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={[styles.folderListIconContainer, { backgroundColor: folderColor + '20' }]}>
+                                        <IconSymbol name={(folder.icon || 'folder.fill') as any} size={28} color={folderColor} />
+                                    </View>
+                                    <View style={styles.folderListInfo}>
+                                        <ThemedText type="defaultSemiBold" style={styles.folderListName}>
+                                            {folder.name}
+                                        </ThemedText>
+                                        <ThemedText style={styles.folderListMeta}>
+                                            {metaParts.join('  ·  ')}
+                                        </ThemedText>
+                                    </View>
+                                    <IconSymbol name="chevron.right" size={20} color={colors.gray} />
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
 
                     {/* Root Attachments */}

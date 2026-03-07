@@ -117,9 +117,7 @@ module.exports = {
             EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
             EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
         },
-        runtimeVersion: {
-            policy: 'appVersion',
-        },
+        runtimeVersion: '1.0.0',
         updates: {
             url: 'https://u.expo.dev/1c046509-b7d5-4810-9fa5-51cc9fdb409e',
         },

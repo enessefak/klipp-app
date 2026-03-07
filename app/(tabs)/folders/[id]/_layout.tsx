@@ -6,6 +6,7 @@ export default function FolderIdLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="documents" />
             <Stack.Screen name="e-invoices" />
+            <Stack.Screen name="stats" />
         </Stack>
     );
 }

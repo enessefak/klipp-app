@@ -18,6 +18,8 @@ export interface Folder {
         name: string;
         email: string;
     };
+    childrenCount?: number;
+    attachmentCount?: number;
 }
 
 export interface CreateFolderDTO {

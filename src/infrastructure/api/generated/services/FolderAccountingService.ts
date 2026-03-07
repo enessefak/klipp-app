@@ -15,6 +15,8 @@ export class FolderAccountingService {
      */
     public static getFoldersStats(
         folderId: string,
+        year?: string,
+        month?: string,
     ): CancelablePromise<{
         success: boolean;
         message?: string;
@@ -36,6 +38,13 @@ export class FolderAccountingService {
              * Count by transaction type (INCOME, EXPENSE, NEUTRAL)
              */
             byType?: Record<string, number>;
+            expiringCount?: number;
+            byDocumentCategory?: Record<string, {
+                count: number;
+                expiringCount?: number;
+                types: Array<{ name: string; label: string; count: number }>;
+                stats?: Record<string, any>;
+            }>;
             lastUpdated?: string;
             financial?: {
                 combined?: {
@@ -59,6 +68,10 @@ export class FolderAccountingService {
             url: '/folders/{folderId}/stats',
             path: {
                 'folderId': folderId,
+            },
+            query: {
+                'year': year,
+                'month': month,
             },
             errors: {
                 403: `Default Response`,

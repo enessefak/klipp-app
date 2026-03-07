@@ -702,31 +702,52 @@ export function FolderDetailScreen() {
                         borderBottomWidth: 1,
                         borderColor: colors.cardBorder,
                     }}>
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
                             <TouchableOpacity
-                                style={styles.shareIconButton}
+                                style={{ alignItems: 'center', gap: 4 }}
                                 onPress={() => router.push(`/folders/edit/${currentFolder?.id}`)}
                             >
-                                <IconSymbol name="pencil" size={22} color={colors.primary} />
+                                <View style={styles.shareIconButton}>
+                                    <IconSymbol name="pencil" size={20} color={colors.primary} />
+                                </View>
+                                <ThemedText style={{ fontSize: 10, color: colors.textLight }}>{i18n.t('folders.actions.edit')}</ThemedText>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.shareIconButton}
+                                style={{ alignItems: 'center', gap: 4 }}
+                                onPress={() => router.push({ pathname: `/folders/${folderId}/stats`, params: { folderName: currentFolder?.name } } as any)}
+                            >
+                                <View style={styles.shareIconButton}>
+                                    <IconSymbol name="chart.bar.fill" size={20} color={colors.primary} />
+                                </View>
+                                <ThemedText style={{ fontSize: 10, color: colors.textLight }}>{i18n.t('folders.actions.stats')}</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ alignItems: 'center', gap: 4 }}
                                 onPress={() => setShareModalVisible(true)}
                             >
-                                <IconSymbol name="person.badge.plus" size={22} color={colors.primary} />
+                                <View style={styles.shareIconButton}>
+                                    <IconSymbol name="person.badge.plus" size={20} color={colors.primary} />
+                                </View>
+                                <ThemedText style={{ fontSize: 10, color: colors.textLight }}>{i18n.t('folders.actions.share')}</ThemedText>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.shareIconButton}
+                                style={{ alignItems: 'center', gap: 4 }}
                                 onPress={() => setIsExportModalVisible(true)}
                             >
-                                <IconSymbol name="square.and.arrow.up" size={22} color={colors.primary} />
+                                <View style={styles.shareIconButton}>
+                                    <IconSymbol name="square.and.arrow.up" size={20} color={colors.primary} />
+                                </View>
+                                <ThemedText style={{ fontSize: 10, color: colors.textLight }}>{i18n.t('folders.actions.export')}</ThemedText>
                             </TouchableOpacity>
                             {!currentFolder?.isSystem && (
                                 <TouchableOpacity
-                                    style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}
+                                    style={{ alignItems: 'center', gap: 4 }}
                                     onPress={handleDelete}
                                 >
-                                    <IconSymbol name="trash.fill" size={22} color={colors.error} />
+                                    <View style={[styles.shareIconButton, { backgroundColor: colors.error + '15' }]}>
+                                        <IconSymbol name="trash.fill" size={20} color={colors.error} />
+                                    </View>
+                                    <ThemedText style={{ fontSize: 10, color: colors.error }}>{i18n.t('folders.actions.delete')}</ThemedText>
                                 </TouchableOpacity>
                             )}
                         </View>

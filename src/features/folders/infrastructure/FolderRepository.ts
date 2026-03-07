@@ -14,6 +14,8 @@ const mapFolder = (folder: any, fallbackParentId?: string | null): Folder => ({
     isConfidential: folder.isConfidential,
     allowedTransactionTypes: (folder.allowedTransactionTypes ?? []) as any,
     allowedTypeIds: folder.allowedTypeIds ?? [],
+    childrenCount: folder._count?.children ?? undefined,
+    attachmentCount: folder._count?.attachments ?? undefined,
 });
 
 
