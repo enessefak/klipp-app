@@ -117,12 +117,33 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
                 console.error('Project ID not found in app.json');
                 return null;
             }
+
+            // Check if Google Play Services is available (required for FCM/Expo push)
+            // Huawei devices without GMS will fail here
+            if (Platform.OS === 'android') {
+                const manufacturer = ((Device as any).manufacturer as string | null)?.toLowerCase() ?? '';
+                if (manufacturer.includes('huawei') || manufacturer.includes('honor')) {
+                    console.warn('Huawei device detected: Google Play Services may be unavailable. Push notifications may not work.');
+                }
+            }
+
             token = (await Notifications.getExpoPushTokenAsync({
                 projectId,
             })).data;
             console.log('Expo push token:', token);
-        } catch (error) {
-            console.error('Failed to get expo push token:', error);
+        } catch (error: any) {
+            // On Huawei/HMS devices without Google Play Services, FCM token retrieval fails
+            if (
+                Platform.OS === 'android' &&
+                (error?.message?.includes('Google Play') ||
+                    error?.message?.includes('GoogleApi') ||
+                    error?.message?.includes('SERVICE_NOT_AVAILABLE') ||
+                    error?.message?.includes('MISSING_INSTANCEID_SERVICE'))
+            ) {
+                console.warn('Push notifications not supported on this device (no Google Play Services). Huawei HMS devices require a separate integration.');
+            } else {
+                console.error('Failed to get expo push token:', error);
+            }
         }
     } else {
         console.log('Must use physical device for Push Notifications');

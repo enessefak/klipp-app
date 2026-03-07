@@ -10,9 +10,10 @@ import { formatSubscriptionPlan, resolveSubscriptionProviderKey } from '@/src/fe
 import i18n from '@/src/infrastructure/localization/i18n';
 import { useRevenueCat } from '@/src/infrastructure/revenuecat/RevenueCatProvider';
 import * as Clipboard from 'expo-clipboard';
+import * as Notifications from 'expo-notifications';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActionSheetIOS, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ActionSheetIOS, Alert, AppState, Linking, Modal, Platform, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SettingItemProps {
@@ -152,7 +153,7 @@ export function ProfileScreen() {
     const { logout, user, updateProfile, deleteAccount } = useAuth();
     const { isPro, hasExternalSubscription, externalSubscription, refreshSubscriptionStatus, rcSubscription, restorePurchases } = useRevenueCat();
     const router = useRouter();
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const { unreadCount, refreshUnreadCount } = useNotifications();
     const { pendingCount, refreshPendingCount } = useFolderSharing();
     const { language, setLanguage, theme, setTheme, colors } = useSettings();
@@ -331,9 +332,25 @@ export function ProfileScreen() {
         },
     }), [colors]);
 
+    const checkNotificationPermission = () => {
+        Notifications.getPermissionsAsync().then(({ status }) => {
+            setNotificationsEnabled(status === 'granted');
+        });
+    };
+
     useEffect(() => {
         refreshUnreadCount();
         refreshPendingCount();
+        checkNotificationPermission();
+
+        // Re-check permission when app comes back to foreground (e.g. after system settings)
+        const subscription = AppState.addEventListener('change', (nextState) => {
+            if (nextState === 'active') {
+                checkNotificationPermission();
+            }
+        });
+
+        return () => subscription.remove();
     }, []);
 
     useEffect(() => {
@@ -748,7 +765,18 @@ export function ProfileScreen() {
                         rightElement={
                             <Switch
                                 value={notificationsEnabled}
-                                onValueChange={setNotificationsEnabled}
+                                onValueChange={async (value) => {
+                                    if (value) {
+                                        const { status } = await Notifications.requestPermissionsAsync();
+                                        if (status === 'granted') {
+                                            setNotificationsEnabled(true);
+                                        } else {
+                                            Linking.openSettings();
+                                        }
+                                    } else {
+                                        Linking.openSettings();
+                                    }
+                                }}
                                 trackColor={{ false: colors.border, true: colors.primary }}
                                 thumbColor={colors.white}
                             />
