@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { getHmsPushToken, isHmsDevice } from '../data/HmsPushService';
 import { NotificationService } from '../data/NotificationService';
 
 // Configure notification behavior
@@ -17,7 +18,7 @@ Notifications.setNotificationHandler({
 });
 
 export function usePushNotifications(isAuthenticated: boolean = false) {
-    const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+    const [pushTokenResult, setPushTokenResult] = useState<{ token: string; platform: 'ios' | 'android' | 'huawei' } | null>(null);
     const [notification, setNotification] = useState<Notifications.Notification | null>(null);
     const notificationListener = useRef<Notifications.EventSubscription | null>(null);
     const responseListener = useRef<Notifications.EventSubscription | null>(null);
@@ -25,9 +26,9 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
 
     useEffect(() => {
         // Register for push notifications (get token regardless of auth status)
-        registerForPushNotificationsAsync().then(token => {
-            if (token) {
-                setExpoPushToken(token);
+        registerForPushNotificationsAsync().then(result => {
+            if (result) {
+                setPushTokenResult(result);
             }
         });
 
@@ -41,10 +42,8 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
             const data = response.notification.request.content.data;
             console.log('Notification response data:', data);
 
-            // Handle notification tap based on type
             if (data?.type === 'FOLDER_SHARE_INVITE' && data?.shareId) {
                 // Navigate to share invitation screen
-                // This will be handled by the component using this hook
             }
         });
 
@@ -60,10 +59,9 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
 
     // Register token with backend only when authenticated
     useEffect(() => {
-        if (isAuthenticated && expoPushToken && !tokenRegistered.current) {
+        if (isAuthenticated && pushTokenResult && !tokenRegistered.current) {
             console.log('Registering push token with backend...');
-            const platform = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
-            NotificationService.registerPushToken(expoPushToken, platform)
+            NotificationService.registerPushToken(pushTokenResult.token, pushTokenResult.platform)
                 .then(() => {
                     tokenRegistered.current = true;
                     console.log('Push token registered successfully');
@@ -72,17 +70,17 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
                     console.error('Failed to register push token with backend:', err);
                 });
         }
-    }, [isAuthenticated, expoPushToken]);
+    }, [isAuthenticated, pushTokenResult]);
 
     return {
-        expoPushToken,
+        expoPushToken: pushTokenResult?.token ?? null,
         notification,
     };
 }
 
-async function registerForPushNotificationsAsync(): Promise<string | null> {
-    let token: string | null = null;
+type TokenResult = { token: string; platform: 'ios' | 'android' | 'huawei' } | null;
 
+async function registerForPushNotificationsAsync(): Promise<TokenResult> {
     if (Platform.OS === 'web') {
         return null;
     }
@@ -94,6 +92,11 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#FF231F7C',
         });
+
+        // Check if this is a Huawei/HMS device (no Google Play Services)
+        if (isHmsDevice()) {
+            return await getHmsToken();
+        }
     }
 
     if (Device.isDevice) {
@@ -111,45 +114,32 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
         }
 
         try {
-            // Get projectId from app.json via expo-constants
             const projectId = Constants.expoConfig?.extra?.eas?.projectId;
             if (!projectId) {
                 console.error('Project ID not found in app.json');
                 return null;
             }
-
-            // Check if Google Play Services is available (required for FCM/Expo push)
-            // Huawei devices without GMS will fail here
-            if (Platform.OS === 'android') {
-                const manufacturer = ((Device as any).manufacturer as string | null)?.toLowerCase() ?? '';
-                if (manufacturer.includes('huawei') || manufacturer.includes('honor')) {
-                    console.warn('Huawei device detected: Google Play Services may be unavailable. Push notifications may not work.');
-                }
-            }
-
-            token = (await Notifications.getExpoPushTokenAsync({
-                projectId,
-            })).data;
+            const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
             console.log('Expo push token:', token);
-        } catch (error: any) {
-            // On Huawei/HMS devices without Google Play Services, FCM token retrieval fails
-            if (
-                Platform.OS === 'android' &&
-                (error?.message?.includes('Google Play') ||
-                    error?.message?.includes('GoogleApi') ||
-                    error?.message?.includes('SERVICE_NOT_AVAILABLE') ||
-                    error?.message?.includes('MISSING_INSTANCEID_SERVICE'))
-            ) {
-                console.warn('Push notifications not supported on this device (no Google Play Services). Huawei HMS devices require a separate integration.');
-            } else {
-                console.error('Failed to get expo push token:', error);
-            }
+            return { token, platform: Platform.OS === 'ios' ? 'ios' : 'android' };
+        } catch (error) {
+            console.error('Failed to get expo push token:', error);
+            return null;
         }
     } else {
         console.log('Must use physical device for Push Notifications');
+        return null;
     }
+}
 
-    return token;
+async function getHmsToken(): Promise<TokenResult> {
+    // SDK reads App ID from agconnect-services.json automatically
+    const token = await getHmsPushToken();
+    if (token) {
+        console.log('HMS push token:', token);
+        return { token, platform: 'huawei' };
+    }
+    return null;
 }
 
 /**

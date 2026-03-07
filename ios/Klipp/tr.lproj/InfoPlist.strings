@@ -1,0 +1,3 @@
+NSCameraUsageDescription = "Belge ve fiş taramak için kamera izni gereklidir.";
+NSPhotoLibraryUsageDescription = "Galeriden belge seçmek için fotoğraf izni gereklidir.";
+NSMicrophoneUsageDescription = "Video kaydı için mikrofon izni gereklidir.";

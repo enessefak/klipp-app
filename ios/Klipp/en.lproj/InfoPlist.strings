@@ -1,0 +1,3 @@
+NSCameraUsageDescription = "Camera access is required to scan documents and receipts.";
+NSPhotoLibraryUsageDescription = "Photo library access is required to select documents from gallery.";
+NSMicrophoneUsageDescription = "Microphone access is required for video recording.";

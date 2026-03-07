@@ -43,6 +43,13 @@ credentials.json
 
 app-example
 
-# generated native folders
-/ios
-/android
+# generated native folders (tracked because we have custom native code)
+# /ios
+# /android
+
+# But ignore build artifacts inside them
+/android/build
+/android/app/build
+/android/.gradle
+/ios/build
+/ios/Pods
