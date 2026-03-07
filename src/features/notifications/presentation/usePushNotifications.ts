@@ -17,12 +17,25 @@ Notifications.setNotificationHandler({
     }),
 });
 
-export function usePushNotifications(isAuthenticated: boolean = false) {
+type NotificationNavigateCallback = (data: {
+    type: string;
+    referenceId?: string;
+    referenceType?: string;
+    notificationId?: string;
+    [key: string]: any;
+}) => void;
+
+export function usePushNotifications(
+    isAuthenticated: boolean = false,
+    onNotificationTap?: NotificationNavigateCallback
+) {
     const [pushTokenResult, setPushTokenResult] = useState<{ token: string; platform: 'ios' | 'android' | 'huawei' } | null>(null);
     const [notification, setNotification] = useState<Notifications.Notification | null>(null);
     const notificationListener = useRef<Notifications.EventSubscription | null>(null);
     const responseListener = useRef<Notifications.EventSubscription | null>(null);
     const tokenRegistered = useRef(false);
+    const onNotificationTapRef = useRef(onNotificationTap);
+    onNotificationTapRef.current = onNotificationTap;
 
     useEffect(() => {
         // Register for push notifications (get token regardless of auth status)
@@ -32,19 +45,24 @@ export function usePushNotifications(isAuthenticated: boolean = false) {
             }
         });
 
+        // Handle notification tapped while app was killed/background
+        Notifications.getLastNotificationResponseAsync().then(response => {
+            if (response) {
+                const data = response.notification.request.content.data;
+                onNotificationTapRef.current?.(data as any);
+            }
+        });
+
         // Listen for incoming notifications while app is foregrounded
         notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
             setNotification(notification);
         });
 
-        // Listen for user interaction with notification
+        // Listen for user tapping a notification
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const data = response.notification.request.content.data;
-            console.log('Notification response data:', data);
-
-            if (data?.type === 'FOLDER_SHARE_INVITE' && data?.shareId) {
-                // Navigate to share invitation screen
-            }
+            console.log('Notification tapped, data:', data);
+            onNotificationTapRef.current?.(data as any);
         });
 
         return () => {

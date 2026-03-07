@@ -28,8 +28,49 @@ function RootLayoutContent() {
   const chatButtonBottom = 100 + Math.max(insets.bottom, 16);
   const chatButtonLeft = Math.max(insets.left, 20);
 
-  // Push notification listener - registers token with backend when authenticated
-  usePushNotifications(isAuthenticated);
+  // Push notification listener - navigate on tap
+  usePushNotifications(isAuthenticated, (data) => {
+    const type = (data?.type as string)?.toUpperCase();
+    const refType = (data?.referenceType as string)?.toUpperCase();
+    const refId = data?.referenceId as string | undefined;
+    const folderId = data?.folderId as string | undefined;
+
+    // ATTACHMENT_DELETED: attachment is gone, navigate to its folder
+    if (type === 'ATTACHMENT_DELETED') {
+      if (folderId) router.push(`/(tabs)/folders/${folderId}`);
+      else router.push('/notifications');
+      return;
+    }
+
+    // FOLDER_SHARE_ACCEPTED/REJECTED: owner gets notified, go to the shared folder
+    if (type === 'FOLDER_SHARE_ACCEPTED' || type === 'FOLDER_SHARE_REJECTED') {
+      if (folderId) router.push(`/(tabs)/folders/${folderId}`);
+      else router.push('/(tabs)/folders');
+      return;
+    }
+
+    switch (refType) {
+      case 'ATTACHMENT':
+      case 'DOCUMENT':
+        if (refId) router.push(`/attachment/${refId}`);
+        break;
+      case 'FOLDER':
+        if (refId) router.push(`/(tabs)/folders/${refId}`);
+        break;
+      case 'FOLDER_SHARE':
+      case 'FOLDERSHARE':
+      case 'SHARE':
+        router.push('/shared');
+        break;
+      case 'GROUP':
+        if (refId) router.push(`/groups/${refId}`);
+        else router.push('/groups');
+        break;
+      default:
+        if (data?.notificationId) router.push('/notifications');
+        break;
+    }
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

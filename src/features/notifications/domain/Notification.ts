@@ -1,7 +1,12 @@
-export type NotificationType = 
-    | 'FOLDER_SHARE_INVITE' 
-    | 'FOLDER_SHARE_ACCEPTED' 
-    | 'FOLDER_SHARE_REJECTED' 
+export type NotificationType =
+    | 'FOLDER_SHARE_INVITE'
+    | 'FOLDER_SHARE_ACCEPTED'
+    | 'FOLDER_SHARE_REJECTED'
+    | 'ATTACHMENT_CREATED'
+    | 'ATTACHMENT_UPDATED'
+    | 'ATTACHMENT_DELETED'
+    | 'ATTACHMENT_APPROVED'
+    | 'ATTACHMENT_REJECTED'
     | 'SYSTEM';
 
 export interface Notification {

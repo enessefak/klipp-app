@@ -27,8 +27,17 @@ const getNotificationIcon = (type: NotificationType): string => {
             return 'checkmark.circle.fill';
         case 'FOLDER_SHARE_REJECTED':
             return 'xmark.circle.fill';
+        case 'ATTACHMENT_CREATED':
+            return 'doc.badge.plus';
+        case 'ATTACHMENT_UPDATED':
+            return 'doc.badge.arrow.up';
+        case 'ATTACHMENT_DELETED':
+            return 'doc.badge.minus';
+        case 'ATTACHMENT_APPROVED':
+            return 'checkmark.seal.fill';
+        case 'ATTACHMENT_REJECTED':
+            return 'xmark.seal.fill';
         case 'SYSTEM':
-            return 'bell.fill';
         default:
             return 'bell.fill';
     }
@@ -39,11 +48,16 @@ const getNotificationColor = (type: NotificationType, colors: ThemeColors): stri
         case 'FOLDER_SHARE_INVITE':
             return colors.primary;
         case 'FOLDER_SHARE_ACCEPTED':
+        case 'ATTACHMENT_APPROVED':
             return colors.success;
         case 'FOLDER_SHARE_REJECTED':
+        case 'ATTACHMENT_REJECTED':
+        case 'ATTACHMENT_DELETED':
             return colors.error;
+        case 'ATTACHMENT_CREATED':
+        case 'ATTACHMENT_UPDATED':
+            return colors.primary;
         case 'SYSTEM':
-            return colors.gray;
         default:
             return colors.gray;
     }
@@ -216,7 +230,47 @@ export function NotificationsScreen() {
         if (!notification.isRead) {
             markOneAsRead(notification.id);
         }
-    }, [markOneAsRead]);
+
+        const type = notification.type;
+        const refType = (notification.referenceType as string)?.toUpperCase();
+        const refId = notification.referenceId;
+
+        // ATTACHMENT_DELETED: attachment no longer exists, navigate to its folder
+        if (type === 'ATTACHMENT_DELETED') {
+            const folderId = notification.data?.folderId as string | undefined;
+            if (folderId) router.push(`/(tabs)/folders/${folderId}` as any);
+            return;
+        }
+
+        // FOLDER_SHARE_ACCEPTED/REJECTED: owner is notified, go to the shared folder
+        if (type === 'FOLDER_SHARE_ACCEPTED' || type === 'FOLDER_SHARE_REJECTED') {
+            const folderId = notification.data?.folderId as string | undefined;
+            if (folderId) router.push(`/(tabs)/folders/${folderId}` as any);
+            else router.push('/(tabs)/folders' as any);
+            return;
+        }
+
+        switch (refType) {
+            case 'ATTACHMENT':
+            case 'DOCUMENT':
+                if (refId) router.push(`/attachment/${refId}` as any);
+                break;
+            case 'FOLDER':
+                if (refId) router.push(`/(tabs)/folders/${refId}` as any);
+                break;
+            case 'FOLDER_SHARE':
+            case 'FOLDERSHARE':
+            case 'SHARE':
+                router.push('/shared' as any);
+                break;
+            case 'GROUP':
+                if (refId) router.push(`/groups/${refId}` as any);
+                else router.push('/groups' as any);
+                break;
+            default:
+                break;
+        }
+    }, [markOneAsRead, router]);
 
     const handleAcceptShare = useCallback(async (notification: Notification) => {
         if (notification.data?.shareId) {
